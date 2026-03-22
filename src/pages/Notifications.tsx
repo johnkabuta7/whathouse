@@ -1,28 +1,56 @@
-import { CreditCard, AlertTriangle, MessageSquare, FileText } from 'lucide-react';
+import { useState } from 'react';
+import { CreditCard, AlertTriangle, MessageSquare, FileText, Check } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { mockNotifications } from '@/lib/mock-data';
+import { Button } from '@/components/ui/button';
+import { mockNotifications, Notification } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 
 const typeConfig = {
   payment: { icon: CreditCard, color: 'bg-accent/10 text-accent' },
   late: { icon: AlertTriangle, color: 'bg-destructive/10 text-destructive' },
   message: { icon: MessageSquare, color: 'bg-primary/10 text-primary' },
-  contract: { icon: FileText, color: 'bg-[hsl(38,92%,50%)]/10 text-[hsl(38,92%,50%)]' },
+  contract: { icon: FileText, color: 'bg-[hsl(var(--warning))]/10 text-[hsl(var(--warning))]' },
 };
 
 export default function Notifications() {
+  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const markAllRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const markRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
   return (
     <div className="px-4 py-6 max-w-lg mx-auto space-y-5">
-      <h1 className="text-xl font-extrabold text-foreground animate-fade-in">Notifications</h1>
+      <div className="flex items-center justify-between animate-fade-in">
+        <div>
+          <h1 className="text-xl font-extrabold text-foreground">Notifications</h1>
+          {unreadCount > 0 && (
+            <p className="text-xs text-muted-foreground mt-0.5">{unreadCount} non lue{unreadCount > 1 ? 's' : ''}</p>
+          )}
+        </div>
+        {unreadCount > 0 && (
+          <Button size="sm" variant="ghost" className="text-xs font-semibold text-primary active:scale-95" onClick={markAllRead}>
+            <Check className="h-3 w-3 mr-1" />
+            Tout lire
+          </Button>
+        )}
+      </div>
 
       <div className="space-y-2">
-        {mockNotifications.map((notif, i) => {
+        {notifications.map((notif, i) => {
           const config = typeConfig[notif.type];
           return (
             <Card
               key={notif.id}
+              onClick={() => markRead(notif.id)}
               className={cn(
-                'border-0 shadow-sm animate-slide-up',
+                'border-0 shadow-sm cursor-pointer animate-slide-up transition-all',
                 !notif.read && 'ring-1 ring-primary/20'
               )}
               style={{ animationDelay: `${100 + i * 60}ms` }}
