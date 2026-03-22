@@ -1,277 +1,114 @@
-import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
-import { ArrowRight, Utensils, Home, Compass, BookOpen, MapPin, Star, Users, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { Plus, UserPlus, CreditCard, CheckCircle2, Clock, AlertTriangle, ArrowRight, TrendingUp, Building2, Receipt } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { ListingCard } from '@/components/ListingCard';
-import { PostCard } from '@/components/PostCard';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { HorizontalScroll } from '@/components/HorizontalScroll';
-import { CategoryIcon } from '@/components/CategoryIcon';
-import { SearchBar } from '@/components/SearchBar';
-import { fetchListings, fetchPosts, searchListings, LISTING_CATEGORIES, POST_CATEGORIES } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { mockPayments, mockActivities, dashboardStats, currentUser } from '@/lib/mock-data';
+import { cn } from '@/lib/utils';
 
-const features = [
-  {
-    icon: Utensils,
-    label: 'Restaurants',
-    link: '/restaurants',
-  },
-  {
-    icon: Home,
-    label: 'Séjours',
-    link: '/sejours',
-  },
-  {
-    icon: Compass,
-    label: 'Attractions',
-    link: '/attractions',
-  },
-  {
-    icon: BookOpen,
-    label: 'Conseils',
-    link: '/conseils',
-  },
+const statusCards = [
+  { label: 'Payé', value: dashboardStats.paid, icon: CheckCircle2, color: 'text-accent bg-accent/10' },
+  { label: 'En attente', value: dashboardStats.pending, icon: Clock, color: 'text-[hsl(38,92%,50%)] bg-[hsl(38,92%,50%)]/10' },
+  { label: 'En retard', value: dashboardStats.late, icon: AlertTriangle, color: 'text-destructive bg-destructive/10' },
 ];
 
-const stats = [
-  { icon: MapPin, value: '300+', label: 'Lieux' },
-  { icon: Star, value: '4.8', label: 'Note' },
-  { icon: Users, value: '10K+', label: 'Visiteurs' },
+const quickActions = [
+  { label: 'Ajouter un bien', icon: Plus, href: '/biens' },
+  { label: 'Ajouter locataire', icon: UserPlus, href: '/biens' },
+  { label: 'Voir paiements', icon: CreditCard, href: '/paiements' },
 ];
+
+const activityIcons = {
+  payment: Receipt,
+  reminder: Clock,
+  contract: Building2,
+  message: CreditCard,
+};
 
 export default function Index() {
-  const navigate = useNavigate();
-  const [searchResults, setSearchResults] = useState<any[] | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-
-  const { data: restaurantsData, isLoading: loadingRestaurants } = useQuery({
-    queryKey: ['restaurants', 'featured'],
-    queryFn: () => fetchListings(LISTING_CATEGORIES.RESTAURANTS, 8),
-  });
-
-  const { data: sejoursData, isLoading: loadingSejours } = useQuery({
-    queryKey: ['sejours', 'featured'],
-    queryFn: () => fetchListings(LISTING_CATEGORIES.SEJOURS, 8),
-  });
-
-  const { data: conseilsData, isLoading: loadingConseils } = useQuery({
-    queryKey: ['conseils', 'featured'],
-    queryFn: () => fetchPosts(POST_CATEGORIES.CONSEILS, 6),
-  });
-
-  const handleSearch = async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults(null);
-      return;
-    }
-    setIsSearching(true);
-    try {
-      const results = await searchListings(query);
-      setSearchResults(results);
-    } catch (error) {
-      console.error('Search error:', error);
-    }
-    setIsSearching(false);
-  };
-
-  const handleLocationClick = (coords: { lat: number; lng: number }) => {
-    // Navigate to restaurants with location
-    navigate(`/restaurants?lat=${coords.lat}&lng=${coords.lng}`);
-  };
-
   return (
-    <div className="min-h-screen">
-      {/* Hero Section - Compact for mobile */}
-      <section className="relative hero-gradient py-8 md:py-16 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&q=80')] bg-cover bg-center opacity-20" />
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-2xl mx-auto text-center">
-            <h1 className="font-display text-2xl md:text-4xl font-bold text-primary-foreground mb-3 animate-fade-in">
-              Découvrez Kinshasa
-            </h1>
-            <p className="text-sm md:text-lg text-primary-foreground/90 mb-6">
-              Restaurants, hébergements et attractions pour un séjour inoubliable.
-            </p>
-            
-            {/* Search Bar */}
-            <div className="bg-card/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg">
-              <SearchBar
-                placeholder="Rechercher partout..."
-                onSearch={handleSearch}
-                onLocationClick={handleLocationClick}
-              />
-            </div>
+    <div className="px-4 py-6 space-y-6 max-w-lg mx-auto">
+      {/* Revenue Card */}
+      <Card className="bg-primary text-primary-foreground border-0 overflow-hidden relative animate-fade-in">
+        <CardContent className="p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="h-4 w-4 opacity-80" />
+            <p className="text-xs font-medium opacity-80">Revenus du mois</p>
           </div>
-        </div>
-      </section>
-
-      {/* Search Results */}
-      {(searchResults || isSearching) && (
-        <section className="py-6 bg-background">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-lg font-bold text-foreground">
-                Résultats de recherche
-              </h2>
-              <Button variant="ghost" size="sm" onClick={() => setSearchResults(null)}>
-                Effacer
-              </Button>
-            </div>
-            {isSearching ? (
-              <LoadingSpinner text="Recherche..." />
-            ) : searchResults && searchResults.length > 0 ? (
-              <HorizontalScroll>
-                {searchResults.map((listing) => (
-                  <div key={listing.id} className="w-64 shrink-0">
-                    <ListingCard listing={listing} type="restaurant" />
-                  </div>
-                ))}
-              </HorizontalScroll>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">Aucun résultat trouvé</p>
-            )}
+          <p className="text-3xl font-extrabold tracking-tight">{dashboardStats.totalCollected.toLocaleString()}€</p>
+          <p className="text-xs opacity-70 mt-1">sur {dashboardStats.totalRevenue.toLocaleString()}€ attendus</p>
+          <div className="mt-4 h-2 bg-primary-foreground/20 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary-foreground/60 rounded-full transition-all duration-700"
+              style={{ width: `${(dashboardStats.totalCollected / dashboardStats.totalRevenue) * 100}%` }}
+            />
           </div>
-        </section>
-      )}
+          <div className="mt-4">
+            <Button size="sm" variant="secondary" asChild className="rounded-xl font-semibold">
+              <Link to="/paiements">
+                Voir les paiements
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Stats Section - Compact */}
-      <section className="bg-card py-4 border-b border-border">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-center gap-8">
-            {stats.map((stat) => (
-              <div key={stat.label} className="flex items-center gap-2">
-                <div className="bg-primary/10 rounded-full p-2">
-                  <stat.icon className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="font-display text-lg font-bold text-foreground">{stat.value}</p>
-                  <p className="text-muted-foreground text-xs">{stat.label}</p>
-                </div>
+      {/* Status Cards */}
+      <div className="grid grid-cols-3 gap-3 animate-slide-up" style={{ animationDelay: '100ms' }}>
+        {statusCards.map((s) => (
+          <Card key={s.label} className="border-0 shadow-sm">
+            <CardContent className="p-3 flex flex-col items-center gap-1.5">
+              <div className={cn('p-2 rounded-xl', s.color)}>
+                <s.icon className="h-4 w-4" />
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              <p className="text-2xl font-extrabold text-foreground">{s.value}</p>
+              <p className="text-[10px] font-medium text-muted-foreground">{s.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-      {/* Categories - Icons only with horizontal scroll */}
-      <section className="py-6 bg-background">
-        <div className="container mx-auto px-4">
-          <h2 className="font-display text-lg font-bold text-foreground mb-4">
-            Explorez par catégorie
-          </h2>
-          <div className="flex justify-around md:justify-center md:gap-12">
-            {features.map((feature) => (
-              <CategoryIcon
-                key={feature.label}
-                icon={feature.icon}
-                label={feature.label}
-                link={feature.link}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Restaurants - Horizontal Scroll */}
-      <section className="py-6 bg-secondary/30">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-lg font-bold text-foreground">
-              Restaurants populaires
-            </h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/restaurants" className="text-primary">
-                Voir tout
-                <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-          {loadingRestaurants ? (
-            <LoadingSpinner />
-          ) : (
-            <HorizontalScroll>
-              {restaurantsData?.listings.map((listing) => (
-                <div key={listing.id} className="w-64 shrink-0">
-                  <ListingCard listing={listing} type="restaurant" />
-                </div>
-              ))}
-            </HorizontalScroll>
-          )}
-        </div>
-      </section>
-
-      {/* Featured Accommodations - Horizontal Scroll */}
-      <section className="py-6 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-lg font-bold text-foreground">
-              Hébergements recommandés
-            </h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/sejours" className="text-primary">
-                Voir tout
-                <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-          {loadingSejours ? (
-            <LoadingSpinner />
-          ) : (
-            <HorizontalScroll>
-              {sejoursData?.listings.map((listing) => (
-                <div key={listing.id} className="w-64 shrink-0">
-                  <ListingCard listing={listing} type="sejour" />
-                </div>
-              ))}
-            </HorizontalScroll>
-          )}
-        </div>
-      </section>
-
-      {/* Latest Blog Posts - Horizontal Scroll */}
-      <section className="py-6 bg-secondary/30">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-lg font-bold text-foreground">
-              Conseils aux voyageurs
-            </h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/conseils" className="text-primary">
-                Voir tout
-                <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-          {loadingConseils ? (
-            <LoadingSpinner />
-          ) : (
-            <HorizontalScroll>
-              {conseilsData?.posts.map((post) => (
-                <div key={post.id} className="w-72 shrink-0">
-                  <PostCard post={post} />
-                </div>
-              ))}
-            </HorizontalScroll>
-          )}
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-8 hero-gradient">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="font-display text-xl md:text-2xl font-bold text-primary-foreground mb-3">
-            Prêt à découvrir Kinshasa ?
-          </h2>
-          <Button size="lg" variant="secondary" asChild>
-            <Link to="/attractions">
-              Découvrir les attractions
-              <ArrowRight className="ml-2 h-5 w-5" />
+      {/* Quick Actions */}
+      <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <h2 className="text-sm font-bold text-foreground mb-3">Actions rapides</h2>
+        <div className="grid grid-cols-3 gap-3">
+          {quickActions.map((action) => (
+            <Link key={action.label} to={action.href}>
+              <Card className="border-0 shadow-sm hover:shadow-md transition-shadow active:scale-[0.97] cursor-pointer">
+                <CardContent className="p-3 flex flex-col items-center gap-2">
+                  <div className="p-2.5 rounded-xl bg-primary/10">
+                    <action.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <p className="text-[11px] font-semibold text-foreground text-center leading-tight">{action.label}</p>
+                </CardContent>
+              </Card>
             </Link>
-          </Button>
+          ))}
         </div>
-      </section>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="animate-slide-up" style={{ animationDelay: '300ms' }}>
+        <h2 className="text-sm font-bold text-foreground mb-3">Activité récente</h2>
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-0 divide-y divide-border">
+            {mockActivities.map((activity) => {
+              const Icon = activityIcons[activity.type];
+              return (
+                <div key={activity.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="p-2 rounded-lg bg-muted shrink-0">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">{activity.text}</p>
+                    <p className="text-[10px] text-muted-foreground">{activity.time}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
