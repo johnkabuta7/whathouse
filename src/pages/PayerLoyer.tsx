@@ -5,27 +5,43 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { usePayments, useUpdatePayment } from '@/hooks/use-data';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function PayerLoyer() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: payments } = usePayments();
+  const updatePayment = useUpdatePayment();
   const [paymentMode, setPaymentMode] = useState<1 | 2>(1);
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const totalAmount = 1200;
-  const alreadyPaid = 600;
+  const myPending = payments?.find(p => p.tenant_id === user?.id && p.status === 'pending');
+  const totalAmount = myPending ? Number(myPending.total_amount) : 1200;
+  const alreadyPaid = myPending ? Number(myPending.amount) : 0;
   const remaining = totalAmount - alreadyPaid;
 
   const installments = paymentMode === 1
     ? [{ label: 'Aujourd\'hui', amount: remaining }]
     : [{ label: 'Aujourd\'hui', amount: remaining / 2 }, { label: 'Dans 30 jours', amount: remaining / 2 }];
 
-  const handlePay = () => {
+  const handlePay = async () => {
     setProcessing(true);
+    if (myPending) {
+      const newAmount = paymentMode === 1 ? totalAmount : alreadyPaid + remaining / 2;
+      const newStatus = newAmount >= totalAmount ? 'paid' : 'pending';
+      await updatePayment.mutateAsync({
+        id: myPending.id,
+        amount: newAmount,
+        status: newStatus,
+        payment_date: new Date().toISOString().split('T')[0],
+      });
+    }
     setTimeout(() => {
       setProcessing(false);
       setSuccess(true);
-    }, 2000);
+    }, 1500);
   };
 
   if (success) {
@@ -53,7 +69,6 @@ export default function PayerLoyer() {
         <ArrowLeft className="h-4 w-4" /> Retour
       </button>
 
-      {/* Amount */}
       <Card className="border-0 shadow-sm animate-fade-in">
         <CardContent className="p-5 text-center">
           <p className="text-xs text-muted-foreground mb-1">Montant restant à payer</p>
@@ -63,31 +78,21 @@ export default function PayerLoyer() {
         </CardContent>
       </Card>
 
-      {/* Payment Mode */}
       <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
         <h2 className="text-sm font-bold text-foreground mb-3">Mode de paiement</h2>
         <div className="grid grid-cols-2 gap-3">
           {([1, 2] as const).map(mode => (
-            <button
-              key={mode}
-              onClick={() => setPaymentMode(mode)}
-              className={cn(
-                'p-4 rounded-2xl border-2 transition-all text-center active:scale-[0.97]',
-                paymentMode === mode
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border bg-card hover:border-primary/30'
-              )}
-            >
+            <button key={mode} onClick={() => setPaymentMode(mode)}
+              className={cn('p-4 rounded-2xl border-2 transition-all text-center active:scale-[0.97]',
+                paymentMode === mode ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-primary/30'
+              )}>
               <p className="text-lg font-extrabold text-foreground">{mode}x</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {mode === 1 ? 'Paiement unique' : 'En 2 fois'}
-              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{mode === 1 ? 'Paiement unique' : 'En 2 fois'}</p>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Installments */}
       <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
         <h2 className="text-sm font-bold text-foreground mb-3">Détail des échéances</h2>
         <Card className="border-0 shadow-sm">
@@ -107,27 +112,19 @@ export default function PayerLoyer() {
         </Card>
       </div>
 
-      {/* Security */}
       <div className="flex items-center gap-2 px-3 py-2.5 bg-accent/5 rounded-xl animate-slide-up" style={{ animationDelay: '300ms' }}>
         <Lock className="h-4 w-4 text-accent shrink-0" />
         <p className="text-[11px] text-muted-foreground">Paiement sécurisé via notre plateforme. Vos données sont protégées.</p>
       </div>
 
-      {/* Pay Button */}
-      <Button
-        className="w-full rounded-xl font-bold text-base h-12 active:scale-[0.97] animate-slide-up"
-        style={{ animationDelay: '400ms' }}
-        onClick={handlePay}
-        disabled={processing}
-      >
+      <Button className="w-full rounded-xl font-bold text-base h-12 active:scale-[0.97] animate-slide-up" style={{ animationDelay: '400ms' }}
+        onClick={handlePay} disabled={processing || remaining <= 0}>
         {processing ? (
           <span className="flex items-center gap-2">
             <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
             Traitement...
           </span>
-        ) : (
-          `Payer ${installments[0].amount}€ maintenant`
-        )}
+        ) : remaining <= 0 ? 'Tout est payé ✅' : `Payer ${installments[0].amount}€ maintenant`}
       </Button>
     </div>
   );
