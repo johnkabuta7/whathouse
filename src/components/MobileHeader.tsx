@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Bell } from 'lucide-react';
-import { mockNotifications } from '@/lib/mock-data';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/hooks/use-data';
 
 export function MobileHeader() {
   const { user } = useAuth();
-  const unreadCount = mockNotifications.filter(n => !n.read).length;
+  const { data: notifications } = useNotifications();
+  const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
 
   if (!user) return null;
 
