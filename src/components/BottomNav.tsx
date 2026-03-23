@@ -40,14 +40,10 @@ export function BottomNav() {
           const isActive = location.pathname === item.href ||
             (item.href !== '/' && location.pathname.startsWith(item.href));
           return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                'flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-w-[56px] rounded-xl transition-all duration-200',
+            <Link key={item.name} to={item.href}
+              className={cn('flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-w-[56px] rounded-xl transition-all duration-200',
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground active:scale-95'
-              )}
-            >
+              )}>
               <div className={cn('p-1 rounded-lg transition-colors duration-200', isActive && 'bg-primary/10')}>
                 <item.icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
               </div>
