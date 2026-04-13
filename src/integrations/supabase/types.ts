@@ -14,188 +14,134 @@ export type Database = {
   }
   public: {
     Tables: {
-      conversations: {
+      group_members: {
         Row: {
-          created_at: string
+          group_id: string
           id: string
-          last_message: string | null
-          last_message_at: string | null
-          participant_1: string
-          participant_2: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          last_message?: string | null
-          last_message_at?: string | null
-          participant_1: string
-          participant_2: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          last_message?: string | null
-          last_message_at?: string | null
-          participant_1?: string
-          participant_2?: string
-        }
-        Relationships: []
-      }
-      documents: {
-        Row: {
-          category: string
-          created_at: string
-          file_size: string | null
-          file_url: string | null
-          id: string
-          name: string
-          property_id: string | null
-          uploaded_by: string
-        }
-        Insert: {
-          category?: string
-          created_at?: string
-          file_size?: string | null
-          file_url?: string | null
-          id?: string
-          name: string
-          property_id?: string | null
-          uploaded_by: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          file_size?: string | null
-          file_url?: string | null
-          id?: string
-          name?: string
-          property_id?: string | null
-          uploaded_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "documents_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      messages: {
-        Row: {
-          content: string
-          conversation_id: string
-          created_at: string
-          id: string
-          sender_id: string
-        }
-        Insert: {
-          content: string
-          conversation_id: string
-          created_at?: string
-          id?: string
-          sender_id: string
-        }
-        Update: {
-          content?: string
-          conversation_id?: string
-          created_at?: string
-          id?: string
-          sender_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "messages_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notifications: {
-        Row: {
-          created_at: string
-          description: string
-          id: string
-          is_read: boolean
-          title: string
-          type: string
+          joined_at: string
           user_id: string
         }
         Insert: {
-          created_at?: string
-          description?: string
+          group_id: string
           id?: string
-          is_read?: boolean
-          title: string
-          type?: string
+          joined_at?: string
           user_id: string
         }
         Update: {
-          created_at?: string
-          description?: string
+          group_id?: string
           id?: string
-          is_read?: boolean
-          title?: string
-          type?: string
+          joined_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      payments: {
+      groups: {
         Row: {
-          amount: number
           created_at: string
-          due_date: string
+          created_by: string
+          description: string | null
           id: string
-          month_label: string
-          owner_id: string
-          payment_date: string | null
-          property_id: string
-          status: string
-          tenant_id: string
-          total_amount: number
-          transfer_status: string
+          image_url: string | null
+          name: string
           updated_at: string
         }
         Insert: {
-          amount: number
           created_at?: string
-          due_date?: string
+          created_by: string
+          description?: string | null
           id?: string
-          month_label: string
-          owner_id: string
-          payment_date?: string | null
-          property_id: string
-          status?: string
-          tenant_id: string
-          total_amount: number
-          transfer_status?: string
+          image_url?: string | null
+          name: string
           updated_at?: string
         }
         Update: {
-          amount?: number
           created_at?: string
-          due_date?: string
+          created_by?: string
+          description?: string | null
           id?: string
-          month_label?: string
-          owner_id?: string
-          payment_date?: string | null
-          property_id?: string
-          status?: string
-          tenant_id?: string
-          total_amount?: number
-          transfer_status?: string
+          image_url?: string | null
+          name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      listing_likes: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "payments_property_id_fkey"
-            columns: ["property_id"]
+            foreignKeyName: "listing_likes_listing_id_fkey"
+            columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "properties"
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          created_at: string
+          description: string
+          group_id: string
+          id: string
+          images: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+          zwandako_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          group_id: string
+          id?: string
+          images?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+          zwandako_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          group_id?: string
+          id?: string
+          images?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          zwandako_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
         ]
@@ -233,114 +179,15 @@ export type Database = {
         }
         Relationships: []
       }
-      properties: {
-        Row: {
-          address: string
-          created_at: string
-          id: string
-          monthly_rent: number
-          name: string
-          owner_id: string
-          type: string
-          updated_at: string
-        }
-        Insert: {
-          address: string
-          created_at?: string
-          id?: string
-          monthly_rent?: number
-          name: string
-          owner_id: string
-          type?: string
-          updated_at?: string
-        }
-        Update: {
-          address?: string
-          created_at?: string
-          id?: string
-          monthly_rent?: number
-          name?: string
-          owner_id?: string
-          type?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      tenant_assignments: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          move_in_date: string
-          property_id: string
-          rent_amount: number
-          tenant_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          move_in_date?: string
-          property_id: string
-          rent_amount?: number
-          tenant_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          move_in_date?: string
-          property_id?: string
-          rent_amount?: number
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tenant_assignments_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_roles: {
-        Row: {
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_user_role: {
-        Args: { _user_id: string }
-        Returns: Database["public"]["Enums"]["app_role"]
-      }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      app_role: "admin" | "proprietaire" | "locataire"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -467,8 +314,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      app_role: ["admin", "proprietaire", "locataire"],
-    },
+    Enums: {},
   },
 } as const
