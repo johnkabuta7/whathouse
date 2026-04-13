@@ -7,14 +7,11 @@ import { Layout } from "@/components/Layout";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Login from "./pages/Login";
 import Index from "./pages/Index";
-import Paiements from "./pages/Paiements";
-import PayerLoyer from "./pages/PayerLoyer";
-import Messages from "./pages/Messages";
-import Biens from "./pages/Biens";
-import Documents from "./pages/Documents";
-import Admin from "./pages/Admin";
+import GroupDetail from "./pages/GroupDetail";
+import GroupMembers from "./pages/GroupMembers";
+import CreateGroup from "./pages/CreateGroup";
+import Publish from "./pages/Publish";
 import Profil from "./pages/Profil";
-import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,14 +41,11 @@ function AppRoutes() {
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/" element={<Index />} />
-        <Route path="/paiements" element={<Paiements />} />
-        <Route path="/paiements/payer" element={<PayerLoyer />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/biens" element={<Biens />} />
-        <Route path="/documents" element={<Documents />} />
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/group/:id" element={<GroupDetail />} />
+        <Route path="/group/:id/members" element={<GroupMembers />} />
+        <Route path="/create-group" element={<CreateGroup />} />
+        <Route path="/publish" element={<Publish />} />
         <Route path="/profil" element={<Profil />} />
-        <Route path="/notifications" element={<Notifications />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
