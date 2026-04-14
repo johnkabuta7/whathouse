@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Search, UserPlus, MessageSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, UserPlus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -20,6 +22,10 @@ export default function Contacts() {
   const { user } = useAuth();
   const { data: profiles, isLoading } = useAllProfiles();
   const [search, setSearch] = useState('');
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const navigate = useNavigate();
 
   const others = profiles?.filter(p => p.user_id !== user?.id);
   const filtered = others?.filter(p =>
@@ -27,9 +33,28 @@ export default function Contacts() {
     (p.phone || '').includes(search)
   );
 
+  const startLongPress = (userId: string) => {
+    const timer = setTimeout(() => {
+      setSelecting(true);
+      setSelected([userId]);
+    }, 500);
+    setLongPressTimer(timer);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimer) clearTimeout(longPressTimer);
+  };
+
+  const toggleSelect = (userId: string) => {
+    if (selecting) {
+      setSelected(p => p.includes(userId) ? p.filter(id => id !== userId) : [...p, userId]);
+    } else {
+      navigate(`/contact/${userId}`);
+    }
+  };
+
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
-      {/* Search */}
       <div className="px-3 py-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -37,6 +62,16 @@ export default function Contacts() {
             className="w-full pl-9 pr-4 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
       </div>
+
+      {selecting && (
+        <div className="px-4 py-2 bg-primary/10 flex items-center gap-3">
+          <p className="text-xs font-medium text-primary flex-1">{selected.length} sélectionné(s)</p>
+          <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => { setSelecting(false); setSelected([]); }}>Annuler</Button>
+          <Button size="sm" className="rounded-full text-xs bg-primary text-primary-foreground" onClick={() => navigate('/create-group')}>
+            <UserPlus className="h-3 w-3 mr-1" />Ajouter au groupe
+          </Button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="px-4 space-y-2">
@@ -51,15 +86,25 @@ export default function Contacts() {
       ) : (
         <div>
           <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            {filtered.length} contact{filtered.length > 1 ? 's' : ''} sur Groupe Immo
+            {filtered.length} contact{filtered.length > 1 ? 's' : ''} sur Pro Immobilier
           </p>
           {filtered.map(p => {
             const name = `${p.first_name} ${p.last_name}`.trim() || 'Utilisateur';
             const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
+            const isSelected = selected.includes(p.user_id);
             return (
-              <div key={p.user_id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
-                <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
-                  {p.avatar_url ? <img src={p.avatar_url} className="h-full w-full object-cover rounded-full" /> : initials}
+              <div
+                key={p.user_id}
+                onClick={() => toggleSelect(p.user_id)}
+                onMouseDown={() => startLongPress(p.user_id)}
+                onMouseUp={cancelLongPress}
+                onMouseLeave={cancelLongPress}
+                onTouchStart={() => startLongPress(p.user_id)}
+                onTouchEnd={cancelLongPress}
+                className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer ${isSelected ? 'bg-primary/10' : ''}`}
+              >
+                <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+                  {isSelected ? '✓' : p.avatar_url ? <img src={p.avatar_url} className="h-full w-full object-cover rounded-full" /> : initials}
                 </div>
                 <div className="flex-1 min-w-0 border-b border-border pb-3">
                   <p className="text-sm font-medium text-foreground truncate">{name}</p>

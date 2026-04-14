@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGroup, useListings, useIsMember, useJoinGroup, useToggleLike, useCreateListing, uploadListingImage } from '@/hooks/use-data';
+import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 
 function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: string; onDone: () => void }) {
@@ -53,17 +53,14 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   };
 
   return (
-    <form onSubmit={handleSubmit} onPaste={handlePaste} className="p-4 bg-card border-t border-border space-y-3 animate-slide-up">
-      <div className="flex items-center gap-2">
-        <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de l'annonce *" className="rounded-full text-sm h-9 flex-1" required />
-      </div>
-      <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description... (collez du contenu WhatsApp ici)" className="rounded-xl text-sm resize-none" rows={3} />
+    <form onSubmit={handleSubmit} onPaste={handlePaste} className="p-3 bg-card border-t border-border space-y-2 animate-slide-up">
+      <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de l'annonce *" className="rounded-full text-sm h-9" required />
+      <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description... (collez du contenu WhatsApp ici)" className="rounded-xl text-sm resize-none" rows={2} />
       <Input value={zwandakoUrl} onChange={e => setZwandakoUrl(e.target.value)} placeholder="Lien Zwandako (optionnel)" className="rounded-full text-sm h-9" />
-      
       <div className="flex gap-2 items-center">
         <label className="cursor-pointer shrink-0">
           <input type="file" accept="image/*" multiple onChange={e => addFiles(Array.from(e.target.files || []))} className="hidden" />
-          <div className="h-9 w-9 rounded-full bg-secondary/20 flex items-center justify-center text-secondary"><ImagePlus className="h-4 w-4" /></div>
+          <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary"><ImagePlus className="h-4 w-4" /></div>
         </label>
         {previews.length > 0 && (
           <div className="flex gap-1.5 overflow-x-auto no-scrollbar flex-1">
@@ -75,7 +72,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
             ))}
           </div>
         )}
-        <Button type="submit" size="sm" className="rounded-full shrink-0 bg-secondary text-secondary-foreground" disabled={isLoading || !title.trim()}>
+        <Button type="submit" size="sm" className="rounded-full shrink-0 bg-primary text-primary-foreground" disabled={isLoading || !title.trim()}>
           <Send className="h-4 w-4" />
         </Button>
       </div>
@@ -86,17 +83,14 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
 function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   const [expanded, setExpanded] = useState(false);
   const toggleLike = useToggleLike();
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
+  const { data: likeData } = useListingLikes(listing.id);
   const { toast } = useToast();
 
   const desc = listing.description || '';
   const isLong = desc.length > 120;
 
   const handleLike = () => {
-    toggleLike.mutate({ listingId: listing.id, userId }, {
-      onSuccess: (r) => { setLiked(r.liked); setLikeCount(c => r.liked ? c + 1 : c - 1); }
-    });
+    toggleLike.mutate({ listingId: listing.id, userId });
   };
 
   const handleShare = async () => {
@@ -139,19 +133,19 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           </button>
         )}
         <div className="flex items-center gap-1.5 mt-3 pt-2 border-t border-border">
-          <button onClick={handleLike} className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full transition-colors ${liked ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
-            <Heart className={`h-3.5 w-3.5 ${liked ? 'fill-current' : ''}`} />
-            {likeCount > 0 && likeCount}
+          <button onClick={handleLike} className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full transition-colors ${likeData?.liked ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+            <Heart className={`h-3.5 w-3.5 ${likeData?.liked ? 'fill-current' : ''}`} />
+            {(likeData?.count || 0) > 0 && likeData?.count}
           </button>
           <button onClick={handleShare} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-muted text-muted-foreground">
             <Share2 className="h-3.5 w-3.5" />
           </button>
-          <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-accent/10 text-accent-foreground">
+          <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-primary/10 text-primary">
             <Phone className="h-3.5 w-3.5" />WhatsApp
           </button>
           {listing.zwandako_url && (
             <a href={listing.zwandako_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full bg-secondary text-secondary-foreground ml-auto">
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full bg-primary text-primary-foreground ml-auto">
               <ExternalLink className="h-3.5 w-3.5" />Voir
             </a>
           )}
@@ -167,7 +161,8 @@ export default function GroupDetail() {
   const { data: group, isLoading: groupLoading } = useGroup(id || '');
   const { data: listings, isLoading: listingsLoading } = useListings(id || '');
   const { data: isMember } = useIsMember(id || '');
-  const joinGroup = useJoinGroup();
+  const { data: hasPending } = useHasPendingRequest(id || '');
+  const requestJoin = useRequestJoin();
   const { toast } = useToast();
   const [showPublish, setShowPublish] = useState(false);
   const [search, setSearch] = useState('');
@@ -181,10 +176,10 @@ export default function GroupDetail() {
   if (groupLoading) return <div className="px-4 py-6 max-w-lg mx-auto"><Skeleton className="h-40 rounded-2xl" /></div>;
   if (!group) return <div className="px-4 py-6 text-center text-sm text-muted-foreground">Groupe introuvable</div>;
 
-  const handleJoin = () => {
+  const handleRequestJoin = () => {
     if (!user) return;
-    joinGroup.mutate({ groupId: group.id, userId: user.id }, {
-      onSuccess: () => toast({ title: 'Bienvenue !', description: `Vous avez rejoint ${group.name}` }),
+    requestJoin.mutate({ groupId: group.id, userId: user.id }, {
+      onSuccess: () => toast({ title: 'Demande envoyée', description: "L'administrateur va examiner votre demande." }),
       onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
     });
   };
@@ -223,13 +218,30 @@ export default function GroupDetail() {
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           <Users className="h-16 w-16 text-muted-foreground/30 mb-4" />
           <p className="text-sm font-medium text-foreground mb-1">Vous n'êtes pas membre</p>
-          <p className="text-xs text-muted-foreground mb-4">Rejoignez pour voir les annonces</p>
-          <Button onClick={handleJoin} disabled={joinGroup.isPending} className="rounded-full bg-secondary text-secondary-foreground px-6">
-            Rejoindre
-          </Button>
+          <p className="text-xs text-muted-foreground mb-4">Demandez à rejoindre ce groupe</p>
+          {hasPending ? (
+            <p className="text-sm text-primary font-medium">⏳ Demande en attente...</p>
+          ) : (
+            <Button onClick={handleRequestJoin} disabled={requestJoin.isPending} className="rounded-full bg-primary text-primary-foreground px-6">
+              Demander à rejoindre
+            </Button>
+          )}
         </div>
       ) : (
         <>
+          {/* Publish area at top */}
+          {showPublish ? (
+            <PublishForm groupId={group.id} userId={user?.id || ''} onDone={() => setShowPublish(false)} />
+          ) : (
+            <div className="px-3 py-2 bg-card border-b border-border">
+              <button onClick={() => setShowPublish(true)}
+                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted text-muted-foreground text-sm hover:bg-muted/80 transition">
+                <Plus className="h-4 w-4 text-primary" />
+                Publier une annonce...
+              </button>
+            </div>
+          )}
+
           {/* Listings */}
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
             {listingsLoading ? (
@@ -245,19 +257,6 @@ export default function GroupDetail() {
               ))
             )}
           </div>
-
-          {/* Publish area */}
-          {showPublish ? (
-            <PublishForm groupId={group.id} userId={user?.id || ''} onDone={() => setShowPublish(false)} />
-          ) : (
-            <div className="px-3 py-2 bg-card border-t border-border">
-              <button onClick={() => setShowPublish(true)}
-                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted text-muted-foreground text-sm hover:bg-muted/80 transition">
-                <Plus className="h-4 w-4 text-secondary" />
-                Publier une annonce...
-              </button>
-            </div>
-          )}
         </>
       )}
     </div>

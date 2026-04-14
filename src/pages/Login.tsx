@@ -40,7 +40,6 @@ export default function Login() {
       const ok = await signup(email, password, firstName, lastName, phone);
       if (ok) {
         toast({ title: 'Compte créé !', description: 'Vous êtes maintenant connecté.' });
-        // Auto-login after signup since auto-confirm is enabled
         await new Promise(r => setTimeout(r, 500));
         const loginOk = await login(email, password);
         if (loginOk) navigate('/');
@@ -58,27 +57,17 @@ export default function Login() {
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary/10 mb-4">
             <Building2 className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-extrabold text-foreground">Groupe Immo</h1>
-          <p className="text-sm text-muted-foreground mt-1">Publiez & partagez vos annonces</p>
+          <h1 className="text-2xl font-extrabold text-foreground">Pro Immobilier</h1>
+          <p className="text-sm text-muted-foreground mt-1">Professionnels d'immobilier</p>
         </div>
 
         <Card className="border-0 shadow-md animate-slide-up">
           <CardContent className="p-5">
             <div className="flex gap-2 mb-4">
-              <Button
-                type="button"
-                variant={mode === 'login' ? 'default' : 'outline'}
-                className="flex-1 rounded-xl text-sm"
-                onClick={() => setMode('login')}
-              >
+              <Button type="button" variant={mode === 'login' ? 'default' : 'outline'} className="flex-1 rounded-xl text-sm" onClick={() => setMode('login')}>
                 Connexion
               </Button>
-              <Button
-                type="button"
-                variant={mode === 'signup' ? 'default' : 'outline'}
-                className="flex-1 rounded-xl text-sm"
-                onClick={() => setMode('signup')}
-              >
+              <Button type="button" variant={mode === 'signup' ? 'default' : 'outline'} className="flex-1 rounded-xl text-sm" onClick={() => setMode('signup')}>
                 Inscription
               </Button>
             </div>
@@ -86,19 +75,19 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-3">
               {mode === 'signup' && (
                 <>
+                  <div>
+                    <label className="text-xs font-semibold text-foreground mb-1 block">Téléphone *</label>
+                    <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+243 ..." className="rounded-xl" required />
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-semibold text-foreground mb-1 block">Prénom</label>
+                      <label className="text-xs font-semibold text-foreground mb-1 block">Prénom *</label>
                       <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Jean" className="rounded-xl" required />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-foreground mb-1 block">Nom</label>
+                      <label className="text-xs font-semibold text-foreground mb-1 block">Nom *</label>
                       <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Dupont" className="rounded-xl" required />
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-foreground mb-1 block">Téléphone</label>
-                    <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+243 ..." className="rounded-xl" required />
                   </div>
                 </>
               )}
