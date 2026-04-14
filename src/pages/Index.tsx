@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Users, Search, MessageSquare, Phone } from 'lucide-react';
+import { Plus, Users, Search, Phone, MessageSquare } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMyGroups, useSearchGroups } from '@/hooks/use-data';
-import { useRealtimeListings } from '@/hooks/use-notifications';
+import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts } from '@/hooks/use-data';
+import { useRealtimeListings, useRealtimeJoinRequests } from '@/hooks/use-notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
@@ -21,19 +21,60 @@ function useOnlineContacts() {
   });
 }
 
+function SliderBanner() {
+  const { data: banners } = useSliderBanners();
+  const [current, setCurrent] = useState(0);
+
+  const defaultBanners = [
+    { id: '1', image_url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=200&fit=crop', link_url: null },
+    { id: '2', image_url: 'https://images.unsplash.com/photo-1582407947092-987bce739e14?w=800&h=200&fit=crop', link_url: null },
+    { id: '3', image_url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=200&fit=crop', link_url: null },
+  ];
+
+  const slides = banners && banners.length > 0 ? banners : defaultBanners;
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const timer = setInterval(() => setCurrent(p => (p + 1) % slides.length), 3000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
+
+  return (
+    <div className="relative w-full h-[60px] overflow-hidden rounded-lg mx-auto">
+      {slides.map((slide, i) => (
+        <div
+          key={slide.id}
+          className={`absolute inset-0 transition-opacity duration-500 ${i === current ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <img src={slide.image_url} alt="" className="w-full h-full object-cover" />
+        </div>
+      ))}
+      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+        {slides.map((_, i) => (
+          <div key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${i === current ? 'bg-primary' : 'bg-white/50'}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Index() {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const { data: myGroups, isLoading } = useMyGroups();
   const { data: searchResults } = useSearchGroups(search);
   const { data: contacts } = useOnlineContacts();
+  const { data: isAdmin } = useIsAppAdmin();
+  const { data: allGroups } = useAllGroups();
+  const { data: requestCounts } = useMyGroupJoinRequestCounts();
   const [selectedContact, setSelectedContact] = useState<any>(null);
 
-  // Activate realtime notifications
   useRealtimeListings();
+  useRealtimeJoinRequests();
 
-  const displayGroups = search.trim().length >= 2 ? searchResults : myGroups;
   const isSearching = search.trim().length >= 2;
+  // Admin sees all groups, normal user sees only their groups
+  const displayGroups = isSearching ? searchResults : (isAdmin ? allGroups : myGroups);
 
   if (isLoading) {
     return (
@@ -85,6 +126,13 @@ export default function Index() {
         </div>
       )}
 
+      {/* Slider banner */}
+      {!isSearching && (
+        <div className="px-3 py-1">
+          <SliderBanner />
+        </div>
+      )}
+
       {/* Contact modal */}
       {selectedContact && (
         <div className="fixed inset-0 bg-foreground/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedContact(null)}>
@@ -133,33 +181,43 @@ export default function Index() {
         </div>
       ) : (
         <div>
-          {displayGroups.map(group => (
-            <Link key={group.id} to={`/group/${group.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 active:bg-muted transition-colors">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                {group.image_url ? (
-                  <img src={group.image_url} alt={group.name} className="h-full w-full object-cover" />
-                ) : (
-                  <Users className="h-5 w-5 text-primary" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0 border-b border-border pb-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground truncate">{group.name}</p>
-                  <p className="text-[10px] text-muted-foreground shrink-0 ml-2">
-                    {new Date(group.updated_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                  </p>
+          {displayGroups.map(group => {
+            const reqCount = requestCounts?.byGroup[group.id] || 0;
+            return (
+              <Link key={group.id} to={`/group/${group.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 active:bg-muted transition-colors">
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                  {group.image_url ? (
+                    <img src={group.image_url} alt={group.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <Users className="h-5 w-5 text-primary" />
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">{group.description || 'Groupe immobilier'}</p>
-              </div>
-            </Link>
-          ))}
+                <div className="flex-1 min-w-0 border-b border-border pb-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-foreground truncate">{group.name}</p>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      {reqCount > 0 && (
+                        <span className="h-5 min-w-[20px] rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center px-1">
+                          {reqCount}
+                        </span>
+                      )}
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(group.updated_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{group.description || 'Groupe immobilier'}</p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
 
-      {/* FAB */}
-      {myGroups && myGroups.length > 0 && !isSearching && (
+      {/* FAB - Plus icon */}
+      {!isSearching && (
         <Link to="/create-group" className="fixed bottom-20 right-4 h-14 w-14 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:opacity-90 transition z-40">
-          <MessageSquare className="h-6 w-6" />
+          <Plus className="h-6 w-6" />
         </Link>
       )}
     </div>

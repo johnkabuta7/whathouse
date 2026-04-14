@@ -1,12 +1,12 @@
 import { useState, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest } from '@/hooks/use-data';
+import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 
 function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: string; onDone: () => void }) {
@@ -53,7 +53,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   };
 
   return (
-    <form onSubmit={handleSubmit} onPaste={handlePaste} className="p-3 bg-card border-t border-border space-y-2 animate-slide-up">
+    <form onSubmit={handleSubmit} onPaste={handlePaste} className="p-3 bg-card border-t border-border space-y-2">
       <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de l'annonce *" className="rounded-full text-sm h-9" required />
       <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description... (collez du contenu WhatsApp ici)" className="rounded-xl text-sm resize-none" rows={2} />
       <Input value={zwandakoUrl} onChange={e => setZwandakoUrl(e.target.value)} placeholder="Lien Zwandako (optionnel)" className="rounded-full text-sm h-9" />
@@ -89,9 +89,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   const desc = listing.description || '';
   const isLong = desc.length > 120;
 
-  const handleLike = () => {
-    toggleLike.mutate({ listingId: listing.id, userId });
-  };
+  const handleLike = () => toggleLike.mutate({ listingId: listing.id, userId });
 
   const handleShare = async () => {
     const url = listing.zwandako_url || window.location.href;
@@ -107,7 +105,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   const images: string[] = listing.images || [];
 
   return (
-    <div className="bg-card rounded-2xl shadow-sm overflow-hidden animate-slide-up border border-border">
+    <div className="bg-card rounded-2xl shadow-sm overflow-hidden border border-border">
       {images.length > 0 && (
         <div className="relative">
           <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
@@ -162,11 +160,15 @@ export default function GroupDetail() {
   const { data: listings, isLoading: listingsLoading } = useListings(id || '');
   const { data: isMember } = useIsMember(id || '');
   const { data: hasPending } = useHasPendingRequest(id || '');
+  const { data: joinRequests } = useJoinRequests(id || '');
   const requestJoin = useRequestJoin();
   const { toast } = useToast();
   const [showPublish, setShowPublish] = useState(false);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+
+  const isCreator = group?.created_by === user?.id;
+  const pendingCount = joinRequests?.length || 0;
 
   const filteredListings = listings?.filter(l =>
     l.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -199,8 +201,13 @@ export default function GroupDetail() {
         <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-primary-foreground/10">
           <Search className="h-4 w-4" />
         </button>
-        <Link to={`/group/${id}/members`} className="p-1.5 rounded-full hover:bg-primary-foreground/10">
+        <Link to={`/group/${id}/members`} className="p-1.5 rounded-full hover:bg-primary-foreground/10 relative">
           <Users className="h-4 w-4" />
+          {isCreator && pendingCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-4 min-w-[16px] rounded-full bg-destructive text-[9px] font-bold text-white flex items-center justify-center px-0.5">
+              {pendingCount}
+            </span>
+          )}
         </Link>
       </div>
 
@@ -229,19 +236,6 @@ export default function GroupDetail() {
         </div>
       ) : (
         <>
-          {/* Publish area at top */}
-          {showPublish ? (
-            <PublishForm groupId={group.id} userId={user?.id || ''} onDone={() => setShowPublish(false)} />
-          ) : (
-            <div className="px-3 py-2 bg-card border-b border-border">
-              <button onClick={() => setShowPublish(true)}
-                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted text-muted-foreground text-sm hover:bg-muted/80 transition">
-                <Plus className="h-4 w-4 text-primary" />
-                Publier une annonce...
-              </button>
-            </div>
-          )}
-
           {/* Listings */}
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
             {listingsLoading ? (
@@ -257,6 +251,19 @@ export default function GroupDetail() {
               ))
             )}
           </div>
+
+          {/* Publish area at bottom - always visible */}
+          {showPublish ? (
+            <PublishForm groupId={group.id} userId={user?.id || ''} onDone={() => setShowPublish(false)} />
+          ) : (
+            <div className="px-3 py-2 bg-card border-t border-border">
+              <button onClick={() => setShowPublish(true)}
+                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted text-muted-foreground text-sm hover:bg-muted/80 transition">
+                <Plus className="h-4 w-4 text-primary" />
+                Publier une annonce...
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
