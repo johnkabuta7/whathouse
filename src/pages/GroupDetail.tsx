@@ -1,12 +1,87 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useCallback } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGroup, useListings, useIsMember, useJoinGroup, useToggleLike } from '@/hooks/use-data';
+import { useGroup, useListings, useIsMember, useJoinGroup, useToggleLike, useCreateListing, uploadListingImage } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
+
+function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: string; onDone: () => void }) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [zwandakoUrl, setZwandakoUrl] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const createListing = useCreateListing();
+  const { toast } = useToast();
+
+  const addFiles = useCallback((newFiles: File[]) => {
+    const imgs = newFiles.filter(f => f.type.startsWith('image/'));
+    setFiles(p => [...p, ...imgs]);
+    setPreviews(p => [...p, ...imgs.map(f => URL.createObjectURL(f))]);
+  }, []);
+
+  const removeFile = (i: number) => {
+    setFiles(p => p.filter((_, idx) => idx !== i));
+    setPreviews(p => p.filter((_, idx) => idx !== i));
+  };
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData.items);
+    const imgs = items.filter(i => i.type.startsWith('image/')).map(i => i.getAsFile()).filter(Boolean) as File[];
+    if (imgs.length) addFiles(imgs);
+    const txt = items.find(i => i.type === 'text/plain');
+    if (txt) txt.getAsString(t => { if (t.trim()) setDescription(p => p ? p + '\n' + t : t); });
+  }, [addFiles]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setIsLoading(true);
+    try {
+      const urls: string[] = [];
+      for (const f of files) urls.push(await uploadListingImage(f, userId));
+      createListing.mutate(
+        { group_id: groupId, user_id: userId, title: title.trim(), description: description.trim(), images: urls, zwandako_url: zwandakoUrl.trim() || undefined },
+        { onSuccess: () => { toast({ title: 'Annonce publiée !' }); onDone(); }, onError: () => { toast({ title: 'Erreur', variant: 'destructive' }); setIsLoading(false); } }
+      );
+    } catch { toast({ title: 'Erreur upload', variant: 'destructive' }); setIsLoading(false); }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} onPaste={handlePaste} className="p-4 bg-card border-t border-border space-y-3 animate-slide-up">
+      <div className="flex items-center gap-2">
+        <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de l'annonce *" className="rounded-full text-sm h-9 flex-1" required />
+      </div>
+      <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description... (collez du contenu WhatsApp ici)" className="rounded-xl text-sm resize-none" rows={3} />
+      <Input value={zwandakoUrl} onChange={e => setZwandakoUrl(e.target.value)} placeholder="Lien Zwandako (optionnel)" className="rounded-full text-sm h-9" />
+      
+      <div className="flex gap-2 items-center">
+        <label className="cursor-pointer shrink-0">
+          <input type="file" accept="image/*" multiple onChange={e => addFiles(Array.from(e.target.files || []))} className="hidden" />
+          <div className="h-9 w-9 rounded-full bg-secondary/20 flex items-center justify-center text-secondary"><ImagePlus className="h-4 w-4" /></div>
+        </label>
+        {previews.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar flex-1">
+            {previews.map((p, i) => (
+              <div key={i} className="relative h-12 w-12 rounded-lg overflow-hidden shrink-0">
+                <img src={p} className="h-full w-full object-cover" />
+                <button type="button" onClick={() => removeFile(i)} className="absolute top-0 right-0 bg-foreground/70 text-background rounded-full p-0.5"><X className="h-2.5 w-2.5" /></button>
+              </div>
+            ))}
+          </div>
+        )}
+        <Button type="submit" size="sm" className="rounded-full shrink-0 bg-secondary text-secondary-foreground" disabled={isLoading || !title.trim()}>
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -16,36 +91,34 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   const { toast } = useToast();
 
   const desc = listing.description || '';
-  const isLong = desc.length > 150;
+  const isLong = desc.length > 120;
 
   const handleLike = () => {
     toggleLike.mutate({ listingId: listing.id, userId }, {
-      onSuccess: (r) => {
-        setLiked(r.liked);
-        setLikeCount(c => r.liked ? c + 1 : c - 1);
-      }
+      onSuccess: (r) => { setLiked(r.liked); setLikeCount(c => r.liked ? c + 1 : c - 1); }
     });
   };
 
   const handleShare = async () => {
     const url = listing.zwandako_url || window.location.href;
-    if (navigator.share) {
-      await navigator.share({ title: listing.title, url });
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast({ title: 'Lien copié !' });
-    }
+    if (navigator.share) await navigator.share({ title: listing.title, url });
+    else { await navigator.clipboard.writeText(url); toast({ title: 'Lien copié !' }); }
+  };
+
+  const handleWhatsApp = () => {
+    const text = `${listing.title}\n${listing.description || ''}\n${listing.zwandako_url || window.location.href}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const images: string[] = listing.images || [];
 
   return (
-    <Card className="border-0 shadow-sm overflow-hidden animate-slide-up">
+    <div className="bg-card rounded-2xl shadow-sm overflow-hidden animate-slide-up border border-border">
       {images.length > 0 && (
         <div className="relative">
-          <div className="flex overflow-x-auto snap-x snap-mandatory">
+          <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
             {images.map((img: string, i: number) => (
-              <img key={i} src={img} alt={`${listing.title} ${i + 1}`} className="w-full h-52 object-cover snap-center shrink-0" />
+              <img key={i} src={img} alt={`${listing.title} ${i + 1}`} className="w-full h-48 object-cover snap-center shrink-0" />
             ))}
           </div>
           {images.length > 1 && (
@@ -55,33 +128,36 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           )}
         </div>
       )}
-      <CardContent className="p-4">
-        <h3 className="text-sm font-bold text-foreground mb-1">{listing.title}</h3>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          {isLong && !expanded ? desc.slice(0, 150) + '...' : desc}
+      <div className="p-3">
+        <h3 className="text-sm font-bold text-foreground">{listing.title}</h3>
+        <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+          {isLong && !expanded ? desc.slice(0, 120) + '...' : desc}
         </p>
         {isLong && (
           <button onClick={() => setExpanded(!expanded)} className="text-xs text-primary font-semibold mt-1 flex items-center gap-1">
-            {expanded ? <>Voir moins <ChevronUp className="h-3 w-3" /></> : <>Voir plus <ChevronDown className="h-3 w-3" /></>}
+            {expanded ? <>Moins <ChevronUp className="h-3 w-3" /></> : <>Plus <ChevronDown className="h-3 w-3" /></>}
           </button>
         )}
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
-          <button onClick={handleLike} className={`flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${liked ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+        <div className="flex items-center gap-1.5 mt-3 pt-2 border-t border-border">
+          <button onClick={handleLike} className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full transition-colors ${liked ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
             <Heart className={`h-3.5 w-3.5 ${liked ? 'fill-current' : ''}`} />
             {likeCount > 0 && likeCount}
           </button>
-          <button onClick={handleShare} className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-muted text-muted-foreground">
-            <Share2 className="h-3.5 w-3.5" />Partager
+          <button onClick={handleShare} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-muted text-muted-foreground">
+            <Share2 className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-green-500/10 text-green-600">
+            <Phone className="h-3.5 w-3.5" />WhatsApp
           </button>
           {listing.zwandako_url && (
             <a href={listing.zwandako_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground ml-auto">
-              <ExternalLink className="h-3.5 w-3.5" />Voir l'annonce
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full bg-secondary text-secondary-foreground ml-auto">
+              <ExternalLink className="h-3.5 w-3.5" />Voir
             </a>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -93,14 +169,17 @@ export default function GroupDetail() {
   const { data: isMember } = useIsMember(id || '');
   const joinGroup = useJoinGroup();
   const { toast } = useToast();
+  const [showPublish, setShowPublish] = useState(false);
+  const [search, setSearch] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
-  if (groupLoading) {
-    return <div className="px-4 py-6 max-w-lg mx-auto"><Skeleton className="h-40 rounded-2xl" /></div>;
-  }
+  const filteredListings = listings?.filter(l =>
+    l.title.toLowerCase().includes(search.toLowerCase()) ||
+    (l.description || '').toLowerCase().includes(search.toLowerCase())
+  );
 
-  if (!group) {
-    return <div className="px-4 py-6 text-center text-sm text-muted-foreground">Groupe introuvable</div>;
-  }
+  if (groupLoading) return <div className="px-4 py-6 max-w-lg mx-auto"><Skeleton className="h-40 rounded-2xl" /></div>;
+  if (!group) return <div className="px-4 py-6 text-center text-sm text-muted-foreground">Groupe introuvable</div>;
 
   const handleJoin = () => {
     if (!user) return;
@@ -111,55 +190,75 @@ export default function GroupDetail() {
   };
 
   return (
-    <div className="max-w-lg mx-auto animate-fade-in">
+    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-[calc(100vh-3.5rem-3.5rem)]">
       {/* Header */}
-      <div className="px-4 py-3 flex items-center gap-3 border-b border-border bg-card sticky top-0 z-10">
-        <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
-        <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
-          {group.image_url ? <img src={group.image_url} className="h-full w-full object-cover rounded-xl" /> : <Users className="h-4 w-4 text-primary" />}
+      <div className="px-3 py-2.5 flex items-center gap-3 bg-primary text-primary-foreground sticky top-0 z-10">
+        <Link to="/" className="text-primary-foreground/80"><ArrowLeft className="h-5 w-5" /></Link>
+        <div className="h-9 w-9 rounded-full bg-primary-foreground/10 flex items-center justify-center overflow-hidden shrink-0">
+          {group.image_url ? <img src={group.image_url} className="h-full w-full object-cover rounded-full" /> : <Users className="h-4 w-4" />}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-foreground truncate">{group.name}</p>
-          <p className="text-[10px] text-muted-foreground">{group.description}</p>
+          <p className="text-sm font-bold truncate">{group.name}</p>
+          <p className="text-[10px] text-primary-foreground/70">{listings?.length || 0} annonces</p>
         </div>
-        <Link to={`/group/${id}/members`} className="text-muted-foreground"><Users className="h-5 w-5" /></Link>
+        <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-primary-foreground/10">
+          <Search className="h-4 w-4" />
+        </button>
+        <Link to={`/group/${id}/members`} className="p-1.5 rounded-full hover:bg-primary-foreground/10">
+          <Users className="h-4 w-4" />
+        </Link>
       </div>
 
+      {showSearch && (
+        <div className="px-3 py-2 bg-card border-b border-border animate-fade-in">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une annonce..."
+              className="w-full pl-9 pr-4 py-2 rounded-full bg-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" autoFocus />
+          </div>
+        </div>
+      )}
+
       {!isMember ? (
-        <div className="px-4 py-16 text-center">
-          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+        <div className="flex-1 flex flex-col items-center justify-center px-4">
+          <Users className="h-16 w-16 text-muted-foreground/30 mb-4" />
           <p className="text-sm font-medium text-foreground mb-1">Vous n'êtes pas membre</p>
-          <p className="text-xs text-muted-foreground mb-4">Rejoignez ce groupe pour voir les annonces</p>
-          <Button onClick={handleJoin} disabled={joinGroup.isPending} className="rounded-xl">
-            Rejoindre le groupe
+          <p className="text-xs text-muted-foreground mb-4">Rejoignez pour voir les annonces</p>
+          <Button onClick={handleJoin} disabled={joinGroup.isPending} className="rounded-full bg-secondary text-secondary-foreground px-6">
+            Rejoindre
           </Button>
         </div>
       ) : (
-        <div className="px-4 py-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground font-medium">
-              {listings?.length || 0} annonce{(listings?.length || 0) > 1 ? 's' : ''}
-            </p>
-            <Button size="sm" asChild className="rounded-xl">
-              <Link to={`/publish?group=${id}`}><Plus className="h-4 w-4 mr-1" />Publier</Link>
-            </Button>
+        <>
+          {/* Listings */}
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+            {listingsLoading ? (
+              [1, 2].map(i => <Skeleton key={i} className="h-60 rounded-2xl" />)
+            ) : (!filteredListings || filteredListings.length === 0) ? (
+              <div className="text-center py-12">
+                <p className="text-sm text-muted-foreground">Aucune annonce</p>
+                <p className="text-xs text-muted-foreground mt-1">Publiez la première annonce !</p>
+              </div>
+            ) : (
+              filteredListings.map(listing => (
+                <ListingCard key={listing.id} listing={listing} userId={user?.id || ''} />
+              ))
+            )}
           </div>
 
-          {listingsLoading ? (
-            [1, 2].map(i => <Skeleton key={i} className="h-60 rounded-2xl" />)
-          ) : (!listings || listings.length === 0) ? (
-            <div className="text-center py-12">
-              <p className="text-sm text-muted-foreground">Aucune annonce dans ce groupe</p>
-              <Button size="sm" asChild className="mt-3 rounded-xl">
-                <Link to={`/publish?group=${id}`}><Plus className="h-4 w-4 mr-1" />Publier une annonce</Link>
-              </Button>
-            </div>
+          {/* Publish area */}
+          {showPublish ? (
+            <PublishForm groupId={group.id} userId={user?.id || ''} onDone={() => setShowPublish(false)} />
           ) : (
-            listings.map(listing => (
-              <ListingCard key={listing.id} listing={listing} userId={user?.id || ''} />
-            ))
+            <div className="px-3 py-2 bg-card border-t border-border">
+              <button onClick={() => setShowPublish(true)}
+                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted text-muted-foreground text-sm hover:bg-muted/80 transition">
+                <Plus className="h-4 w-4 text-secondary" />
+                Publier une annonce...
+              </button>
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

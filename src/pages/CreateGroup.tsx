@@ -1,102 +1,152 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Users, ImagePlus } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { ArrowLeft, Camera, Check, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCreateGroup, uploadListingImage } from '@/hooks/use-data';
+import { useCreateGroup, uploadListingImage, useGroupMembers } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+
+function useAllProfiles() {
+  return useQuery({
+    queryKey: ['all_profiles'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+}
 
 export default function CreateGroup() {
+  const [step, setStep] = useState<'info' | 'members'>('info');
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [memberSearch, setMemberSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
   const { user } = useAuth();
   const createGroup = useCreateGroup();
+  const { data: allProfiles } = useAllProfiles();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
+    if (file) { setImageFile(file); setImagePreview(URL.createObjectURL(file)); }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const toggleMember = (userId: string) => {
+    setSelectedMembers(p => p.includes(userId) ? p.filter(id => id !== userId) : [...p, userId]);
+  };
+
+  const otherProfiles = allProfiles?.filter(p => p.user_id !== user?.id);
+  const filteredProfiles = otherProfiles?.filter(p =>
+    `${p.first_name} ${p.last_name}`.toLowerCase().includes(memberSearch.toLowerCase()) ||
+    (p.phone || '').includes(memberSearch)
+  );
+
+  const handleCreate = async () => {
     if (!user || !name.trim()) return;
     setIsLoading(true);
 
     let image_url: string | undefined;
     if (imageFile) {
-      try {
-        image_url = await uploadListingImage(imageFile, user.id);
-      } catch {
-        toast({ title: 'Erreur upload image', variant: 'destructive' });
-      }
+      try { image_url = await uploadListingImage(imageFile, user.id); } catch { /* ignore */ }
     }
 
     createGroup.mutate(
-      { name: name.trim(), description: description.trim(), image_url, created_by: user.id },
+      { name: name.trim(), created_by: user.id, image_url },
       {
-        onSuccess: () => {
+        onSuccess: async (data) => {
+          // Add selected members
+          for (const memberId of selectedMembers) {
+            await supabase.from('group_members').insert({ group_id: data.id, user_id: memberId });
+          }
           toast({ title: 'Groupe créé !' });
-          navigate('/');
+          navigate(`/group/${data.id}`);
         },
-        onError: () => {
-          toast({ title: 'Erreur', variant: 'destructive' });
-          setIsLoading(false);
-        },
+        onError: () => { toast({ title: 'Erreur', variant: 'destructive' }); setIsLoading(false); },
       }
     );
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 animate-fade-in">
-      <div className="flex items-center gap-3 mb-6">
-        <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
-        <h1 className="text-lg font-bold text-foreground">Créer un groupe</h1>
+    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-[calc(100vh-3.5rem-3.5rem)]">
+      {/* Header */}
+      <div className="px-3 py-2.5 flex items-center gap-3 bg-primary text-primary-foreground">
+        {step === 'info' ? (
+          <Link to="/" className="text-primary-foreground/80"><ArrowLeft className="h-5 w-5" /></Link>
+        ) : (
+          <button onClick={() => setStep('info')} className="text-primary-foreground/80"><ArrowLeft className="h-5 w-5" /></button>
+        )}
+        <h1 className="text-sm font-bold flex-1">
+          {step === 'info' ? 'Nouveau groupe' : 'Ajouter des membres'}
+        </h1>
+        {step === 'info' ? (
+          <button onClick={() => { if (name.trim()) setStep('members'); }} className={`text-sm font-semibold ${name.trim() ? 'text-primary-foreground' : 'text-primary-foreground/30'}`}>
+            Suivant
+          </button>
+        ) : (
+          <button onClick={handleCreate} disabled={isLoading} className="text-sm font-semibold text-primary-foreground">
+            {isLoading ? '...' : 'Créer'}
+          </button>
+        )}
       </div>
 
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-5">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex justify-center">
-              <label className="cursor-pointer">
-                <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                <div className="h-24 w-24 rounded-2xl bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-border hover:border-primary transition-colors">
-                  {imagePreview ? (
-                    <img src={imagePreview} className="h-full w-full object-cover" />
-                  ) : (
-                    <ImagePlus className="h-8 w-8 text-muted-foreground" />
-                  )}
-                </div>
-              </label>
+      {step === 'info' ? (
+        <div className="flex-1 px-4 py-6">
+          <div className="flex items-center gap-4 mb-6">
+            <label className="cursor-pointer shrink-0">
+              <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-border hover:border-secondary transition">
+                {imagePreview ? <img src={imagePreview} className="h-full w-full object-cover" /> : <Camera className="h-6 w-6 text-muted-foreground" />}
+              </div>
+            </label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nom du groupe" className="rounded-none border-0 border-b-2 border-primary/30 focus-visible:ring-0 focus-visible:border-primary text-base px-0" autoFocus />
+          </div>
+          <p className="text-xs text-muted-foreground">Donnez un nom à votre groupe et une icône optionnelle.</p>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          {/* Selected count */}
+          {selectedMembers.length > 0 && (
+            <div className="px-4 py-2 bg-secondary/10 text-xs font-medium text-secondary">
+              {selectedMembers.length} membre{selectedMembers.length > 1 ? 's' : ''} sélectionné{selectedMembers.length > 1 ? 's' : ''}
             </div>
+          )}
+          {/* Search */}
+          <div className="px-4 py-2">
+            <Input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} placeholder="Rechercher un contact..." className="rounded-full text-sm h-9" />
+          </div>
 
-            <div>
-              <label className="text-xs font-semibold text-foreground mb-1 block">Nom du groupe *</label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Immobilier Kinshasa" className="rounded-xl" required />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-foreground mb-1 block">Description</label>
-              <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description du groupe..." className="rounded-xl resize-none" rows={3} />
-            </div>
-
-            <Button type="submit" className="w-full rounded-xl font-semibold" disabled={isLoading || !name.trim()}>
-              <Users className="h-4 w-4 mr-2" />
-              {isLoading ? 'Création...' : 'Créer le groupe'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          <div className="px-4">
+            {filteredProfiles?.map(p => {
+              const name = `${p.first_name} ${p.last_name}`.trim() || 'Utilisateur';
+              const selected = selectedMembers.includes(p.user_id);
+              return (
+                <button key={p.user_id} onClick={() => toggleMember(p.user_id)}
+                  className="w-full flex items-center gap-3 py-3 border-b border-border text-left">
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${selected ? 'bg-secondary text-secondary-foreground' : 'bg-primary/10 text-primary'}`}>
+                    {selected ? <Check className="h-4 w-4" /> : name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{name}</p>
+                    {p.phone && <p className="text-[10px] text-muted-foreground">{p.phone}</p>}
+                  </div>
+                </button>
+              );
+            })}
+            {(!filteredProfiles || filteredProfiles.length === 0) && (
+              <p className="text-center text-sm text-muted-foreground py-8">Aucun contact trouvé</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
