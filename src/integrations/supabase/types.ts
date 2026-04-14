@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      group_join_requests: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          message: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          message?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          message?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_join_requests_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           group_id: string
@@ -145,6 +183,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notification_settings: {
+        Row: {
+          created_at: string
+          id: string
+          sound_enabled: boolean
+          sound_type: string
+          updated_at: string
+          user_id: string
+          volume: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          sound_enabled?: boolean
+          sound_type?: string
+          updated_at?: string
+          user_id: string
+          volume?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          sound_enabled?: boolean
+          sound_type?: string
+          updated_at?: string
+          user_id?: string
+          volume?: number
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
