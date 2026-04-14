@@ -146,7 +146,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           <button onClick={handleShare} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-muted text-muted-foreground">
             <Share2 className="h-3.5 w-3.5" />
           </button>
-          <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-green-500/10 text-green-600">
+          <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-accent/10 text-accent-foreground">
             <Phone className="h-3.5 w-3.5" />WhatsApp
           </button>
           {listing.zwandako_url && (
