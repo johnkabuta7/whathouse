@@ -1,14 +1,14 @@
 import { useState, useRef } from 'react';
-import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Settings, ChevronRight, Moon, Sun, Bell, Volume2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useMyListings, useUpdateProfile, useDeleteListing, useMyGroups, uploadAvatar } from '@/hooks/use-data';
-import { useNotificationSettings, useUpdateNotificationSettings } from '@/hooks/use-notifications';
+import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, uploadBannerImage } from '@/hooks/use-data';
+import { useNotificationSettings, useUpdateNotificationSettings, usePlayTestSound } from '@/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Profil() {
@@ -17,18 +17,29 @@ export default function Profil() {
   const { data: myListings } = useMyListings();
   const { data: groups } = useMyGroups();
   const { data: notifSettings } = useNotificationSettings();
+  const { data: isAdmin } = useIsAppAdmin();
+  const { data: allBanners } = useAllSliderBanners();
   const updateNotifSettings = useUpdateNotificationSettings();
   const updateProfile = useUpdateProfile();
   const deleteListing = useDeleteListing();
+  const updateListing = useUpdateListing();
+  const createBanner = useCreateBanner();
+  const deleteBanner = useDeleteBanner();
+  const playTestSound = usePlayTestSound();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState(user?.profile?.first_name || '');
   const [lastName, setLastName] = useState(user?.profile?.last_name || '');
   const [phone, setPhone] = useState(user?.profile?.phone || '');
-  const [activeTab, setActiveTab] = useState<'annonces' | 'infos'>('annonces');
+  const [activeTab, setActiveTab] = useState<'annonces' | 'infos' | 'admin'>('annonces');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [editingListing, setEditingListing] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
   const handleSave = () => {
     if (!user) return;
@@ -58,9 +69,37 @@ export default function Profil() {
   };
 
   const handleDelete = (id: string) => {
-    deleteListing.mutate(id, {
-      onSuccess: () => toast({ title: 'Annonce supprimée' }),
+    deleteListing.mutate(id, { onSuccess: () => toast({ title: 'Annonce supprimée' }) });
+  };
+
+  const startEdit = (l: any) => {
+    setEditingListing(l.id);
+    setEditTitle(l.title);
+    setEditDesc(l.description || '');
+  };
+
+  const saveEdit = () => {
+    if (!editingListing) return;
+    updateListing.mutate({ id: editingListing, title: editTitle, description: editDesc }, {
+      onSuccess: () => { toast({ title: 'Annonce modifiée !' }); setEditingListing(null); },
+      onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
     });
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingBanner(true);
+    try {
+      const url = await uploadBannerImage(file);
+      createBanner.mutate({ image_url: url, sort_order: (allBanners?.length || 0) }, {
+        onSuccess: () => { toast({ title: 'Banner ajouté !' }); setUploadingBanner(false); },
+        onError: () => { toast({ title: 'Erreur', variant: 'destructive' }); setUploadingBanner(false); },
+      });
+    } catch {
+      toast({ title: 'Erreur upload', variant: 'destructive' });
+      setUploadingBanner(false);
+    }
   };
 
   if (!user) return null;
@@ -70,7 +109,7 @@ export default function Profil() {
 
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
-      {/* Profile header - White background */}
+      {/* Profile header */}
       <div className="bg-card px-4 py-6 border-b border-border">
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -81,11 +120,8 @@ export default function Profil() {
                 initials || <User className="h-8 w-8" />
               )}
             </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingAvatar}
-              className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md"
-            >
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar}
+              className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md">
               <Camera className="h-3.5 w-3.5" />
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
@@ -94,13 +130,12 @@ export default function Profil() {
             <h1 className="text-lg font-bold text-foreground">{fullName}</h1>
             <p className="text-xs text-muted-foreground">{user.email}</p>
             {user.profile?.phone && <p className="text-xs text-muted-foreground mt-0.5">{user.profile.phone}</p>}
+            {isAdmin && <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold mt-1 inline-block">Admin</span>}
           </div>
           <button onClick={() => setEditing(!editing)} className="p-2 rounded-full hover:bg-muted transition text-muted-foreground">
             <Edit2 className="h-4 w-4" />
           </button>
         </div>
-
-        {/* Stats */}
         <div className="flex gap-4 mt-4">
           <div className="flex-1 text-center bg-primary/10 rounded-xl py-2">
             <p className="text-lg font-bold text-primary">{myListings?.length || 0}</p>
@@ -110,12 +145,15 @@ export default function Profil() {
             <p className="text-lg font-bold text-primary">{groups?.length || 0}</p>
             <p className="text-[10px] text-muted-foreground">Groupes</p>
           </div>
+          <div className="flex-1 text-center bg-primary/10 rounded-xl py-2">
+            <p className="text-lg font-bold text-primary">{myListings?.reduce((s, l) => s + (l.like_count || 0), 0) || 0}</p>
+            <p className="text-[10px] text-muted-foreground">Likes</p>
+          </div>
         </div>
       </div>
 
-      {/* Edit form */}
       {editing && (
-        <div className="px-4 py-3 bg-card border-b border-border animate-slide-up space-y-2">
+        <div className="px-4 py-3 bg-card border-b border-border space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Prénom" className="rounded-full text-sm h-9" />
             <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Nom" className="rounded-full text-sm h-9" />
@@ -138,9 +176,13 @@ export default function Profil() {
         <button onClick={() => setActiveTab('infos')} className={`flex-1 py-3 text-xs font-semibold text-center transition ${activeTab === 'infos' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}>
           Paramètres
         </button>
+        {isAdmin && (
+          <button onClick={() => setActiveTab('admin')} className={`flex-1 py-3 text-xs font-semibold text-center transition ${activeTab === 'admin' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}>
+            Admin
+          </button>
+        )}
       </div>
 
-      {/* Tab content */}
       <div className="px-4 py-3">
         {activeTab === 'annonces' ? (
           (!myListings || myListings.length === 0) ? (
@@ -151,28 +193,45 @@ export default function Profil() {
           ) : (
             <div className="space-y-2">
               {myListings.map(l => (
-                <div key={l.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-card shadow-sm border border-border">
-                  {l.images?.[0] ? (
-                    <img src={l.images[0]} className="h-14 w-14 rounded-lg object-cover shrink-0" />
-                  ) : (
-                    <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                      <Eye className="h-5 w-5 text-muted-foreground" />
+                <div key={l.id}>
+                  <div className="flex items-center gap-3 p-2.5 rounded-xl bg-card shadow-sm border border-border">
+                    {l.images?.[0] ? (
+                      <img src={l.images[0]} className="h-14 w-14 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center shrink-0"><Eye className="h-5 w-5 text-muted-foreground" /></div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{l.title}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-muted-foreground">{new Date(l.created_at).toLocaleDateString('fr-FR')}</span>
+                        <span className="flex items-center gap-0.5 text-[10px] text-destructive"><Heart className="h-3 w-3 fill-current" />{l.like_count || 0}</span>
+                      </div>
+                    </div>
+                    <button onClick={() => startEdit(l)} className="p-2 text-primary/60 hover:text-primary transition">
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => handleDelete(l.id)} className="p-2 text-destructive/60 hover:text-destructive transition">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {editingListing === l.id && (
+                    <div className="mt-1 p-3 rounded-xl bg-muted/50 border border-border space-y-2">
+                      <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Titre" className="rounded-full text-sm h-9" />
+                      <Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Description" className="rounded-xl text-sm resize-none" rows={3} />
+                      <div className="flex gap-2">
+                        <Button onClick={saveEdit} size="sm" className="flex-1 rounded-full bg-primary text-primary-foreground" disabled={updateListing.isPending}>
+                          <Save className="h-3.5 w-3.5 mr-1" />Sauvegarder
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setEditingListing(null)} className="rounded-full">Annuler</Button>
+                      </div>
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{l.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(l.created_at).toLocaleDateString('fr-FR')}</p>
-                  </div>
-                  <button onClick={() => handleDelete(l.id)} className="p-2 text-destructive/60 hover:text-destructive transition">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
                 </div>
               ))}
             </div>
           )
-        ) : (
+        ) : activeTab === 'infos' ? (
           <div className="space-y-1">
-            {/* Dark mode */}
             <div className="w-full flex items-center gap-3 py-3 border-b border-border">
               <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
                 {theme === 'dark' ? <Moon className="h-4 w-4 text-primary" /> : <Sun className="h-4 w-4 text-primary" />}
@@ -181,7 +240,6 @@ export default function Profil() {
               <Switch checked={theme === 'dark'} onCheckedChange={toggleTheme} />
             </div>
 
-            {/* Notifications */}
             <div className="w-full flex items-center gap-3 py-3 border-b border-border">
               <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Bell className="h-4 w-4 text-primary" /></div>
               <span className="text-sm text-foreground flex-1 text-left">Notifications sonores</span>
@@ -191,12 +249,14 @@ export default function Profil() {
               />
             </div>
 
-            {/* Sound type */}
             {notifSettings?.sound_enabled !== false && (
               <div className="py-3 border-b border-border">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Volume2 className="h-4 w-4 text-primary" /></div>
                   <span className="text-sm text-foreground flex-1">Son : {notifSettings?.sound_type || 'default'}</span>
+                  <button onClick={playTestSound} className="p-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition">
+                    <Play className="h-3.5 w-3.5" />
+                  </button>
                 </div>
                 <div className="flex gap-2 pl-12">
                   {['default', 'chime', 'bell'].map(s => (
@@ -211,26 +271,37 @@ export default function Profil() {
                   <Slider
                     value={[notifSettings?.volume ?? 80]}
                     onValueChange={([v]) => user && updateNotifSettings.mutate({ userId: user.id, volume: v })}
-                    max={100}
-                    step={10}
-                    className="w-full"
+                    max={100} step={10} className="w-full"
                   />
                 </div>
               </div>
             )}
 
-            {/* Account */}
-            <button className="w-full flex items-center gap-3 py-3 border-b border-border">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><User className="h-4 w-4 text-primary" /></div>
-              <span className="text-sm text-foreground flex-1 text-left">Compte</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-
-            {/* Logout */}
             <button onClick={logout} className="w-full flex items-center gap-3 py-3">
               <div className="h-9 w-9 rounded-full bg-destructive/10 flex items-center justify-center"><LogOut className="h-4 w-4 text-destructive" /></div>
               <span className="text-sm text-destructive flex-1 text-left">Se déconnecter</span>
             </button>
+          </div>
+        ) : (
+          /* Admin tab */
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2"><Image className="h-4 w-4 text-primary" />Gérer les sliders</h3>
+              <div className="space-y-2">
+                {allBanners?.map(b => (
+                  <div key={b.id} className="flex items-center gap-3 p-2 rounded-xl bg-card border border-border">
+                    <img src={b.image_url} className="h-10 w-20 rounded-lg object-cover" />
+                    <span className="flex-1 text-xs text-muted-foreground truncate">{b.image_url.split('/').pop()}</span>
+                    <button onClick={() => deleteBanner.mutate(b.id)} className="p-1.5 text-destructive"><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                ))}
+                <button onClick={() => bannerInputRef.current?.click()} disabled={uploadingBanner}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-primary/5 transition">
+                  <Image className="h-4 w-4" />{uploadingBanner ? 'Upload...' : 'Ajouter un slider'}
+                </button>
+                <input ref={bannerInputRef} type="file" accept="image/*" onChange={handleBannerUpload} className="hidden" />
+              </div>
+            </div>
           </div>
         )}
       </div>

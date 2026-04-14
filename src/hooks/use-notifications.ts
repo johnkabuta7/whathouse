@@ -1,14 +1,51 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
-const SOUNDS: Record<string, string> = {
-  default: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdW+Jk5WHc2dxa4KSjYF1a3B3hI+KgHVscnmEjYh+dW50eoOKh351bnd8goiGfnZueH2Bh4V+d294fYGFg350bnh+gYSCf3dweX+BhIJ/eHF5f4GDgX54cXl/gYOBfnhxeX+Bg4F+eHF5f4GDgX54cXl/gYOBfnhxeX+Bg4F+eHF5f4GDgX54cXl/gYOBfnhxeX+Bg4F+',
-  chime: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdW+Jk5WHc2dxa4KSjYF1a3B3hI+Kf3VscnmEjYh+dW50eoOKh351bnd8goiGfnZueH2Bh4V+d294fYGFg350bnh+gYSCf3dweX+BhIJ/eHF5f4GDgX54cXl/gYOBfnhxeX+Bg4F+eHF5f4GDgX54cXl/gYOBfnhxeX+Bg4F+eHF5f4GDgX54cXl/gYOBfnhxeX+Bg4F+',
-  bell: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdW+Jk5WHc2dxa4KSjYF1a3B3hI+Kf3VscnmDjYh+dW50eoOKh351bnd8goiGfnZueH2Bh4V+d294fYGFg350bnh+gYSCf3dweX+BhIJ/eHF5f4GDgX54cXl/gYOBfnhxeX+Bg4F+eHF5f4GDgX54cXl/gYOBfnhxeX+Bg4F+eHF5f4GDgX54cXl/gYOBfnhxeX+Bg4F+',
-};
+// Real notification sounds (short sine wave beeps generated as valid WAV)
+function generateTone(freq: number, duration: number, volume: number): AudioBuffer | null {
+  try {
+    const ctx = new AudioContext();
+    const sampleRate = ctx.sampleRate;
+    const length = sampleRate * duration;
+    const buffer = ctx.createBuffer(1, length, sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) {
+      const t = i / sampleRate;
+      const envelope = Math.min(1, (length - i) / (sampleRate * 0.05)) * Math.min(1, i / (sampleRate * 0.01));
+      data[i] = Math.sin(2 * Math.PI * freq * t) * envelope * volume;
+    }
+    return buffer;
+  } catch {
+    return null;
+  }
+}
+
+function playNotificationSound(type: string, volume: number) {
+  try {
+    const ctx = new AudioContext();
+    const vol = volume / 100;
+    
+    const frequencies: Record<string, number[]> = {
+      default: [880, 1100],
+      chime: [523, 659, 784],
+      bell: [1200, 900],
+    };
+    
+    const freqs = frequencies[type] || frequencies.default;
+    freqs.forEach((freq, i) => {
+      const buffer = generateTone(freq, 0.15, vol);
+      if (buffer) {
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(ctx.currentTime + i * 0.18);
+      }
+    });
+  } catch {}
+}
 
 export function useNotificationSettings() {
   const { user } = useAuth();
@@ -18,7 +55,6 @@ export function useNotificationSettings() {
       if (!user) return null;
       const { data } = await supabase.from('notification_settings').select('*').eq('user_id', user.id).maybeSingle();
       if (!data) {
-        // Create default settings
         const { data: newData } = await supabase.from('notification_settings').insert({ user_id: user.id }).select().single();
         return newData;
       }
@@ -40,11 +76,19 @@ export function useUpdateNotificationSettings() {
   });
 }
 
+export function usePlayTestSound() {
+  const { data: settings } = useNotificationSettings();
+  return () => {
+    const soundType = settings?.sound_type || 'default';
+    const volume = settings?.volume ?? 80;
+    playNotificationSound(soundType, volume);
+  };
+}
+
 export function useRealtimeListings() {
   const { user } = useAuth();
   const { data: settings } = useNotificationSettings();
   const { toast } = useToast();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -58,12 +102,36 @@ export function useRealtimeListings() {
         toast({ title: '🏠 Nouvelle annonce', description: listing.title });
 
         if (settings?.sound_enabled !== false) {
-          try {
-            const soundKey = settings?.sound_type || 'default';
-            const audio = new Audio(SOUNDS[soundKey] || SOUNDS.default);
-            audio.volume = (settings?.volume ?? 80) / 100;
-            audio.play().catch(() => {});
-          } catch {}
+          playNotificationSound(settings?.sound_type || 'default', settings?.volume ?? 80);
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, settings]);
+}
+
+export function useRealtimeJoinRequests() {
+  const { user } = useAuth();
+  const { data: settings } = useNotificationSettings();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('new-join-requests')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_join_requests' }, (payload) => {
+        const request = payload.new as any;
+        // Refresh join request counts
+        qc.invalidateQueries({ queryKey: ['my_join_request_counts'] });
+        qc.invalidateQueries({ queryKey: ['join_requests'] });
+
+        toast({ title: '👤 Nouvelle demande', description: "Quelqu'un veut rejoindre votre groupe" });
+
+        if (settings?.sound_enabled !== false) {
+          playNotificationSound(settings?.sound_type || 'default', settings?.volume ?? 80);
         }
       })
       .subscribe();

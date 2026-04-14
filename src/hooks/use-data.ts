@@ -2,6 +2,72 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+// ========== ADMIN ==========
+export function useIsAppAdmin() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['is_app_admin', user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle();
+      return data?.role === 'admin';
+    },
+    enabled: !!user,
+  });
+}
+
+// ========== SLIDER BANNERS ==========
+export function useSliderBanners() {
+  return useQuery({
+    queryKey: ['slider_banners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('slider_banners').select('*').eq('active', true).order('sort_order');
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAllSliderBanners() {
+  return useQuery({
+    queryKey: ['all_slider_banners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('slider_banners').select('*').order('sort_order');
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useCreateBanner() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (banner: { image_url: string; link_url?: string; sort_order?: number }) => {
+      const { data, error } = await supabase.from('slider_banners').insert(banner).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['slider_banners'] });
+      qc.invalidateQueries({ queryKey: ['all_slider_banners'] });
+    },
+  });
+}
+
+export function useDeleteBanner() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('slider_banners').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['slider_banners'] });
+      qc.invalidateQueries({ queryKey: ['all_slider_banners'] });
+    },
+  });
+}
+
 // ========== GROUPS ==========
 export function useMyGroups() {
   const { user } = useAuth();
@@ -9,7 +75,6 @@ export function useMyGroups() {
     queryKey: ['my_groups', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      // Get groups where user is a member
       const { data: memberships, error: mErr } = await supabase.from('group_members').select('group_id').eq('user_id', user.id);
       if (mErr) throw mErr;
       if (!memberships?.length) return [];
@@ -19,6 +84,17 @@ export function useMyGroups() {
       return data;
     },
     enabled: !!user,
+  });
+}
+
+export function useAllGroups() {
+  return useQuery({
+    queryKey: ['all_groups'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('groups').select('*').order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
   });
 }
 
@@ -145,6 +221,29 @@ export function useJoinRequests(groupId: string) {
   });
 }
 
+export function useMyGroupJoinRequestCounts() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['my_join_request_counts', user?.id],
+    queryFn: async () => {
+      if (!user) return { total: 0, byGroup: {} as Record<string, number> };
+      // Get groups I created
+      const { data: myGroups } = await supabase.from('groups').select('id').eq('created_by', user.id);
+      if (!myGroups?.length) return { total: 0, byGroup: {} as Record<string, number> };
+      const groupIds = myGroups.map(g => g.id);
+      const { data: requests } = await supabase.from('group_join_requests').select('group_id').in('group_id', groupIds).eq('status', 'pending');
+      const byGroup: Record<string, number> = {};
+      let total = 0;
+      requests?.forEach(r => {
+        byGroup[r.group_id] = (byGroup[r.group_id] || 0) + 1;
+        total++;
+      });
+      return { total, byGroup };
+    },
+    enabled: !!user,
+  });
+}
+
 export function useRequestJoin() {
   const qc = useQueryClient();
   return useMutation({
@@ -182,6 +281,7 @@ export function useRespondJoinRequest() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ['join_requests', v.groupId] });
       qc.invalidateQueries({ queryKey: ['group_members', v.groupId] });
+      qc.invalidateQueries({ queryKey: ['my_join_request_counts'] });
     },
   });
 }
@@ -207,7 +307,16 @@ export function useMyListings() {
       if (!user) return [];
       const { data, error } = await supabase.from('listings').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      // Get like counts
+      const listingIds = data.map(l => l.id);
+      if (listingIds.length) {
+        const { data: likes } = await supabase.from('listing_likes').select('listing_id').in('listing_id', listingIds);
+        return data.map(l => ({
+          ...l,
+          like_count: likes?.filter(lk => lk.listing_id === l.id).length || 0,
+        }));
+      }
+      return data.map(l => ({ ...l, like_count: 0 }));
     },
     enabled: !!user,
   });
@@ -231,7 +340,7 @@ export function useCreateListing() {
 export function useUpdateListing() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; title?: string; description?: string; images?: string[] }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; title?: string; description?: string; images?: string[]; zwandako_url?: string }) => {
       const { data, error } = await supabase.from('listings').update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data;
@@ -327,6 +436,14 @@ export async function uploadListingImage(file: File, userId: string): Promise<st
 export async function uploadAvatar(file: File, userId: string): Promise<string> {
   const ext = file.name.split('.').pop();
   const path = `avatars/${userId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('listings').upload(path, file);
+  if (error) throw error;
+  const { data: { publicUrl } } = supabase.storage.from('listings').getPublicUrl(path);
+  return publicUrl;
+}
+
+export async function uploadBannerImage(file: File): Promise<string> {
+  const path = `banners/${Date.now()}.${file.name.split('.').pop()}`;
   const { error } = await supabase.storage.from('listings').upload(path, file);
   if (error) throw error;
   const { data: { publicUrl } } = supabase.storage.from('listings').getPublicUrl(path);
