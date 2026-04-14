@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import Login from "./pages/Login";
 import Index from "./pages/Index";
 import GroupDetail from "./pages/GroupDetail";
@@ -12,6 +13,7 @@ import GroupMembers from "./pages/GroupMembers";
 import CreateGroup from "./pages/CreateGroup";
 import Contacts from "./pages/Contacts";
 import Profil from "./pages/Profil";
+import ContactDetail from "./pages/ContactDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +47,7 @@ function AppRoutes() {
         <Route path="/group/:id/members" element={<GroupMembers />} />
         <Route path="/create-group" element={<CreateGroup />} />
         <Route path="/contacts" element={<Contacts />} />
+        <Route path="/contact/:userId" element={<ContactDetail />} />
         <Route path="/profil" element={<Profil />} />
       </Route>
       <Route path="*" element={<NotFound />} />
@@ -54,15 +57,17 @@ function AppRoutes() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

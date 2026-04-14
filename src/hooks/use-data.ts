@@ -3,14 +3,35 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 // ========== GROUPS ==========
-export function useGroups() {
+export function useMyGroups() {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ['groups'],
+    queryKey: ['my_groups', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('groups').select('*').order('updated_at', { ascending: false });
+      if (!user) return [];
+      // Get groups where user is a member
+      const { data: memberships, error: mErr } = await supabase.from('group_members').select('group_id').eq('user_id', user.id);
+      if (mErr) throw mErr;
+      if (!memberships?.length) return [];
+      const groupIds = memberships.map(m => m.group_id);
+      const { data, error } = await supabase.from('groups').select('*').in('id', groupIds).order('updated_at', { ascending: false });
       if (error) throw error;
       return data;
     },
+    enabled: !!user,
+  });
+}
+
+export function useSearchGroups(search: string) {
+  return useQuery({
+    queryKey: ['search_groups', search],
+    queryFn: async () => {
+      if (!search.trim()) return [];
+      const { data, error } = await supabase.from('groups').select('*').ilike('name', `%${search}%`).limit(20);
+      if (error) throw error;
+      return data;
+    },
+    enabled: search.trim().length >= 2,
   });
 }
 
@@ -35,7 +56,7 @@ export function useCreateGroup() {
       await supabase.from('group_members').insert({ group_id: data.id, user_id: group.created_by });
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['my_groups'] }),
   });
 }
 
@@ -46,7 +67,7 @@ export function useDeleteGroup() {
       const { error } = await supabase.from('groups').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['my_groups'] }),
   });
 }
 
@@ -57,7 +78,6 @@ export function useGroupMembers(groupId: string) {
     queryFn: async () => {
       const { data, error } = await supabase.from('group_members').select('*').eq('group_id', groupId);
       if (error) throw error;
-      // Fetch profiles for each member
       const userIds = data.map(m => m.user_id);
       const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', userIds);
       return data.map(m => ({ ...m, profiles: profiles?.find(p => p.user_id === m.user_id) || null }));
@@ -76,6 +96,7 @@ export function useJoinGroup() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ['group_members', v.groupId] });
       qc.invalidateQueries({ queryKey: ['is_member', v.groupId] });
+      qc.invalidateQueries({ queryKey: ['my_groups'] });
     },
   });
 }
@@ -90,6 +111,7 @@ export function useLeaveGroup() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ['group_members', v.groupId] });
       qc.invalidateQueries({ queryKey: ['is_member', v.groupId] });
+      qc.invalidateQueries({ queryKey: ['my_groups'] });
     },
   });
 }
@@ -104,6 +126,63 @@ export function useIsMember(groupId: string) {
       return !!data;
     },
     enabled: !!groupId && !!user,
+  });
+}
+
+// ========== JOIN REQUESTS ==========
+export function useJoinRequests(groupId: string) {
+  return useQuery({
+    queryKey: ['join_requests', groupId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('group_join_requests').select('*').eq('group_id', groupId).eq('status', 'pending');
+      if (error) throw error;
+      if (!data?.length) return [];
+      const userIds = data.map(r => r.user_id);
+      const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', userIds);
+      return data.map(r => ({ ...r, profile: profiles?.find(p => p.user_id === r.user_id) || null }));
+    },
+    enabled: !!groupId,
+  });
+}
+
+export function useRequestJoin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, userId }: { groupId: string; userId: string }) => {
+      const { error } = await supabase.from('group_join_requests').insert({ group_id: groupId, user_id: userId });
+      if (error) throw error;
+    },
+    onSuccess: (_, v) => qc.invalidateQueries({ queryKey: ['join_requests', v.groupId] }),
+  });
+}
+
+export function useHasPendingRequest(groupId: string) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['pending_request', groupId, user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.from('group_join_requests').select('id').eq('group_id', groupId).eq('user_id', user.id).eq('status', 'pending').maybeSingle();
+      return !!data;
+    },
+    enabled: !!groupId && !!user,
+  });
+}
+
+export function useRespondJoinRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ requestId, groupId, userId, accept }: { requestId: string; groupId: string; userId: string; accept: boolean }) => {
+      const { error } = await supabase.from('group_join_requests').update({ status: accept ? 'accepted' : 'rejected' }).eq('id', requestId);
+      if (error) throw error;
+      if (accept) {
+        await supabase.from('group_members').insert({ group_id: groupId, user_id: userId });
+      }
+    },
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: ['join_requests', v.groupId] });
+      qc.invalidateQueries({ queryKey: ['group_members', v.groupId] });
+    },
   });
 }
 
@@ -179,6 +258,20 @@ export function useDeleteListing() {
 }
 
 // ========== LIKES ==========
+export function useListingLikes(listingId: string) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['likes', listingId, user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('listing_likes').select('*').eq('listing_id', listingId);
+      if (error) throw error;
+      const liked = user ? data.some(l => l.user_id === user.id) : false;
+      return { count: data.length, liked };
+    },
+    enabled: !!listingId,
+  });
+}
+
 export function useToggleLike() {
   const qc = useQueryClient();
   return useMutation({
@@ -197,6 +290,18 @@ export function useToggleLike() {
 }
 
 // ========== PROFILES ==========
+export function useProfile(userId: string) {
+  return useQuery({
+    queryKey: ['profile', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+}
+
 export function useUpdateProfile() {
   const qc = useQueryClient();
   return useMutation({
@@ -213,6 +318,15 @@ export function useUpdateProfile() {
 export async function uploadListingImage(file: File, userId: string): Promise<string> {
   const ext = file.name.split('.').pop();
   const path = `${userId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('listings').upload(path, file);
+  if (error) throw error;
+  const { data: { publicUrl } } = supabase.storage.from('listings').getPublicUrl(path);
+  return publicUrl;
+}
+
+export async function uploadAvatar(file: File, userId: string): Promise<string> {
+  const ext = file.name.split('.').pop();
+  const path = `avatars/${userId}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from('listings').upload(path, file);
   if (error) throw error;
   const { data: { publicUrl } } = supabase.storage.from('listings').getPublicUrl(path);
