@@ -10,7 +10,7 @@ import Index from "./pages/Index";
 import GroupDetail from "./pages/GroupDetail";
 import GroupMembers from "./pages/GroupMembers";
 import CreateGroup from "./pages/CreateGroup";
-import Publish from "./pages/Publish";
+import Contacts from "./pages/Contacts";
 import Profil from "./pages/Profil";
 import NotFound from "./pages/NotFound";
 
@@ -44,7 +44,7 @@ function AppRoutes() {
         <Route path="/group/:id" element={<GroupDetail />} />
         <Route path="/group/:id/members" element={<GroupMembers />} />
         <Route path="/create-group" element={<CreateGroup />} />
-        <Route path="/publish" element={<Publish />} />
+        <Route path="/contacts" element={<Contacts />} />
         <Route path="/profil" element={<Profil />} />
       </Route>
       <Route path="*" element={<NotFound />} />
