@@ -20,20 +20,29 @@ interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, firstName: string, lastName: string, phone: string) => Promise<boolean>;
+  loginWithPhone: (phone: string) => Promise<boolean>;
+  verifyOtp: (phone: string, otp: string) => Promise<boolean>;
+  signup: (phone: string, firstName: string, lastName: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  login: async () => false,
+  loginWithPhone: async () => false,
+  verifyOtp: async () => false,
   signup: async () => false,
   logout: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
+
+function phoneToEmail(phone: string): string {
+  const cleaned = phone.replace(/[^0-9]/g, '');
+  return `phone_${cleaned}@proimmobilier.app`;
+}
+
+const DEFAULT_PASSWORD = 'ProImmo2026!SecureDefault';
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
@@ -67,20 +76,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const loginWithPhone = async (phone: string) => {
+    const email = phoneToEmail(phone);
+    const { error } = await supabase.auth.signInWithPassword({ email, password: DEFAULT_PASSWORD });
     return !error;
   };
 
-  const signup = async (email: string, password: string, firstName: string, lastName: string, phone: string) => {
+  const verifyOtp = async (phone: string, _otp: string) => {
+    // Simulated OTP - just login
+    return loginWithPhone(phone);
+  };
+
+  const signup = async (phone: string, firstName: string, lastName: string) => {
+    const email = phoneToEmail(phone);
     const { error } = await supabase.auth.signUp({
       email,
-      password,
+      password: DEFAULT_PASSWORD,
       options: {
         data: { first_name: firstName, last_name: lastName, phone },
       },
     });
-    return !error;
+    if (error) return false;
+    // Auto-login after signup
+    await new Promise(r => setTimeout(r, 500));
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: DEFAULT_PASSWORD });
+    return !loginError;
   };
 
   const logout = async () => {
@@ -89,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, loginWithPhone, verifyOtp, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

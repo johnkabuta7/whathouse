@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus } from 'lucide-react';
+import { Search, UserPlus, MoreVertical } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,6 +55,19 @@ export default function Contacts() {
 
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border">
+        <div className="px-4 py-3 flex items-center gap-3">
+          <h1 className="text-lg font-bold flex-1 text-foreground">Contacts</h1>
+          <button className="p-1.5 rounded-full hover:bg-muted transition">
+            <Search className="h-5 w-5 text-muted-foreground" />
+          </button>
+          <button className="p-1.5 rounded-full hover:bg-muted transition">
+            <MoreVertical className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </div>
+      </header>
+
       <div className="px-3 py-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -86,7 +99,7 @@ export default function Contacts() {
       ) : (
         <div>
           <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            {filtered.length} contact{filtered.length > 1 ? 's' : ''} sur Pro Immobilier
+            {filtered.length} contact{filtered.length > 1 ? 's' : ''} sur l'application
           </p>
           {filtered.map(p => {
             const name = `${p.first_name} ${p.last_name}`.trim() || 'Utilisateur';

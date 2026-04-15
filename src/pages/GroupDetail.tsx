@@ -47,7 +47,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
       for (const f of files) urls.push(await uploadListingImage(f, userId));
       createListing.mutate(
         { group_id: groupId, user_id: userId, title: title.trim(), description: description.trim(), images: urls, zwandako_url: zwandakoUrl.trim() || undefined },
-        { onSuccess: () => { toast({ title: 'Annonce publiée !' }); onDone(); }, onError: () => { toast({ title: 'Erreur', variant: 'destructive' }); setIsLoading(false); } }
+        { onSuccess: () => { toast({ title: 'Annonce publiée !' }); onDone(); setTitle(''); setDescription(''); setZwandakoUrl(''); setFiles([]); setPreviews([]); }, onError: () => { toast({ title: 'Erreur', variant: 'destructive' }); setIsLoading(false); } }
       );
     } catch { toast({ title: 'Erreur upload', variant: 'destructive' }); setIsLoading(false); }
   };
@@ -187,22 +187,22 @@ export default function GroupDetail() {
   };
 
   return (
-    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-[calc(100vh-3.5rem-3.5rem)]">
+    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-[calc(100vh-3.5rem)]">
       {/* Header */}
-      <div className="px-3 py-2.5 flex items-center gap-3 bg-primary text-primary-foreground sticky top-0 z-10">
-        <Link to="/" className="text-primary-foreground/80"><ArrowLeft className="h-5 w-5" /></Link>
-        <div className="h-9 w-9 rounded-full bg-primary-foreground/10 flex items-center justify-center overflow-hidden shrink-0">
-          {group.image_url ? <img src={group.image_url} className="h-full w-full object-cover rounded-full" /> : <Users className="h-4 w-4" />}
+      <div className="px-3 py-2.5 flex items-center gap-3 bg-card/60 backdrop-blur-md border-b border-border sticky top-0 z-10">
+        <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
+        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+          {group.image_url ? <img src={group.image_url} className="h-full w-full object-cover rounded-full" /> : <Users className="h-4 w-4 text-primary" />}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold truncate">{group.name}</p>
-          <p className="text-[10px] text-primary-foreground/70">{listings?.length || 0} annonces</p>
+          <p className="text-sm font-bold truncate text-foreground">{group.name}</p>
+          <p className="text-[10px] text-muted-foreground">{listings?.length || 0} annonces</p>
         </div>
-        <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-primary-foreground/10">
-          <Search className="h-4 w-4" />
+        <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">
+          <Search className="h-4 w-4 text-muted-foreground" />
         </button>
-        <Link to={`/group/${id}/members`} className="p-1.5 rounded-full hover:bg-primary-foreground/10 relative">
-          <Users className="h-4 w-4" />
+        <Link to={`/group/${id}/members`} className="p-1.5 rounded-full hover:bg-muted transition relative">
+          <Users className="h-4 w-4 text-muted-foreground" />
           {isCreator && pendingCount > 0 && (
             <span className="absolute -top-1 -right-1 h-4 min-w-[16px] rounded-full bg-destructive text-[9px] font-bold text-white flex items-center justify-center px-0.5">
               {pendingCount}
@@ -252,18 +252,20 @@ export default function GroupDetail() {
             )}
           </div>
 
-          {/* Publish area at bottom - always visible */}
-          {showPublish ? (
-            <PublishForm groupId={group.id} userId={user?.id || ''} onDone={() => setShowPublish(false)} />
-          ) : (
-            <div className="px-3 py-2 bg-card border-t border-border">
-              <button onClick={() => setShowPublish(true)}
-                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted text-muted-foreground text-sm hover:bg-muted/80 transition">
-                <Plus className="h-4 w-4 text-primary" />
-                Publier une annonce...
-              </button>
-            </div>
-          )}
+          {/* Publish area - FIXED at bottom, never scrolls */}
+          <div className="sticky bottom-0 z-20">
+            {showPublish ? (
+              <PublishForm groupId={group.id} userId={user?.id || ''} onDone={() => setShowPublish(false)} />
+            ) : (
+              <div className="px-3 py-2 bg-card border-t border-border">
+                <button onClick={() => setShowPublish(true)}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted text-muted-foreground text-sm hover:bg-muted/80 transition">
+                  <Plus className="h-4 w-4 text-primary" />
+                  Publier une annonce...
+                </button>
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

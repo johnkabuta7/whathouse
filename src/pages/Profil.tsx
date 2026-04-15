@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image } from 'lucide-react';
+import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,6 +34,7 @@ export default function Profil() {
   const [firstName, setFirstName] = useState(user?.profile?.first_name || '');
   const [lastName, setLastName] = useState(user?.profile?.last_name || '');
   const [phone, setPhone] = useState(user?.profile?.phone || '');
+  const [email, setEmail] = useState(user?.email || '');
   const [activeTab, setActiveTab] = useState<'annonces' | 'infos' | 'admin'>('annonces');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editingListing, setEditingListing] = useState<string | null>(null);
@@ -109,6 +110,16 @@ export default function Profil() {
 
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border">
+        <div className="px-4 py-3 flex items-center gap-3">
+          <h1 className="text-lg font-bold flex-1 text-foreground">Profil</h1>
+          <button className="p-1.5 rounded-full hover:bg-muted transition">
+            <MoreVertical className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </div>
+      </header>
+
       {/* Profile header */}
       <div className="bg-card px-4 py-6 border-b border-border">
         <div className="flex items-center gap-4">
@@ -128,8 +139,7 @@ export default function Profil() {
           </div>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-foreground">{fullName}</h1>
-            <p className="text-xs text-muted-foreground">{user.email}</p>
-            {user.profile?.phone && <p className="text-xs text-muted-foreground mt-0.5">{user.profile.phone}</p>}
+            {user.profile?.phone && <p className="text-xs text-muted-foreground">{user.profile.phone}</p>}
             {isAdmin && <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold mt-1 inline-block">Admin</span>}
           </div>
           <button onClick={() => setEditing(!editing)} className="p-2 rounded-full hover:bg-muted transition text-muted-foreground">
@@ -159,6 +169,10 @@ export default function Profil() {
             <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Nom" className="rounded-full text-sm h-9" />
           </div>
           <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Téléphone" className="rounded-full text-sm h-9" />
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email (optionnel)" className="rounded-full text-sm h-9 pl-10" type="email" />
+          </div>
           <div className="flex gap-2">
             <Button onClick={handleSave} size="sm" className="flex-1 rounded-full bg-primary text-primary-foreground" disabled={updateProfile.isPending}>
               <Save className="h-3.5 w-3.5 mr-1" />Sauvegarder
