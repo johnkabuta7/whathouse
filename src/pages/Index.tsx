@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Users, Search, Phone, MessageSquare } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Users, Search, Phone, MessageSquare, Bell } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts } from '@/hooks/use-data';
@@ -16,6 +16,19 @@ function useOnlineContacts() {
       const { data, error } = await supabase.from('profiles').select('*');
       if (error) throw error;
       return data?.filter(p => p.user_id !== user?.id) || [];
+    },
+    enabled: !!user,
+  });
+}
+
+function useUnreadCounts() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['unread_counts', user?.id],
+    queryFn: async () => {
+      // Track unread by comparing listing count vs last seen
+      // For now, return empty - will be updated via realtime
+      return {} as Record<string, number>;
     },
     enabled: !!user,
   });
@@ -40,7 +53,7 @@ function SliderBanner() {
   }, [slides.length]);
 
   return (
-    <div className="relative w-full h-[60px] overflow-hidden rounded-lg mx-auto">
+    <div className="relative w-full h-[80px] overflow-hidden">
       {slides.map((slide, i) => (
         <div
           key={slide.id}
@@ -49,7 +62,7 @@ function SliderBanner() {
           <img src={slide.image_url} alt="" className="w-full h-full object-cover" />
         </div>
       ))}
-      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+      <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1">
         {slides.map((_, i) => (
           <div key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${i === current ? 'bg-primary' : 'bg-white/50'}`} />
         ))}
@@ -60,7 +73,9 @@ function SliderBanner() {
 
 export default function Index() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const { data: myGroups, isLoading } = useMyGroups();
   const { data: searchResults } = useSearchGroups(search);
   const { data: contacts } = useOnlineContacts();
@@ -73,8 +88,17 @@ export default function Index() {
   useRealtimeJoinRequests();
 
   const isSearching = search.trim().length >= 2;
-  // Admin sees all groups, normal user sees only their groups
   const displayGroups = isSearching ? searchResults : (isAdmin ? allGroups : myGroups);
+  const totalRequests = requestCounts?.total || 0;
+
+  // Find first group with pending requests for bell click
+  const handleBellClick = () => {
+    if (!requestCounts?.byGroup) return;
+    const groupIds = Object.keys(requestCounts.byGroup).filter(id => requestCounts.byGroup[id] > 0);
+    if (groupIds.length > 0) {
+      navigate(`/group/${groupIds[0]}/members`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -86,18 +110,37 @@ export default function Index() {
 
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
-      {/* Search */}
-      <div className="px-3 py-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un groupe..."
-            className="w-full pl-9 pr-4 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-          />
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border">
+        <div className="px-4 py-3 flex items-center gap-3">
+          <h1 className="text-lg font-bold flex-1 text-foreground">Pro Immobilier</h1>
+          <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">
+            <Search className="h-5 w-5 text-muted-foreground" />
+          </button>
+          <button onClick={handleBellClick} className="relative p-1.5 rounded-full hover:bg-muted transition">
+            <Bell className="h-5 w-5 text-muted-foreground" />
+            {totalRequests > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 min-w-[20px] rounded-full bg-destructive text-[10px] font-bold text-white flex items-center justify-center px-1">
+                {totalRequests}
+              </span>
+            )}
+          </button>
         </div>
-      </div>
+        {showSearch && (
+          <div className="px-3 pb-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Rechercher un groupe..."
+                className="w-full pl-9 pr-4 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                autoFocus
+              />
+            </div>
+          </div>
+        )}
+      </header>
 
       {/* Contact carousel */}
       {contacts && contacts.length > 0 && !isSearching && (
@@ -126,12 +169,8 @@ export default function Index() {
         </div>
       )}
 
-      {/* Slider banner */}
-      {!isSearching && (
-        <div className="px-3 py-1">
-          <SliderBanner />
-        </div>
-      )}
+      {/* Slider banner - full width, no padding, no border radius */}
+      {!isSearching && <SliderBanner />}
 
       {/* Contact modal */}
       {selectedContact && (
@@ -197,8 +236,8 @@ export default function Index() {
                     <p className="text-sm font-semibold text-foreground truncate">{group.name}</p>
                     <div className="flex items-center gap-2 shrink-0 ml-2">
                       {reqCount > 0 && (
-                        <span className="h-5 min-w-[20px] rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center px-1">
-                          {reqCount}
+                        <span className="h-5 min-w-[20px] rounded-full bg-success text-[10px] font-bold text-success-foreground flex items-center justify-center px-1">
+                          {reqCount > 999 ? '999+' : reqCount}
                         </span>
                       )}
                       <p className="text-[10px] text-muted-foreground">
@@ -214,7 +253,7 @@ export default function Index() {
         </div>
       )}
 
-      {/* FAB - Plus icon */}
+      {/* FAB */}
       {!isSearching && (
         <Link to="/create-group" className="fixed bottom-20 right-4 h-14 w-14 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:opacity-90 transition z-40">
           <Plus className="h-6 w-6" />

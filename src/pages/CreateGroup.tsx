@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Camera, Check, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowLeft, Camera, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCreateGroup, uploadListingImage, useGroupMembers } from '@/hooks/use-data';
+import { useCreateGroup, uploadListingImage } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -63,7 +62,6 @@ export default function CreateGroup() {
       { name: name.trim(), created_by: user.id, image_url },
       {
         onSuccess: async (data) => {
-          // Add selected members
           for (const memberId of selectedMembers) {
             await supabase.from('group_members').insert({ group_id: data.id, user_id: memberId });
           }
@@ -76,23 +74,23 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-[calc(100vh-3.5rem-3.5rem)]">
+    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-[calc(100vh-3.5rem)]">
       {/* Header */}
-      <div className="px-3 py-2.5 flex items-center gap-3 bg-primary text-primary-foreground">
+      <div className="px-3 py-2.5 flex items-center gap-3 bg-card/60 backdrop-blur-md border-b border-border">
         {step === 'info' ? (
-          <Link to="/" className="text-primary-foreground/80"><ArrowLeft className="h-5 w-5" /></Link>
+          <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
         ) : (
-          <button onClick={() => setStep('info')} className="text-primary-foreground/80"><ArrowLeft className="h-5 w-5" /></button>
+          <button onClick={() => setStep('info')} className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></button>
         )}
-        <h1 className="text-sm font-bold flex-1">
+        <h1 className="text-sm font-bold flex-1 text-foreground">
           {step === 'info' ? 'Nouveau groupe' : 'Ajouter des membres'}
         </h1>
         {step === 'info' ? (
-          <button onClick={() => { if (name.trim()) setStep('members'); }} className={`text-sm font-semibold ${name.trim() ? 'text-primary-foreground' : 'text-primary-foreground/30'}`}>
+          <button onClick={() => { if (name.trim()) setStep('members'); }} className={`text-sm font-semibold ${name.trim() ? 'text-primary' : 'text-muted-foreground/30'}`}>
             Suivant
           </button>
         ) : (
-          <button onClick={handleCreate} disabled={isLoading} className="text-sm font-semibold text-primary-foreground">
+          <button onClick={handleCreate} disabled={isLoading} className="text-sm font-semibold text-primary">
             {isLoading ? '...' : 'Créer'}
           </button>
         )}
@@ -103,7 +101,7 @@ export default function CreateGroup() {
           <div className="flex items-center gap-4 mb-6">
             <label className="cursor-pointer shrink-0">
               <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-border hover:border-secondary transition">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-border hover:border-primary transition">
                 {imagePreview ? <img src={imagePreview} className="h-full w-full object-cover" /> : <Camera className="h-6 w-6 text-muted-foreground" />}
               </div>
             </label>
@@ -113,29 +111,27 @@ export default function CreateGroup() {
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          {/* Selected count */}
           {selectedMembers.length > 0 && (
-            <div className="px-4 py-2 bg-secondary/10 text-xs font-medium text-secondary">
+            <div className="px-4 py-2 bg-primary/10 text-xs font-medium text-primary">
               {selectedMembers.length} membre{selectedMembers.length > 1 ? 's' : ''} sélectionné{selectedMembers.length > 1 ? 's' : ''}
             </div>
           )}
-          {/* Search */}
           <div className="px-4 py-2">
             <Input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} placeholder="Rechercher un contact..." className="rounded-full text-sm h-9" />
           </div>
 
           <div className="px-4">
             {filteredProfiles?.map(p => {
-              const name = `${p.first_name} ${p.last_name}`.trim() || 'Utilisateur';
+              const pName = `${p.first_name} ${p.last_name}`.trim() || 'Utilisateur';
               const selected = selectedMembers.includes(p.user_id);
               return (
                 <button key={p.user_id} onClick={() => toggleMember(p.user_id)}
                   className="w-full flex items-center gap-3 py-3 border-b border-border text-left">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${selected ? 'bg-secondary text-secondary-foreground' : 'bg-primary/10 text-primary'}`}>
-                    {selected ? <Check className="h-4 w-4" /> : name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${selected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+                    {selected ? <Check className="h-4 w-4" /> : pName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{name}</p>
+                    <p className="text-sm font-medium text-foreground truncate">{pName}</p>
                     {p.phone && <p className="text-[10px] text-muted-foreground">{p.phone}</p>}
                   </div>
                 </button>
