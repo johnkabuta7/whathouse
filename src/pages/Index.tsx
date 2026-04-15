@@ -236,7 +236,7 @@ export default function Index() {
                     <p className="text-sm font-semibold text-foreground truncate">{group.name}</p>
                     <div className="flex items-center gap-2 shrink-0 ml-2">
                       {reqCount > 0 && (
-                        <span className="h-5 min-w-[20px] rounded-full bg-emerald-500 text-[10px] font-bold text-primary-foreground flex items-center justify-center px-1">
+                        <span className="h-5 min-w-[20px] rounded-full bg-success text-[10px] font-bold text-success-foreground flex items-center justify-center px-1">
                           {reqCount > 999 ? '999+' : reqCount}
                         </span>
                       )}
