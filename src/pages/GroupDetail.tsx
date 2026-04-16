@@ -227,6 +227,7 @@ export default function GroupDetail() {
   const { data: hasPending } = useHasPendingRequest(id || '');
   const { data: joinRequests } = useJoinRequests(id || '');
   const requestJoin = useRequestJoin();
+  const markRead = useMarkGroupRead();
   const { toast } = useToast();
   const [showPublish, setShowPublish] = useState(false);
   const [search, setSearch] = useState('');
@@ -235,6 +236,12 @@ export default function GroupDetail() {
 
   const isCreator = group?.created_by === user?.id;
   const pendingCount = joinRequests?.length || 0;
+
+  // Mark as read when entering & listings load
+  useEffect(() => {
+    if (id && isMember && listings) markRead.mutate(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isMember, listings?.length]);
 
   const filteredListings = listings?.filter(l =>
     l.title.toLowerCase().includes(search.toLowerCase()) ||
