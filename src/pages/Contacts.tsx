@@ -24,9 +24,13 @@ export default function Contacts() {
   const { user } = useAuth();
   const { data: profiles, isLoading } = useAllProfiles();
   const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showInstall, setShowInstall] = useState(false);
   const navigate = useNavigate();
 
   const others = profiles?.filter(p => p.user_id !== user?.id);
