@@ -136,6 +136,22 @@ export function useCreateGroup() {
   });
 }
 
+export function useUpdateGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; name?: string; image_url?: string; description?: string }) => {
+      const { data, error } = await supabase.from('groups').update(updates).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['group', data.id] });
+      qc.invalidateQueries({ queryKey: ['my_groups'] });
+      qc.invalidateQueries({ queryKey: ['all_groups'] });
+    },
+  });
+}
+
 export function useDeleteGroup() {
   const qc = useQueryClient();
   return useMutation({
@@ -227,7 +243,6 @@ export function useMyGroupJoinRequestCounts() {
     queryKey: ['my_join_request_counts', user?.id],
     queryFn: async () => {
       if (!user) return { total: 0, byGroup: {} as Record<string, number> };
-      // Get groups I created
       const { data: myGroups } = await supabase.from('groups').select('id').eq('created_by', user.id);
       if (!myGroups?.length) return { total: 0, byGroup: {} as Record<string, number> };
       const groupIds = myGroups.map(g => g.id);
@@ -307,7 +322,6 @@ export function useMyListings() {
       if (!user) return [];
       const { data, error } = await supabase.from('listings').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
       if (error) throw error;
-      // Get like counts
       const listingIds = data.map(l => l.id);
       if (listingIds.length) {
         const { data: likes } = await supabase.from('listing_likes').select('listing_id').in('listing_id', listingIds);
@@ -398,6 +412,57 @@ export function useToggleLike() {
   });
 }
 
+// ========== FAVORITES ==========
+export function useMyFavorites() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['my_favorites', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data: favs, error } = await supabase.from('listing_favorites').select('listing_id').eq('user_id', user.id);
+      if (error) throw error;
+      if (!favs?.length) return [];
+      const ids = favs.map(f => f.listing_id);
+      const { data: listings } = await supabase.from('listings').select('*').in('id', ids).order('created_at', { ascending: false });
+      return listings || [];
+    },
+    enabled: !!user,
+  });
+}
+
+export function useIsFavorite(listingId: string) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['is_favorite', listingId, user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.from('listing_favorites').select('id').eq('listing_id', listingId).eq('user_id', user.id).maybeSingle();
+      return !!data;
+    },
+    enabled: !!listingId && !!user,
+  });
+}
+
+export function useToggleFavorite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ listingId, userId }: { listingId: string; userId: string }) => {
+      const { data: existing } = await supabase.from('listing_favorites').select('id').eq('listing_id', listingId).eq('user_id', userId).maybeSingle();
+      if (existing) {
+        await supabase.from('listing_favorites').delete().eq('id', existing.id);
+        return { favorited: false };
+      } else {
+        await supabase.from('listing_favorites').insert({ listing_id: listingId, user_id: userId });
+        return { favorited: true };
+      }
+    },
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: ['is_favorite', v.listingId] });
+      qc.invalidateQueries({ queryKey: ['my_favorites'] });
+    },
+  });
+}
+
 // ========== PROFILES ==========
 export function useProfile(userId: string) {
   return useQuery({
@@ -414,12 +479,16 @@ export function useProfile(userId: string) {
 export function useUpdateProfile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId, ...updates }: { userId: string; first_name?: string; last_name?: string; phone?: string; avatar_url?: string }) => {
+    mutationFn: async ({ userId, ...updates }: { userId: string; first_name?: string; last_name?: string; phone?: string; avatar_url?: string; background_url?: string }) => {
       const { data, error } = await supabase.from('profiles').update(updates).eq('user_id', userId).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, v) => qc.invalidateQueries({ queryKey: ['profile', v.userId] }),
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: ['profile', v.userId] });
+      qc.invalidateQueries({ queryKey: ['all_profiles_carousel'] });
+      qc.invalidateQueries({ queryKey: ['all_profiles'] });
+    },
   });
 }
 
@@ -444,6 +513,24 @@ export async function uploadAvatar(file: File, userId: string): Promise<string> 
 
 export async function uploadBannerImage(file: File): Promise<string> {
   const path = `banners/${Date.now()}.${file.name.split('.').pop()}`;
+  const { error } = await supabase.storage.from('listings').upload(path, file);
+  if (error) throw error;
+  const { data: { publicUrl } } = supabase.storage.from('listings').getPublicUrl(path);
+  return publicUrl;
+}
+
+export async function uploadGroupImage(file: File, groupId: string): Promise<string> {
+  const ext = file.name.split('.').pop();
+  const path = `groups/${groupId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('listings').upload(path, file);
+  if (error) throw error;
+  const { data: { publicUrl } } = supabase.storage.from('listings').getPublicUrl(path);
+  return publicUrl;
+}
+
+export async function uploadBackground(file: File, userId: string): Promise<string> {
+  const ext = file.name.split('.').pop();
+  const path = `backgrounds/${userId}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from('listings').upload(path, file);
   if (error) throw error;
   const { data: { publicUrl } } = supabase.storage.from('listings').getPublicUrl(path);
