@@ -301,6 +301,65 @@ export function useRespondJoinRequest() {
   });
 }
 
+// ========== UNREAD LISTINGS ==========
+export function useUnreadCounts() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['unread_counts', user?.id],
+    queryFn: async () => {
+      if (!user) return {} as Record<string, number>;
+      const { data: memberships } = await supabase.from('group_members').select('group_id').eq('user_id', user.id);
+      if (!memberships?.length) return {};
+      const groupIds = memberships.map(m => m.group_id);
+      const { data: reads } = await supabase.from('group_reads').select('group_id, last_read_at').eq('user_id', user.id);
+      const readMap: Record<string, string> = {};
+      reads?.forEach(r => { readMap[r.group_id] = r.last_read_at; });
+      const { data: listings } = await supabase.from('listings').select('group_id, created_at, user_id').in('group_id', groupIds);
+      const counts: Record<string, number> = {};
+      listings?.forEach(l => {
+        if (l.user_id === user.id) return;
+        const lastRead = readMap[l.group_id];
+        if (!lastRead || new Date(l.created_at) > new Date(lastRead)) {
+          counts[l.group_id] = (counts[l.group_id] || 0) + 1;
+        }
+      });
+      return counts;
+    },
+    enabled: !!user,
+    refetchInterval: 10000,
+  });
+}
+
+export function useMarkGroupRead() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (groupId: string) => {
+      if (!user) return;
+      await supabase.from('group_reads').upsert(
+        { user_id: user.id, group_id: groupId, last_read_at: new Date().toISOString() },
+        { onConflict: 'user_id,group_id' }
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['unread_counts'] }),
+  });
+}
+
+export function useAddMembersToGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, userIds }: { groupId: string; userIds: string[] }) => {
+      const rows = userIds.map(user_id => ({ group_id: groupId, user_id }));
+      const { error } = await supabase.from('group_members').insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: ['group_members', v.groupId] });
+      qc.invalidateQueries({ queryKey: ['my_groups'] });
+    },
+  });
+}
+
 // ========== LISTINGS ==========
 export function useListings(groupId: string) {
   return useQuery({
