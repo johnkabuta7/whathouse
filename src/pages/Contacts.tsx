@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, MoreVertical } from 'lucide-react';
+import { Search, UserPlus, MoreVertical, Plus, Download, Settings, Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { SelectGroupModal } from '@/components/SelectGroupModal';
+import { InstallPrompt } from '@/components/InstallPrompt';
 
 function useAllProfiles() {
   return useQuery({
