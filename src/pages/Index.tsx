@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical } from 'lucide-react';
+import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts } from '@/hooks/use-data';
+import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts, useUnreadCounts } from '@/hooks/use-data';
 import { useRealtimeListings, useRealtimeJoinRequests } from '@/hooks/use-notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { InstallPrompt } from '@/components/InstallPrompt';
 
 function useOnlineContacts() {
   const { user } = useAuth();
@@ -42,10 +43,7 @@ function SliderBanner() {
   return (
     <div className="relative w-full h-[100px] overflow-hidden">
       {slides.map((slide, i) => (
-        <div
-          key={slide.id}
-          className={`absolute inset-0 transition-opacity duration-500 ${i === current ? 'opacity-100' : 'opacity-0'}`}
-        >
+        <div key={slide.id} className={`absolute inset-0 transition-opacity duration-500 ${i === current ? 'opacity-100' : 'opacity-0'}`}>
           <img src={slide.image_url} alt="" className="w-full h-full object-cover" />
         </div>
       ))}
@@ -64,41 +62,18 @@ export default function Index() {
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstall, setShowInstall] = useState(false);
   const { data: myGroups, isLoading } = useMyGroups();
   const { data: searchResults } = useSearchGroups(search);
   const { data: contacts } = useOnlineContacts();
   const { data: isAdmin } = useIsAppAdmin();
   const { data: allGroups } = useAllGroups();
   const { data: requestCounts } = useMyGroupJoinRequestCounts();
+  const { data: unreadCounts } = useUnreadCounts();
   const [selectedContact, setSelectedContact] = useState<any>(null);
 
   useRealtimeListings();
   useRealtimeJoinRequests();
-
-  // Capture install prompt
-  useEffect(() => {
-    const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleInstall = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      setDeferredPrompt(null);
-    } else {
-      // Fallback: show instructions
-      const ua = navigator.userAgent;
-      if (/iPhone|iPad/.test(ua)) {
-        alert("Pour installer : appuyez sur le bouton Partager (⬆) puis 'Sur l'écran d'accueil'");
-      } else {
-        alert("Pour installer : ouvrez le menu du navigateur (⋮) puis 'Installer l'application' ou 'Ajouter à l'écran d'accueil'");
-      }
-    }
-    setShowMenu(false);
-  };
 
   const isSearching = search.trim().length >= 2;
   const displayGroups = isSearching ? searchResults : (isAdmin ? allGroups : myGroups);
@@ -107,10 +82,10 @@ export default function Index() {
   const handleBellClick = () => {
     if (!requestCounts?.byGroup) return;
     const groupIds = Object.keys(requestCounts.byGroup).filter(id => requestCounts.byGroup[id] > 0);
-    if (groupIds.length > 0) {
-      navigate(`/group/${groupIds[0]}/members`);
-    }
+    if (groupIds.length > 0) navigate(`/group/${groupIds[0]}/members`);
   };
+
+  const closeMenu = () => setShowMenu(false);
 
   if (isLoading) {
     return (
@@ -143,11 +118,23 @@ export default function Index() {
             </button>
             {showMenu && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-                <div className="absolute right-0 top-full mt-1 w-56 bg-card rounded-xl shadow-lg border border-border z-50 py-1 animate-fade-in">
-                  <button onClick={handleInstall} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
-                    <Download className="h-4 w-4 text-primary" />
-                    Ajouter à l'écran d'accueil
+                <div className="fixed inset-0 z-40" onClick={closeMenu} />
+                <div className="absolute right-0 top-full mt-1 w-60 bg-card rounded-xl shadow-lg border border-border z-50 py-1 animate-fade-in">
+                  <button onClick={() => { closeMenu(); setShowInstall(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    <Download className="h-4 w-4 text-primary" />Ajouter à l'écran d'accueil
+                  </button>
+                  <button onClick={() => { closeMenu(); navigate('/create-group'); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    <Users className="h-4 w-4 text-primary" />Créer un groupe
+                  </button>
+                  <button onClick={() => { closeMenu(); navigate('/contacts'); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    <UserPlus className="h-4 w-4 text-primary" />Ajouter au groupe
+                  </button>
+                  <button onClick={() => { closeMenu(); navigate('/profil'); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    <Settings className="h-4 w-4 text-primary" />Paramètres
                   </button>
                 </div>
               </>
@@ -158,13 +145,8 @@ export default function Index() {
           <div className="px-3 pb-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Rechercher un groupe..."
-                className="w-full pl-9 pr-4 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                autoFocus
-              />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un groupe..."
+                className="w-full pl-9 pr-4 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" autoFocus />
             </div>
           </div>
         )}
@@ -214,13 +196,11 @@ export default function Index() {
               {selectedContact.phone && (
                 <>
                   <a href={`tel:${selectedContact.phone}`} className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500 text-white">
-                    <Phone className="h-5 w-5" />
-                    <span className="text-xs font-medium">Appeler</span>
+                    <Phone className="h-5 w-5" /><span className="text-xs font-medium">Appeler</span>
                   </a>
                   <a href={`https://wa.me/${selectedContact.phone.replace(/[^0-9+]/g, '')}`} target="_blank" rel="noopener noreferrer"
                     className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500 text-white">
-                    <MessageSquare className="h-5 w-5" />
-                    <span className="text-xs font-medium">WhatsApp</span>
+                    <MessageSquare className="h-5 w-5" /><span className="text-xs font-medium">WhatsApp</span>
                   </a>
                 </>
               )}
@@ -230,8 +210,12 @@ export default function Index() {
         </div>
       )}
 
-      <div className="h-px bg-border" />
-
+      {/* Section title */}
+      {!isSearching && (
+        <div className="px-4 pt-3 pb-1">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Liste des groupes</h2>
+        </div>
+      )}
       {isSearching && <p className="px-4 py-2 text-xs font-semibold text-muted-foreground">Résultats de recherche</p>}
 
       {/* Group list */}
@@ -250,6 +234,7 @@ export default function Index() {
         <div>
           {displayGroups.map(group => {
             const reqCount = requestCounts?.byGroup[group.id] || 0;
+            const unread = unreadCounts?.[group.id] || 0;
             return (
               <Link key={group.id} to={`/group/${group.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 active:bg-muted transition-colors">
                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
@@ -262,10 +247,15 @@ export default function Index() {
                 <div className="flex-1 min-w-0 border-b border-border pb-3">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold text-foreground truncate">{group.name}</p>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
                       {reqCount > 0 && (
-                        <span className="h-5 min-w-[20px] rounded-full bg-success text-[10px] font-bold text-success-foreground flex items-center justify-center px-1">
+                        <span title="Demandes d'adhésion" className="h-5 min-w-[20px] rounded-full bg-success text-[10px] font-bold text-success-foreground flex items-center justify-center px-1.5">
                           {reqCount > 999 ? '999+' : reqCount}
+                        </span>
+                      )}
+                      {unread > 0 && (
+                        <span title="Nouvelles annonces" className="h-5 min-w-[20px] rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center px-1.5">
+                          {unread > 999 ? '999+' : unread}
                         </span>
                       )}
                       <p className="text-[10px] text-muted-foreground">
@@ -287,6 +277,8 @@ export default function Index() {
           <Plus className="h-6 w-6" />
         </Link>
       )}
+
+      <InstallPrompt open={showInstall} onClose={() => setShowInstall(false)} />
     </div>
   );
 }

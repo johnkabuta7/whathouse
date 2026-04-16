@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone, Bookmark, Camera, Edit2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage } from '@/hooks/use-data';
+import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage, useMarkGroupRead } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 
 function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: string; onDone: () => void }) {
@@ -227,6 +227,7 @@ export default function GroupDetail() {
   const { data: hasPending } = useHasPendingRequest(id || '');
   const { data: joinRequests } = useJoinRequests(id || '');
   const requestJoin = useRequestJoin();
+  const markRead = useMarkGroupRead();
   const { toast } = useToast();
   const [showPublish, setShowPublish] = useState(false);
   const [search, setSearch] = useState('');
@@ -235,6 +236,12 @@ export default function GroupDetail() {
 
   const isCreator = group?.created_by === user?.id;
   const pendingCount = joinRequests?.length || 0;
+
+  // Mark as read when entering & listings load
+  useEffect(() => {
+    if (id && isMember && listings) markRead.mutate(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isMember, listings?.length]);
 
   const filteredListings = listings?.filter(l =>
     l.title.toLowerCase().includes(search.toLowerCase()) ||

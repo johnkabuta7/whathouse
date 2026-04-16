@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, MoreVertical } from 'lucide-react';
+import { Search, UserPlus, MoreVertical, Plus, Download, Settings, Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { SelectGroupModal } from '@/components/SelectGroupModal';
+import { InstallPrompt } from '@/components/InstallPrompt';
 
 function useAllProfiles() {
   return useQuery({
@@ -22,9 +24,13 @@ export default function Contacts() {
   const { user } = useAuth();
   const { data: profiles, isLoading } = useAllProfiles();
   const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showInstall, setShowInstall] = useState(false);
   const navigate = useNavigate();
 
   const others = profiles?.filter(p => p.user_id !== user?.id);
@@ -53,34 +59,64 @@ export default function Contacts() {
     }
   };
 
+  const closeMenu = () => setShowMenu(false);
+
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border">
         <div className="px-4 py-3 flex items-center gap-3">
           <h1 className="text-lg font-bold flex-1 text-foreground">Contacts</h1>
-          <button className="p-1.5 rounded-full hover:bg-muted transition">
+          <button onClick={() => setSearchOpen(!searchOpen)} className="p-1.5 rounded-full hover:bg-muted transition">
             <Search className="h-5 w-5 text-muted-foreground" />
           </button>
-          <button className="p-1.5 rounded-full hover:bg-muted transition">
-            <MoreVertical className="h-5 w-5 text-muted-foreground" />
-          </button>
+          <div className="relative">
+            <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 rounded-full hover:bg-muted transition">
+              <MoreVertical className="h-5 w-5 text-muted-foreground" />
+            </button>
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={closeMenu} />
+                <div className="absolute right-0 top-full mt-1 w-60 bg-card rounded-xl shadow-lg border border-border z-50 py-1 animate-fade-in">
+                  <button onClick={() => { closeMenu(); setShowInstall(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    <Download className="h-4 w-4 text-primary" />Ajouter à l'écran d'accueil
+                  </button>
+                  <button onClick={() => { closeMenu(); navigate('/create-group'); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    <Users className="h-4 w-4 text-primary" />Créer un groupe
+                  </button>
+                  <button onClick={() => { closeMenu(); setSelecting(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    <UserPlus className="h-4 w-4 text-primary" />Sélectionner & ajouter
+                  </button>
+                  <button onClick={() => { closeMenu(); navigate('/profil'); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    <Settings className="h-4 w-4 text-primary" />Paramètres
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      <div className="px-3 py-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un contact..."
-            className="w-full pl-9 pr-4 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      {searchOpen && (
+        <div className="px-3 py-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un contact..." autoFocus
+              className="w-full pl-9 pr-4 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
         </div>
-      </div>
+      )}
 
       {selecting && (
-        <div className="px-4 py-2 bg-primary/10 flex items-center gap-3">
+        <div className="px-4 py-2 bg-primary/10 flex items-center gap-2">
           <p className="text-xs font-medium text-primary flex-1">{selected.length} sélectionné(s)</p>
           <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => { setSelecting(false); setSelected([]); }}>Annuler</Button>
-          <Button size="sm" className="rounded-full text-xs bg-primary text-primary-foreground" onClick={() => navigate('/create-group')}>
+          <Button size="sm" className="rounded-full text-xs bg-primary text-primary-foreground" disabled={selected.length === 0}
+            onClick={() => setShowGroupModal(true)}>
             <UserPlus className="h-3 w-3 mr-1" />Ajouter au groupe
           </Button>
         </div>
@@ -128,6 +164,9 @@ export default function Contacts() {
           })}
         </div>
       )}
+
+      <SelectGroupModal open={showGroupModal} onClose={() => { setShowGroupModal(false); setSelecting(false); setSelected([]); }} userIds={selected} />
+      <InstallPrompt open={showInstall} onClose={() => setShowInstall(false)} />
     </div>
   );
 }
