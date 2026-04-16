@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Search, Phone, MessageSquare, Bell } from 'lucide-react';
+import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts } from '@/hooks/use-data';
@@ -16,19 +16,6 @@ function useOnlineContacts() {
       const { data, error } = await supabase.from('profiles').select('*');
       if (error) throw error;
       return data?.filter(p => p.user_id !== user?.id) || [];
-    },
-    enabled: !!user,
-  });
-}
-
-function useUnreadCounts() {
-  const { user } = useAuth();
-  return useQuery({
-    queryKey: ['unread_counts', user?.id],
-    queryFn: async () => {
-      // Track unread by comparing listing count vs last seen
-      // For now, return empty - will be updated via realtime
-      return {} as Record<string, number>;
     },
     enabled: !!user,
   });
@@ -53,7 +40,7 @@ function SliderBanner() {
   }, [slides.length]);
 
   return (
-    <div className="relative w-full h-[80px] overflow-hidden">
+    <div className="relative w-full h-[100px] overflow-hidden">
       {slides.map((slide, i) => (
         <div
           key={slide.id}
@@ -76,6 +63,8 @@ export default function Index() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const { data: myGroups, isLoading } = useMyGroups();
   const { data: searchResults } = useSearchGroups(search);
   const { data: contacts } = useOnlineContacts();
@@ -87,11 +76,34 @@ export default function Index() {
   useRealtimeListings();
   useRealtimeJoinRequests();
 
+  // Capture install prompt
+  useEffect(() => {
+    const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+    } else {
+      // Fallback: show instructions
+      const ua = navigator.userAgent;
+      if (/iPhone|iPad/.test(ua)) {
+        alert("Pour installer : appuyez sur le bouton Partager (⬆) puis 'Sur l'écran d'accueil'");
+      } else {
+        alert("Pour installer : ouvrez le menu du navigateur (⋮) puis 'Installer l'application' ou 'Ajouter à l'écran d'accueil'");
+      }
+    }
+    setShowMenu(false);
+  };
+
   const isSearching = search.trim().length >= 2;
   const displayGroups = isSearching ? searchResults : (isAdmin ? allGroups : myGroups);
   const totalRequests = requestCounts?.total || 0;
 
-  // Find first group with pending requests for bell click
   const handleBellClick = () => {
     if (!requestCounts?.byGroup) return;
     const groupIds = Object.keys(requestCounts.byGroup).filter(id => requestCounts.byGroup[id] > 0);
@@ -125,6 +137,22 @@ export default function Index() {
               </span>
             )}
           </button>
+          <div className="relative">
+            <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 rounded-full hover:bg-muted transition">
+              <MoreVertical className="h-5 w-5 text-muted-foreground" />
+            </button>
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 w-56 bg-card rounded-xl shadow-lg border border-border z-50 py-1 animate-fade-in">
+                  <button onClick={handleInstall} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    <Download className="h-4 w-4 text-primary" />
+                    Ajouter à l'écran d'accueil
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
         {showSearch && (
           <div className="px-3 pb-2">
@@ -169,7 +197,7 @@ export default function Index() {
         </div>
       )}
 
-      {/* Slider banner - full width, no padding, no border radius */}
+      {/* Slider banner - full width */}
       {!isSearching && <SliderBanner />}
 
       {/* Contact modal */}
@@ -185,12 +213,12 @@ export default function Index() {
             <div className="flex gap-3 mt-4">
               {selectedContact.phone && (
                 <>
-                  <a href={`tel:${selectedContact.phone}`} className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-primary text-primary-foreground">
+                  <a href={`tel:${selectedContact.phone}`} className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500 text-white">
                     <Phone className="h-5 w-5" />
                     <span className="text-xs font-medium">Appeler</span>
                   </a>
                   <a href={`https://wa.me/${selectedContact.phone.replace(/[^0-9+]/g, '')}`} target="_blank" rel="noopener noreferrer"
-                    className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-accent text-accent-foreground">
+                    className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500 text-white">
                     <MessageSquare className="h-5 w-5" />
                     <span className="text-xs font-medium">WhatsApp</span>
                   </a>

@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Phone, MessageSquare } from 'lucide-react';
 import { useProfile } from '@/hooks/use-data';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,7 +16,10 @@ export default function ContactDetail() {
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
       {/* Cover */}
-      <div className="relative h-48 bg-gradient-to-br from-primary/30 to-secondary/30">
+      <div className="relative h-48 bg-gradient-to-br from-primary/30 to-secondary/30 overflow-hidden">
+        {(profile as any).background_url && (
+          <img src={(profile as any).background_url} className="w-full h-full object-cover" />
+        )}
         <Link to="/contacts" className="absolute top-3 left-3 h-9 w-9 rounded-full bg-foreground/20 flex items-center justify-center text-background">
           <ArrowLeft className="h-5 w-5" />
         </Link>
@@ -34,16 +37,16 @@ export default function ContactDetail() {
         {profile.phone && <p className="text-sm text-muted-foreground mt-1">{profile.phone}</p>}
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons - GREEN */}
       <div className="flex gap-4 px-4 mt-4">
         {profile.phone && (
           <>
-            <a href={`tel:${profile.phone}`} className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-primary/10 text-primary">
+            <a href={`tel:${profile.phone}`} className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500 text-white">
               <Phone className="h-5 w-5" />
               <span className="text-xs font-medium">Appeler</span>
             </a>
             <a href={`https://wa.me/${profile.phone.replace(/[^0-9+]/g, '')}`} target="_blank" rel="noopener noreferrer"
-              className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-accent/10 text-accent-foreground">
+              className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500 text-white">
               <MessageSquare className="h-5 w-5" />
               <span className="text-xs font-medium">WhatsApp</span>
             </a>

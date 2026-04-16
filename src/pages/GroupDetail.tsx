@@ -1,12 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone, Bookmark, Camera, Edit2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests } from '@/hooks/use-data';
+import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 
 function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: string; onDone: () => void }) {
@@ -47,7 +47,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
       for (const f of files) urls.push(await uploadListingImage(f, userId));
       createListing.mutate(
         { group_id: groupId, user_id: userId, title: title.trim(), description: description.trim(), images: urls, zwandako_url: zwandakoUrl.trim() || undefined },
-        { onSuccess: () => { toast({ title: 'Annonce publiée !' }); onDone(); setTitle(''); setDescription(''); setZwandakoUrl(''); setFiles([]); setPreviews([]); }, onError: () => { toast({ title: 'Erreur', variant: 'destructive' }); setIsLoading(false); } }
+        { onSuccess: () => { toast({ title: 'Annonce publiée !' }); onDone(); setTitle(''); setDescription(''); setZwandakoUrl(''); setFiles([]); setPreviews([]); setIsLoading(false); }, onError: () => { toast({ title: 'Erreur', variant: 'destructive' }); setIsLoading(false); } }
       );
     } catch { toast({ title: 'Erreur upload', variant: 'destructive' }); setIsLoading(false); }
   };
@@ -83,13 +83,20 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
 function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   const [expanded, setExpanded] = useState(false);
   const toggleLike = useToggleLike();
+  const toggleFavorite = useToggleFavorite();
   const { data: likeData } = useListingLikes(listing.id);
+  const { data: isFav } = useIsFavorite(listing.id);
   const { toast } = useToast();
 
   const desc = listing.description || '';
   const isLong = desc.length > 120;
 
   const handleLike = () => toggleLike.mutate({ listingId: listing.id, userId });
+  const handleFav = () => {
+    toggleFavorite.mutate({ listingId: listing.id, userId }, {
+      onSuccess: (data) => toast({ title: data.favorited ? 'Ajouté aux favoris' : 'Retiré des favoris' }),
+    });
+  };
 
   const handleShare = async () => {
     const url = listing.zwandako_url || window.location.href;
@@ -135,6 +142,9 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
             <Heart className={`h-3.5 w-3.5 ${likeData?.liked ? 'fill-current' : ''}`} />
             {(likeData?.count || 0) > 0 && likeData?.count}
           </button>
+          <button onClick={handleFav} className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full transition-colors ${isFav ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+            <Bookmark className={`h-3.5 w-3.5 ${isFav ? 'fill-current' : ''}`} />
+          </button>
           <button onClick={handleShare} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-muted text-muted-foreground">
             <Share2 className="h-3.5 w-3.5" />
           </button>
@@ -153,6 +163,61 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   );
 }
 
+function GroupEditHeader({ group, onClose }: { group: any; onClose: () => void }) {
+  const [name, setName] = useState(group.name);
+  const [uploading, setUploading] = useState(false);
+  const updateGroup = useUpdateGroup();
+  const { toast } = useToast();
+  const imgRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadGroupImage(file, group.id);
+      updateGroup.mutate({ id: group.id, image_url: url }, {
+        onSuccess: () => { toast({ title: 'Image mise à jour !' }); setUploading(false); },
+        onError: () => { toast({ title: 'Erreur', variant: 'destructive' }); setUploading(false); },
+      });
+    } catch { toast({ title: 'Erreur upload', variant: 'destructive' }); setUploading(false); }
+  };
+
+  const handleSaveName = () => {
+    if (!name.trim() || name === group.name) { onClose(); return; }
+    updateGroup.mutate({ id: group.id, name: name.trim() }, {
+      onSuccess: () => { toast({ title: 'Nom modifié !' }); onClose(); },
+      onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
+    });
+  };
+
+  return (
+    <div className="p-3 bg-card border-b border-border space-y-3 animate-fade-in">
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+            {group.image_url ? <img src={group.image_url} className="h-full w-full object-cover rounded-full" /> : <Users className="h-6 w-6 text-primary" />}
+          </div>
+          <button onClick={() => imgRef.current?.click()} disabled={uploading}
+            className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow">
+            <Camera className="h-3 w-3" />
+          </button>
+          <input ref={imgRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+        </div>
+        <div className="flex-1">
+          <Input value={name} onChange={e => setName(e.target.value)} className="rounded-full text-sm h-9" />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button onClick={handleSaveName} size="sm" className="flex-1 rounded-full bg-primary text-primary-foreground" disabled={updateGroup.isPending}>
+          <Save className="h-3.5 w-3.5 mr-1" />Sauvegarder
+        </Button>
+        <Button variant="outline" size="sm" onClick={onClose} className="rounded-full">Annuler</Button>
+      </div>
+    </div>
+  );
+}
+
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -166,6 +231,7 @@ export default function GroupDetail() {
   const [showPublish, setShowPublish] = useState(false);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   const isCreator = group?.created_by === user?.id;
   const pendingCount = joinRequests?.length || 0;
@@ -187,7 +253,7 @@ export default function GroupDetail() {
   };
 
   return (
-    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-[calc(100vh-3.5rem)]">
+    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-screen">
       {/* Header */}
       <div className="px-3 py-2.5 flex items-center gap-3 bg-card/60 backdrop-blur-md border-b border-border sticky top-0 z-10">
         <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
@@ -198,6 +264,11 @@ export default function GroupDetail() {
           <p className="text-sm font-bold truncate text-foreground">{group.name}</p>
           <p className="text-[10px] text-muted-foreground">{listings?.length || 0} annonces</p>
         </div>
+        {isCreator && (
+          <button onClick={() => setShowEdit(!showEdit)} className="p-1.5 rounded-full hover:bg-muted transition">
+            <Edit2 className="h-4 w-4 text-muted-foreground" />
+          </button>
+        )}
         <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">
           <Search className="h-4 w-4 text-muted-foreground" />
         </button>
@@ -210,6 +281,8 @@ export default function GroupDetail() {
           )}
         </Link>
       </div>
+
+      {showEdit && isCreator && <GroupEditHeader group={group} onClose={() => setShowEdit(false)} />}
 
       {showSearch && (
         <div className="px-3 py-2 bg-card border-b border-border animate-fade-in">
@@ -236,7 +309,7 @@ export default function GroupDetail() {
         </div>
       ) : (
         <>
-          {/* Listings */}
+          {/* Listings - scrollable area */}
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
             {listingsLoading ? (
               [1, 2].map(i => <Skeleton key={i} className="h-60 rounded-2xl" />)
@@ -252,8 +325,8 @@ export default function GroupDetail() {
             )}
           </div>
 
-          {/* Publish area - FIXED at bottom, never scrolls */}
-          <div className="sticky bottom-0 z-20">
+          {/* Fixed publish area at bottom - never scrolls */}
+          <div className="shrink-0 z-20">
             {showPublish ? (
               <PublishForm groupId={group.id} userId={user?.id || ''} onDone={() => setShowPublish(false)} />
             ) : (
