@@ -24,7 +24,16 @@ export default function CreateGroup() {
   const [name, setName] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>(() => {
+    try {
+      const stored = sessionStorage.getItem('preselected_members');
+      if (stored) {
+        sessionStorage.removeItem('preselected_members');
+        return JSON.parse(stored);
+      }
+    } catch {}
+    return [];
+  });
   const [memberSearch, setMemberSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
