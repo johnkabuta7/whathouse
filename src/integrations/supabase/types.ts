@@ -111,6 +111,35 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_favorites_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_likes: {
         Row: {
           created_at: string
@@ -217,6 +246,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          background_url: string | null
           created_at: string
           first_name: string
           id: string
@@ -227,6 +257,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          background_url?: string | null
           created_at?: string
           first_name?: string
           id?: string
@@ -237,6 +268,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          background_url?: string | null
           created_at?: string
           first_name?: string
           id?: string
