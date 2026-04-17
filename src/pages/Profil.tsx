@@ -186,11 +186,13 @@ export default function Profil() {
             <div className="flex-1 pb-1 min-w-0" />
           </div>
           {/* Name + admin badge on the white area, below the avatar row */}
-          <div className="mt-3 px-1">
-            <h1 className="text-lg font-bold text-foreground truncate">{fullName}</h1>
-            {user.profile?.phone && <p className="text-xs text-muted-foreground">{user.profile.phone}</p>}
-            {isAdmin && <span className="text-[10px] bg-primary/15 text-primary px-2 py-0.5 rounded-full font-bold mt-1 inline-block">Admin</span>
-            <button onClick={() => setEditing(!editing)} className="p-2 rounded-full hover:bg-muted transition text-muted-foreground mb-1">
+          <div className="mt-3 px-1 flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-bold text-foreground truncate">{fullName}</h1>
+              {user.profile?.phone && <p className="text-xs text-muted-foreground">{user.profile.phone}</p>}
+              {isAdmin && <span className="text-[10px] bg-primary/15 text-primary px-2 py-0.5 rounded-full font-bold mt-1 inline-block">Admin</span>}
+            </div>
+            <button onClick={() => setEditing(!editing)} className="p-2 rounded-full hover:bg-muted transition text-muted-foreground">
               <Edit2 className="h-4 w-4" />
             </button>
           </div>
