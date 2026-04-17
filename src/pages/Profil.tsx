@@ -1,12 +1,12 @@
 import { useState, useRef } from 'react';
-import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon } from 'lucide-react';
+import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme, COLOR_THEMES } from '@/contexts/ThemeContext';
 import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, uploadBannerImage, useMyFavorites, useProfile } from '@/hooks/use-data';
 import { useNotificationSettings, useUpdateNotificationSettings, usePlayTestSound } from '@/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export default function Profil() {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, colorHex, setColorHex } = useTheme();
   const { data: myListings } = useMyListings();
   const { data: myFavorites } = useMyFavorites();
   const { data: groups } = useMyGroups();
@@ -183,14 +183,16 @@ export default function Profil() {
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
             </div>
-            <div className="flex-1 pb-1 min-w-0">
-              <div className={backgroundUrl ? 'inline-block px-2 py-1 rounded-lg bg-foreground/40 backdrop-blur-sm' : ''}>
-                <h1 className={`text-lg font-bold truncate ${backgroundUrl ? 'text-white drop-shadow-md' : 'text-foreground'}`}>{fullName}</h1>
-                {user.profile?.phone && <p className={`text-xs ${backgroundUrl ? 'text-white/90' : 'text-muted-foreground'}`}>{user.profile.phone}</p>}
-              </div>
-              {isAdmin && <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold mt-1 inline-block">Admin</span>}
+            <div className="flex-1 pb-1 min-w-0" />
+          </div>
+          {/* Name + admin badge on the white area, below the avatar row */}
+          <div className="mt-3 px-1 flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-bold text-foreground truncate">{fullName}</h1>
+              {user.profile?.phone && <p className="text-xs text-muted-foreground">{user.profile.phone}</p>}
+              {isAdmin && <span className="text-[10px] bg-primary/15 text-primary px-2 py-0.5 rounded-full font-bold mt-1 inline-block">Admin</span>}
             </div>
-            <button onClick={() => setEditing(!editing)} className="p-2 rounded-full hover:bg-muted transition text-muted-foreground mb-1">
+            <button onClick={() => setEditing(!editing)} className="p-2 rounded-full hover:bg-muted transition text-muted-foreground">
               <Edit2 className="h-4 w-4" />
             </button>
           </div>
@@ -252,14 +254,14 @@ export default function Profil() {
       <div className="px-4 py-3">
         {activeTab === 'annonces' ? (
           <>
-            {/* Sub-tabs: Publications / Favoris */}
-            <div className="flex gap-2 mb-3">
+            {/* Sub-tabs: underline style */}
+            <div className="flex border-b border-border mb-3">
               <button onClick={() => setListingSubTab('publications')}
-                className={`flex-1 py-2 text-xs font-semibold rounded-full transition ${listingSubTab === 'publications' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                className={`flex-1 py-2 text-xs font-semibold text-center transition ${listingSubTab === 'publications' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}>
                 Publications
               </button>
               <button onClick={() => setListingSubTab('favoris')}
-                className={`flex-1 py-2 text-xs font-semibold rounded-full transition flex items-center justify-center gap-1 ${listingSubTab === 'favoris' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                className={`flex-1 py-2 text-xs font-semibold text-center transition flex items-center justify-center gap-1 ${listingSubTab === 'favoris' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}>
                 <Bookmark className="h-3 w-3" />Favoris
               </button>
             </div>
@@ -346,6 +348,24 @@ export default function Profil() {
               </div>
               <span className="text-sm text-foreground flex-1 text-left">Mode sombre</span>
               <Switch checked={theme === 'dark'} onCheckedChange={toggleTheme} />
+            </div>
+
+            <div className="py-3 border-b border-border">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Palette className="h-4 w-4 text-primary" /></div>
+                <span className="text-sm text-foreground flex-1 text-left">Couleur du thème</span>
+              </div>
+              <div className="flex flex-wrap gap-2 pl-12">
+                {COLOR_THEMES.map(c => (
+                  <button
+                    key={c.hex}
+                    onClick={() => setColorHex(c.hex)}
+                    aria-label={c.name}
+                    className={`h-8 w-8 rounded-full border-2 transition ${colorHex.toLowerCase() === c.hex.toLowerCase() ? 'border-foreground scale-110' : 'border-transparent'}`}
+                    style={{ backgroundColor: c.hex }}
+                  />
+                ))}
+              </div>
             </div>
 
             <div className="w-full flex items-center gap-3 py-3 border-b border-border">
