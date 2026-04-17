@@ -156,12 +156,6 @@ export default function Index() {
       {contacts && contacts.length > 0 && !isSearching && (
         <div className="px-3 py-2">
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-            <Link to="/create-group" className="flex flex-col items-center gap-1 shrink-0">
-              <div className="h-14 w-14 rounded-full bg-primary/20 flex items-center justify-center border-2 border-dashed border-primary">
-                <Plus className="h-6 w-6 text-primary" />
-              </div>
-              <span className="text-[10px] text-muted-foreground font-medium">Créer</span>
-            </Link>
             {contacts.slice(0, 15).map(c => {
               const name = `${c.first_name} ${c.last_name}`.trim() || '?';
               const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
