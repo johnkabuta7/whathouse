@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings } from 'lucide-react';
+import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts, useUnreadCounts } from '@/hooks/use-data';
@@ -122,19 +122,20 @@ export default function Index() {
                 <div className="absolute right-0 top-full mt-1 w-60 bg-card rounded-xl shadow-lg border border-border z-50 py-1 animate-fade-in">
                   <button onClick={() => { closeMenu(); setShowInstall(true); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
-                    <Download className="h-4 w-4 text-primary" />Ajouter à l'écran d'accueil
+                    <Download className="h-4 w-4 text-primary" />Installer l'App
                   </button>
-                  <button onClick={() => { closeMenu(); navigate('/create-group'); }}
+                  <button onClick={async () => {
+                    closeMenu();
+                    const url = window.location.origin;
+                    const text = `🏢 Pro Immobilier — le réseau pro des agents immobiliers. Installe l'app : ${url}`;
+                    if ((navigator as any).share) {
+                      try { await (navigator as any).share({ title: 'Pro Immobilier', text, url }); } catch {}
+                    } else {
+                      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                    }
+                  }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
-                    <Users className="h-4 w-4 text-primary" />Créer un groupe
-                  </button>
-                  <button onClick={() => { closeMenu(); navigate('/contacts'); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
-                    <UserPlus className="h-4 w-4 text-primary" />Ajouter au groupe
-                  </button>
-                  <button onClick={() => { closeMenu(); navigate('/profil'); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
-                    <Settings className="h-4 w-4 text-primary" />Paramètres
+                    <Share2 className="h-4 w-4 text-primary" />Partager l'application
                   </button>
                 </div>
               </>
