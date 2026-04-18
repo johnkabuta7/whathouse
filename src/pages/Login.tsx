@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, LogIn, UserPlus, Phone } from 'lucide-react';
+import { Building2, LogIn, UserPlus, Phone, ArrowLeft } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,9 +19,10 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim()) return;
-    if (!phone.trim().startsWith('+243')) {
-      toast({ title: 'Numéro invalide', description: 'Le numéro doit commencer par +243', variant: 'destructive' });
+    const trimmed = phone.trim();
+    if (!trimmed) return;
+    if (!/^\+\d{6,15}$/.test(trimmed)) {
+      toast({ title: 'Numéro invalide', description: 'Le numéro doit commencer par le préfixe du pays (ex: +243, +33, +1...)', variant: 'destructive' });
       return;
     }
     setIsLoading(true);
@@ -51,7 +52,15 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8 relative">
+      <button
+        type="button"
+        onClick={() => navigate('/onboarding')}
+        className="absolute top-4 left-4 h-10 w-10 rounded-full bg-muted flex items-center justify-center text-foreground hover:bg-muted/80 transition-colors"
+        aria-label="Retour à la présentation"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </button>
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center animate-fade-in">
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary/10 mb-4">
@@ -95,7 +104,7 @@ export default function Login() {
                     required
                   />
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1">⚠️ Obligatoire : commencez par <span className="font-semibold text-primary">+243</span> (RDC)</p>
+                <p className="text-[11px] text-muted-foreground mt-1">⚠️ Commencez par le <span className="font-semibold text-primary">préfixe de votre pays</span> (ex: +243, +33, +1, +32...)</p>
               </div>
               {mode === 'signup' && (
                 <div className="grid grid-cols-2 gap-2">
