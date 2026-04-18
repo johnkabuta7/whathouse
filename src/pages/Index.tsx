@@ -195,7 +195,7 @@ export default function Index() {
                   </a>
                   <a href={`https://wa.me/${selectedContact.phone.replace(/[^0-9+]/g, '')}`} target="_blank" rel="noopener noreferrer"
                     className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500 text-white">
-                    <MessageSquare className="h-5 w-5" /><span className="text-xs font-medium">WhatsApp</span>
+                    <MessageSquare className="h-5 w-5" /><span className="text-xs font-medium">Message</span>
                   </a>
                 </>
               )}

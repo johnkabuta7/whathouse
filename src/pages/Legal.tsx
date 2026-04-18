@@ -41,16 +41,16 @@ const PAGES: Record<string, { title: string; icon: any; content: JSX.Element }> 
     icon: Sparkles,
     content: (
       <div className="space-y-4 text-sm text-foreground leading-relaxed">
-        <p className="text-muted-foreground italic">Pro Immobilier vs WhatsApp simple : ce que vous gagnez en passant au réseau professionnel.</p>
+        <p className="text-muted-foreground italic">Pro Immobilier vs messageries simples : ce que vous gagnez en passant au réseau professionnel.</p>
 
         <div className="p-3 rounded-xl bg-card border border-border">
           <h3 className="font-bold text-foreground">📂 Tout est rangé</h3>
-          <p className="text-xs text-muted-foreground mt-1">Sur WhatsApp, les annonces se perdent dans le scroll. Ici, chaque groupe a sa propre liste structurée — vous retrouvez n'importe quelle annonce en quelques secondes.</p>
+          <p className="text-xs text-muted-foreground mt-1">Sur les messageries classiques, les annonces se perdent dans le scroll. Ici, chaque groupe a sa propre liste structurée — vous retrouvez n'importe quelle annonce en quelques secondes.</p>
         </div>
 
         <div className="p-3 rounded-xl bg-card border border-border">
           <h3 className="font-bold text-foreground">🔍 Recherche instantanée</h3>
-          <p className="text-xs text-muted-foreground mt-1">Tapez un mot-clé (quartier, type de bien, prix), et toutes les annonces correspondantes s'affichent. Impossible avec WhatsApp.</p>
+          <p className="text-xs text-muted-foreground mt-1">Tapez un mot-clé (quartier, type de bien, prix), et toutes les annonces correspondantes s'affichent. Impossible avec une messagerie classique.</p>
         </div>
 
         <div className="p-3 rounded-xl bg-card border border-border">
@@ -70,7 +70,7 @@ const PAGES: Record<string, { title: string; icon: any; content: JSX.Element }> 
 
         <div className="p-3 rounded-xl bg-card border border-border">
           <h3 className="font-bold text-foreground">📞 Contact direct</h3>
-          <p className="text-xs text-muted-foreground mt-1">Un bouton WhatsApp ouvre directement la conversation avec le propriétaire de l'annonce, lien inclus. Plus rapide qu'un copier-coller.</p>
+          <p className="text-xs text-muted-foreground mt-1">Un bouton de contact ouvre directement la conversation avec le propriétaire de l'annonce, lien inclus. Plus rapide qu'un copier-coller.</p>
         </div>
 
         <div className="p-3 rounded-xl bg-card border border-border">
@@ -103,7 +103,7 @@ const PAGES: Record<string, { title: string; icon: any; content: JSX.Element }> 
         <div>
           <h3 className="font-bold flex items-center gap-2"><span className="h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">2</span> Publier une annonce</h3>
           <img src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&h=300&fit=crop" className="w-full h-32 object-cover rounded-xl mt-2" />
-          <p className="text-xs text-muted-foreground mt-2">Ouvrez un groupe, appuyez sur <strong>« Publier une annonce »</strong> en bas. Ajoutez un titre, des photos et la description. Astuce : copiez-collez directement le texte depuis WhatsApp — l'app extrait images et texte automatiquement.</p>
+          <p className="text-xs text-muted-foreground mt-2">Ouvrez un groupe, appuyez sur <strong>« Publier une annonce »</strong> en bas. Ajoutez un titre, des photos et la description. Astuce : copiez-collez directement votre texte d'annonce — l'app extrait images et texte automatiquement.</p>
         </div>
 
         <div>
@@ -121,7 +121,7 @@ const PAGES: Record<string, { title: string; icon: any; content: JSX.Element }> 
         <div>
           <h3 className="font-bold flex items-center gap-2"><span className="h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">5</span> Contacter un agent</h3>
           <img src="https://images.unsplash.com/photo-1556745757-8d76bdb6984b?w=600&h=300&fit=crop" className="w-full h-32 object-cover rounded-xl mt-2" />
-          <p className="text-xs text-muted-foreground mt-2">Appuyez sur le bouton <strong>WhatsApp</strong> d'une annonce pour ouvrir directement WhatsApp sur le numéro du propriétaire, avec le lien de l'annonce déjà prêt à envoyer.</p>
+          <p className="text-xs text-muted-foreground mt-2">Appuyez sur le bouton <strong>Contacter</strong> d'une annonce pour ouvrir directement une conversation avec le propriétaire, avec le lien de l'annonce déjà prêt à envoyer.</p>
         </div>
 
         <div>

@@ -55,7 +55,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   return (
     <form onSubmit={handleSubmit} onPaste={handlePaste} className="p-3 bg-card border-t border-border space-y-2">
       <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de l'annonce *" className="rounded-full text-sm h-9" required />
-      <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description... (collez du contenu WhatsApp ici)" className="rounded-xl text-sm resize-none" rows={2} />
+      <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description... (collez votre texte d'annonce ici)" className="rounded-xl text-sm resize-none" rows={2} />
       <Input value={zwandakoUrl} onChange={e => setZwandakoUrl(e.target.value)} placeholder="Lien Zwandako (optionnel)" className="rounded-full text-sm h-9" />
       <div className="flex gap-2 items-center">
         <label className="cursor-pointer shrink-0">
@@ -156,7 +156,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
             <Share2 className="h-3.5 w-3.5" />
           </button>
           <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-green-500 text-white">
-            <Phone className="h-3.5 w-3.5" />WhatsApp
+            <Phone className="h-3.5 w-3.5" />Contacter
           </button>
           {listing.zwandako_url && (
             <a href={listing.zwandako_url} target="_blank" rel="noopener noreferrer"

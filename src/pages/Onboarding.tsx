@@ -19,8 +19,8 @@ const SLIDES = [
   {
     icon: Share2,
     title: 'Publiez en quelques secondes',
-    text: 'Collez le contenu WhatsApp, ajoutez vos photos, et envoyez. Plus rapide que la concurrence, beaucoup plus organisé.',
-    img: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=400&fit=crop',
+    text: 'Collez votre texte d\'annonce, ajoutez vos photos, et envoyez. Plus rapide que la concurrence, beaucoup plus organisé.',
+    img: 'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=800&h=400&fit=crop',
   },
   {
     icon: Globe,
@@ -48,7 +48,12 @@ export default function Onboarding() {
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full animate-fade-in" key={step}>
         <div className="w-full h-44 rounded-2xl overflow-hidden mb-6 bg-muted">
-          <img src={slide.img} alt="" className="w-full h-full object-cover" />
+          <img
+            src={slide.img}
+            alt={slide.title}
+            className="w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&h=400&fit=crop'; }}
+          />
         </div>
         <div className="h-14 w-14 rounded-2xl bg-primary/15 flex items-center justify-center mb-4">
           <Icon className="h-7 w-7 text-primary" />
