@@ -254,15 +254,17 @@ export default function Profil() {
       <div className="px-4 py-3">
         {activeTab === 'annonces' ? (
           <>
-            {/* Sub-tabs: underline style */}
-            <div className="flex border-b border-border mb-3">
+            {/* Sub-tabs: underline 1/4 width centered */}
+            <div className="flex mb-3 relative">
               <button onClick={() => setListingSubTab('publications')}
-                className={`flex-1 py-2 text-xs font-semibold text-center transition ${listingSubTab === 'publications' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}>
+                className={`flex-1 py-2 text-xs font-semibold text-center transition relative ${listingSubTab === 'publications' ? 'text-primary' : 'text-muted-foreground'}`}>
                 Publications
+                {listingSubTab === 'publications' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-1/4 bg-primary rounded-full" />}
               </button>
               <button onClick={() => setListingSubTab('favoris')}
-                className={`flex-1 py-2 text-xs font-semibold text-center transition flex items-center justify-center gap-1 ${listingSubTab === 'favoris' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}>
+                className={`flex-1 py-2 text-xs font-semibold text-center transition flex items-center justify-center gap-1 relative ${listingSubTab === 'favoris' ? 'text-primary' : 'text-muted-foreground'}`}>
                 <Bookmark className="h-3 w-3" />Favoris
+                {listingSubTab === 'favoris' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-1/4 bg-primary rounded-full" />}
               </button>
             </div>
 
