@@ -156,7 +156,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
             <Share2 className="h-3.5 w-3.5" />
           </button>
           <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-green-500 text-white">
-            <Phone className="h-3.5 w-3.5" />Contacter
+            <Send className="h-3.5 w-3.5" />Message
           </button>
           {listing.zwandako_url && (
             <a href={listing.zwandako_url} target="_blank" rel="noopener noreferrer"

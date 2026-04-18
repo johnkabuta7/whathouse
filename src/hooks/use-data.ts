@@ -54,6 +54,36 @@ export function useCreateBanner() {
   });
 }
 
+export function useCreateBanner() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (banner: { image_url: string; link_url?: string; sort_order?: number; caption?: string }) => {
+      const { data, error } = await supabase.from('slider_banners').insert(banner as any).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['slider_banners'] });
+      qc.invalidateQueries({ queryKey: ['all_slider_banners'] });
+    },
+  });
+}
+
+export function useUpdateBanner() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; image_url?: string; caption?: string; link_url?: string; sort_order?: number; active?: boolean }) => {
+      const { data, error } = await supabase.from('slider_banners').update(updates as any).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['slider_banners'] });
+      qc.invalidateQueries({ queryKey: ['all_slider_banners'] });
+    },
+  });
+}
+
 export function useDeleteBanner() {
   const qc = useQueryClient();
   return useMutation({
@@ -65,6 +95,35 @@ export function useDeleteBanner() {
       qc.invalidateQueries({ queryKey: ['slider_banners'] });
       qc.invalidateQueries({ queryKey: ['all_slider_banners'] });
     },
+  });
+}
+
+// ========== APP CONTENT (Tutos, Avantages, Termes) ==========
+export function useAppContent(key: string) {
+  return useQuery({
+    queryKey: ['app_content', key],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('app_content' as any).select('*').eq('key', key).maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!key,
+  });
+}
+
+export function useUpsertAppContent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ key, content }: { key: string; content: string }) => {
+      const { data, error } = await supabase
+        .from('app_content' as any)
+        .upsert({ key, content, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, v) => qc.invalidateQueries({ queryKey: ['app_content', v.key] }),
   });
 }
 
