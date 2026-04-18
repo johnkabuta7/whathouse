@@ -234,6 +234,7 @@ export default function GroupDetail() {
   const { data: hasPending } = useHasPendingRequest(id || '');
   const { data: joinRequests } = useJoinRequests(id || '');
   const requestJoin = useRequestJoin();
+  const leaveGroup = useLeaveGroup();
   const markRead = useMarkGroupRead();
   const { toast } = useToast();
   const [showPublish, setShowPublish] = useState(false);
@@ -294,6 +295,22 @@ export default function GroupDetail() {
             </span>
           )}
         </Link>
+        {isMember && !isCreator && (
+          <button
+            onClick={() => {
+              if (!user) return;
+              if (!confirm(`Quitter le groupe "${group.name}" ?`)) return;
+              leaveGroup.mutate({ groupId: group.id, userId: user.id }, {
+                onSuccess: () => { toast({ title: 'Vous avez quitté le groupe' }); window.history.back(); },
+                onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
+              });
+            }}
+            className="p-1.5 rounded-full hover:bg-destructive/10 transition"
+            title="Quitter"
+          >
+            <LogOut className="h-4 w-4 text-destructive" />
+          </button>
+        )}
       </div>
 
       {showEdit && isCreator && <GroupEditHeader group={group} onClose={() => setShowEdit(false)} />}
