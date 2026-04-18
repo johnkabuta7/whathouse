@@ -20,6 +20,10 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone.trim()) return;
+    if (!phone.trim().startsWith('+243')) {
+      toast({ title: 'Numéro invalide', description: 'Le numéro doit commencer par +243', variant: 'destructive' });
+      return;
+    }
     setIsLoading(true);
 
     if (mode === 'login') {
