@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage, useMarkGroupRead } from '@/hooks/use-data';
+import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage, useMarkGroupRead, useProfile } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 
 function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: string; onDone: () => void }) {
@@ -86,6 +86,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   const toggleFavorite = useToggleFavorite();
   const { data: likeData } = useListingLikes(listing.id);
   const { data: isFav } = useIsFavorite(listing.id);
+  const { data: ownerProfile } = useProfile(listing.user_id);
   const { toast } = useToast();
 
   const desc = listing.description || '';
@@ -98,15 +99,21 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
     });
   };
 
+  const listingLink = listing.zwandako_url || `${window.location.origin}/group/${listing.group_id}`;
+
   const handleShare = async () => {
-    const url = listing.zwandako_url || window.location.href;
-    if (navigator.share) await navigator.share({ title: listing.title, url });
-    else { await navigator.clipboard.writeText(url); toast({ title: 'Lien copié !' }); }
+    if (navigator.share) await navigator.share({ title: listing.title, url: listingLink });
+    else { await navigator.clipboard.writeText(listingLink); toast({ title: 'Lien copié !' }); }
   };
 
   const handleWhatsApp = () => {
-    const text = `${listing.title}\n${listing.description || ''}\n${listing.zwandako_url || window.location.href}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    const ownerPhone = ownerProfile?.phone?.replace(/[^0-9]/g, '');
+    if (!ownerPhone) {
+      toast({ title: 'Numéro indisponible', description: "Le propriétaire n'a pas renseigné son numéro.", variant: 'destructive' });
+      return;
+    }
+    const message = `Bonjour, je vous contacte au sujet de votre annonce "${listing.title}" : ${listingLink}`;
+    window.open(`https://wa.me/${ownerPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const images: string[] = listing.images || [];
