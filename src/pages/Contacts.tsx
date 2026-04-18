@@ -78,10 +78,6 @@ export default function Contacts() {
               <>
                 <div className="fixed inset-0 z-40" onClick={closeMenu} />
                 <div className="absolute right-0 top-full mt-1 w-60 bg-card rounded-xl shadow-lg border border-border z-50 py-1 animate-fade-in">
-                  <button onClick={() => { closeMenu(); setShowInstall(true); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
-                    <Download className="h-4 w-4 text-primary" />Ajouter à l'écran d'accueil
-                  </button>
                   <button onClick={() => { closeMenu(); navigate('/create-group'); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
                     <Users className="h-4 w-4 text-primary" />Créer un groupe
