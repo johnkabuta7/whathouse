@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, Palette } from 'lucide-react';
+import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, Palette, ShieldCheck, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
 export default function Profil() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateEmail } = useAuth();
   const { theme, toggleTheme, colorHex, setColorHex } = useTheme();
   const { data: myListings } = useMyListings();
   const { data: myFavorites } = useMyFavorites();
@@ -53,8 +54,13 @@ export default function Profil() {
   const avatarUrl = profile?.avatar_url || user?.profile?.avatar_url;
   const backgroundUrl = (profile as any)?.background_url;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!user) return;
+    // Update email if changed
+    if (email && email !== user.email) {
+      const ok = await updateEmail(email);
+      if (!ok) { toast({ title: 'Email non modifié', description: 'Format invalide ou déjà utilisé', variant: 'destructive' }); return; }
+    }
     updateProfile.mutate(
       { userId: user.id, first_name: firstName, last_name: lastName, phone },
       {
