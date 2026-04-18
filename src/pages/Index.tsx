@@ -36,15 +36,20 @@ function SliderBanner() {
 
   useEffect(() => {
     if (slides.length <= 1) return;
-    const timer = setInterval(() => setCurrent(p => (p + 1) % slides.length), 3000);
+    const timer = setInterval(() => setCurrent(p => (p + 1) % slides.length), 180000);
     return () => clearInterval(timer);
   }, [slides.length]);
 
   return (
     <div className="relative w-full h-[100px] overflow-hidden">
-      {slides.map((slide, i) => (
+      {slides.map((slide: any, i) => (
         <div key={slide.id} className={`absolute inset-0 transition-opacity duration-500 ${i === current ? 'opacity-100' : 'opacity-0'}`}>
           <img src={slide.image_url} alt="" className="w-full h-full object-cover" />
+          {slide.caption && (
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-6 pb-3">
+              <p className="text-white text-xs font-semibold drop-shadow line-clamp-2">{slide.caption}</p>
+            </div>
+          )}
         </div>
       ))}
       <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1">

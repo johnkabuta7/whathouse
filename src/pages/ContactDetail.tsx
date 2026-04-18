@@ -37,7 +37,7 @@ export default function ContactDetail() {
         {profile.phone && <p className="text-sm text-muted-foreground mt-1">{profile.phone}</p>}
       </div>
 
-      {/* Action buttons - GREEN, rounded */}
+      {/* Action buttons */}
       <div className="flex gap-4 px-4 mt-4">
         {profile.phone && (
           <>
@@ -45,14 +45,13 @@ export default function ContactDetail() {
               <Phone className="h-5 w-5" />
               <span className="text-xs font-medium">Appeler</span>
             </a>
-            {/* Appel via messagerie (direct) */}
             <a
-              href={`https://wa.me/${profile.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Bonjour, je vous contacte via Pro Immobilier.')}`}
+              href={`https://wa.me/${profile.phone.replace(/[^0-9]/g, '')}`}
               target="_blank" rel="noopener noreferrer"
               className="flex-1 flex flex-col items-center gap-1 py-3 rounded-full bg-green-500 text-white"
             >
               <MessageSquare className="h-5 w-5" />
-              <span className="text-xs font-medium">Message</span>
+              <span className="text-xs font-medium">Contacter (WhatsApp)</span>
             </a>
           </>
         )}
