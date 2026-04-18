@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_content: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       group_join_requests: {
         Row: {
           created_at: string
@@ -311,6 +335,7 @@ export type Database = {
       slider_banners: {
         Row: {
           active: boolean
+          caption: string | null
           created_at: string
           id: string
           image_url: string
@@ -320,6 +345,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          caption?: string | null
           created_at?: string
           id?: string
           image_url: string
@@ -329,6 +355,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          caption?: string | null
           created_at?: string
           id?: string
           image_url?: string
