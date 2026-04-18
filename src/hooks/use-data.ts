@@ -39,20 +39,6 @@ export function useAllSliderBanners() {
   });
 }
 
-export function useCreateBanner() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (banner: { image_url: string; link_url?: string; sort_order?: number }) => {
-      const { data, error } = await supabase.from('slider_banners').insert(banner).select().single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['slider_banners'] });
-      qc.invalidateQueries({ queryKey: ['all_slider_banners'] });
-    },
-  });
-}
 
 export function useCreateBanner() {
   const qc = useQueryClient();
