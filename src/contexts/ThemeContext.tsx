@@ -3,17 +3,22 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 type Theme = 'light' | 'dark';
 
 export const COLOR_THEMES = [
-  { name: 'Vert', hex: '#2a9d8f' },
-  { name: 'Orange', hex: '#F97316' },
+  { name: 'Émeraude', hex: '#226D68' },
+  { name: 'Terracotta', hex: '#D46F4D' },
   { name: 'Bleu', hex: '#317AC1' },
-  { name: 'Marine', hex: '#212E53' },
-  { name: 'Ardoise', hex: '#344D59' },
-  { name: 'Gris', hex: '#585858' },
-  { name: 'Mandarine', hex: '#F26619' },
-  { name: 'Ciel', hex: '#5784BA' },
+  { name: 'Mandarine', hex: '#F27438' },
+  { name: 'Framboise', hex: '#CA3C66' },
+  { name: 'Sable', hex: '#D6955B' },
+  { name: 'Sarcelle', hex: '#137C8B' },
+  { name: 'Feu', hex: '#FC4E00' },
+  { name: 'Magenta', hex: '#FE277E' },
+  { name: 'Menthe', hex: '#3CCDB4' },
+  { name: 'Corail', hex: '#ED4353' },
+  { name: 'Azur', hex: '#2599FB' },
+  { name: 'Océan', hex: '#007FA9' },
 ] as const;
 
-export const DEFAULT_COLOR = '#2a9d8f';
+export const DEFAULT_COLOR = '#226D68';
 
 interface ThemeContextType {
   theme: Theme;

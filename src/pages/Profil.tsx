@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme, COLOR_THEMES } from '@/contexts/ThemeContext';
-import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, uploadBannerImage, useMyFavorites, useProfile } from '@/hooks/use-data';
+import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, useUpdateBanner, uploadBannerImage, useMyFavorites, useProfile, useAppContent, useUpsertAppContent } from '@/hooks/use-data';
 import { useNotificationSettings, useUpdateNotificationSettings, usePlayTestSound } from '@/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -436,17 +436,11 @@ export default function Profil() {
           </div>
         ) : (
           /* Admin tab */
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2"><Image className="h-4 w-4 text-primary" />Gérer les sliders</h3>
+              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2"><Image className="h-4 w-4 text-primary" />Gérer les sliders (image + texte)</h3>
               <div className="space-y-2">
-                {allBanners?.map(b => (
-                  <div key={b.id} className="flex items-center gap-3 p-2 rounded-xl bg-card border border-border">
-                    <img src={b.image_url} className="h-10 w-20 rounded-lg object-cover" />
-                    <span className="flex-1 text-xs text-muted-foreground truncate">{b.image_url.split('/').pop()}</span>
-                    <button onClick={() => deleteBanner.mutate(b.id)} className="p-1.5 text-destructive"><Trash2 className="h-4 w-4" /></button>
-                  </div>
-                ))}
+                {allBanners?.map(b => <BannerEditor key={b.id} banner={b} />)}
                 <button onClick={() => bannerInputRef.current?.click()} disabled={uploadingBanner}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-primary/5 transition">
                   <Image className="h-4 w-4" />{uploadingBanner ? 'Upload...' : 'Ajouter un slider'}
@@ -454,9 +448,98 @@ export default function Profil() {
                 <input ref={bannerInputRef} type="file" accept="image/*" onChange={handleBannerUpload} className="hidden" />
               </div>
             </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2"><BookOpen className="h-4 w-4 text-primary" />Éditer les pages</h3>
+              <div className="space-y-3">
+                <ContentEditor pageKey="tuto" label="Tuto — Comment ça marche" />
+                <ContentEditor pageKey="avantages" label="Avantages de l'application" />
+                <ContentEditor pageKey="terms" label="Termes & Confidentialité" />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">Astuce : utilisez # en début de ligne pour un titre. Laissez une ligne vide pour séparer les paragraphes.</p>
+            </div>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function BannerEditor({ banner }: { banner: any }) {
+  const [caption, setCaption] = useState(banner.caption || '');
+  const updateBanner = useUpdateBanner();
+  const deleteBanner = useDeleteBanner();
+  const { toast } = useToast();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleImg = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadBannerImage(file);
+      updateBanner.mutate({ id: banner.id, image_url: url }, {
+        onSuccess: () => { toast({ title: 'Image mise à jour' }); setUploading(false); },
+        onError: () => { toast({ title: 'Erreur', variant: 'destructive' }); setUploading(false); },
+      });
+    } catch { setUploading(false); }
+  };
+
+  const save = () => {
+    updateBanner.mutate({ id: banner.id, caption }, {
+      onSuccess: () => toast({ title: 'Texte enregistré' }),
+    });
+  };
+
+  return (
+    <div className="p-2 rounded-xl bg-card border border-border space-y-2">
+      <div className="flex items-center gap-2">
+        <img src={banner.image_url} className="h-12 w-20 rounded-lg object-cover" />
+        <div className="flex-1 flex gap-1">
+          <button onClick={() => fileRef.current?.click()} disabled={uploading}
+            className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary">
+            {uploading ? '...' : 'Changer image'}
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" onChange={handleImg} className="hidden" />
+          <button onClick={() => deleteBanner.mutate(banner.id)} className="p-1 text-destructive">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <Input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Texte affiché sur le slider..." className="text-xs h-8 rounded-full" />
+      <Button onClick={save} size="sm" className="w-full h-7 rounded-full text-xs" disabled={updateBanner.isPending}>
+        Enregistrer texte
+      </Button>
+    </div>
+  );
+}
+
+function ContentEditor({ pageKey, label }: { pageKey: string; label: string }) {
+  const { data } = useAppContent(pageKey);
+  const upsert = useUpsertAppContent();
+  const { toast } = useToast();
+  const [content, setContent] = useState('');
+  const [loaded, setLoaded] = useState(false);
+
+  if (data && !loaded) { setContent(data.content || ''); setLoaded(true); }
+
+  const save = () => {
+    upsert.mutate({ key: pageKey, content }, {
+      onSuccess: () => toast({ title: `${label} enregistré` }),
+      onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
+    });
+  };
+
+  return (
+    <div className="p-2 rounded-xl bg-card border border-border space-y-2">
+      <p className="text-xs font-semibold text-foreground">{label}</p>
+      <Textarea value={content} onChange={e => setContent(e.target.value)} rows={6}
+        placeholder="# Titre&#10;Texte du paragraphe..."
+        className="text-xs rounded-xl resize-y min-h-[120px]" />
+      <Button onClick={save} size="sm" className="w-full h-7 rounded-full text-xs" disabled={upsert.isPending}>
+        Enregistrer
+      </Button>
     </div>
   );
 }

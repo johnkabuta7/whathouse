@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone, Bookmark, Camera, Edit2, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone, Bookmark, Camera, Edit2, Save, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage, useMarkGroupRead, useProfile } from '@/hooks/use-data';
+import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage, useMarkGroupRead, useProfile, useLeaveGroup } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 
 function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: string; onDone: () => void }) {
@@ -156,7 +156,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
             <Share2 className="h-3.5 w-3.5" />
           </button>
           <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-green-500 text-white">
-            <Phone className="h-3.5 w-3.5" />Contacter
+            <Send className="h-3.5 w-3.5" />Message
           </button>
           {listing.zwandako_url && (
             <a href={listing.zwandako_url} target="_blank" rel="noopener noreferrer"
@@ -234,6 +234,7 @@ export default function GroupDetail() {
   const { data: hasPending } = useHasPendingRequest(id || '');
   const { data: joinRequests } = useJoinRequests(id || '');
   const requestJoin = useRequestJoin();
+  const leaveGroup = useLeaveGroup();
   const markRead = useMarkGroupRead();
   const { toast } = useToast();
   const [showPublish, setShowPublish] = useState(false);
@@ -294,6 +295,22 @@ export default function GroupDetail() {
             </span>
           )}
         </Link>
+        {isMember && !isCreator && (
+          <button
+            onClick={() => {
+              if (!user) return;
+              if (!confirm(`Quitter le groupe "${group.name}" ?`)) return;
+              leaveGroup.mutate({ groupId: group.id, userId: user.id }, {
+                onSuccess: () => { toast({ title: 'Vous avez quitté le groupe' }); window.history.back(); },
+                onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
+              });
+            }}
+            className="p-1.5 rounded-full hover:bg-destructive/10 transition"
+            title="Quitter"
+          >
+            <LogOut className="h-4 w-4 text-destructive" />
+          </button>
+        )}
       </div>
 
       {showEdit && isCreator && <GroupEditHeader group={group} onClose={() => setShowEdit(false)} />}
