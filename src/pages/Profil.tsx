@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, Palette } from 'lucide-react';
+import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, Palette, ShieldCheck, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
 export default function Profil() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateEmail } = useAuth();
   const { theme, toggleTheme, colorHex, setColorHex } = useTheme();
   const { data: myListings } = useMyListings();
   const { data: myFavorites } = useMyFavorites();
@@ -53,8 +54,13 @@ export default function Profil() {
   const avatarUrl = profile?.avatar_url || user?.profile?.avatar_url;
   const backgroundUrl = (profile as any)?.background_url;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!user) return;
+    // Update email if changed
+    if (email && email !== user.email) {
+      const ok = await updateEmail(email);
+      if (!ok) { toast({ title: 'Email non modifié', description: 'Format invalide ou déjà utilisé', variant: 'destructive' }); return; }
+    }
     updateProfile.mutate(
       { userId: user.id, first_name: firstName, last_name: lastName, phone },
       {
@@ -254,15 +260,17 @@ export default function Profil() {
       <div className="px-4 py-3">
         {activeTab === 'annonces' ? (
           <>
-            {/* Sub-tabs: underline style */}
-            <div className="flex border-b border-border mb-3">
+            {/* Sub-tabs: underline 1/4 width centered */}
+            <div className="flex mb-3 relative">
               <button onClick={() => setListingSubTab('publications')}
-                className={`flex-1 py-2 text-xs font-semibold text-center transition ${listingSubTab === 'publications' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}>
+                className={`flex-1 py-2 text-xs font-semibold text-center transition relative ${listingSubTab === 'publications' ? 'text-primary' : 'text-muted-foreground'}`}>
                 Publications
+                {listingSubTab === 'publications' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-1/4 bg-primary rounded-full" />}
               </button>
               <button onClick={() => setListingSubTab('favoris')}
-                className={`flex-1 py-2 text-xs font-semibold text-center transition flex items-center justify-center gap-1 ${listingSubTab === 'favoris' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}>
+                className={`flex-1 py-2 text-xs font-semibold text-center transition flex items-center justify-center gap-1 relative ${listingSubTab === 'favoris' ? 'text-primary' : 'text-muted-foreground'}`}>
                 <Bookmark className="h-3 w-3" />Favoris
+                {listingSubTab === 'favoris' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-1/4 bg-primary rounded-full" />}
               </button>
             </div>
 
@@ -404,6 +412,22 @@ export default function Profil() {
                 </div>
               </div>
             )}
+
+            <Link to="/legal/tuto" className="w-full flex items-center gap-3 py-3 border-b border-border">
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><BookOpen className="h-4 w-4 text-primary" /></div>
+              <span className="text-sm text-foreground flex-1 text-left">Tuto — Comment ça marche</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+            <Link to="/legal/avantages" className="w-full flex items-center gap-3 py-3 border-b border-border">
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Sparkles className="h-4 w-4 text-primary" /></div>
+              <span className="text-sm text-foreground flex-1 text-left">Avantages de l'application</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+            <Link to="/legal/terms" className="w-full flex items-center gap-3 py-3 border-b border-border">
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-4 w-4 text-primary" /></div>
+              <span className="text-sm text-foreground flex-1 text-left">Termes & Confidentialité</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
 
             <button onClick={logout} className="w-full flex items-center gap-3 py-3">
               <div className="h-9 w-9 rounded-full bg-destructive/10 flex items-center justify-center"><LogOut className="h-4 w-4 text-destructive" /></div>

@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { PWAInstallProvider } from "@/contexts/PWAInstallContext";
 import Login from "./pages/Login";
+import Onboarding from "./pages/Onboarding";
 import Index from "./pages/Index";
 import GroupDetail from "./pages/GroupDetail";
 import GroupMembers from "./pages/GroupMembers";
@@ -15,6 +16,7 @@ import CreateGroup from "./pages/CreateGroup";
 import Contacts from "./pages/Contacts";
 import Profil from "./pages/Profil";
 import ContactDetail from "./pages/ContactDetail";
+import Legal from "./pages/Legal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,7 +43,8 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/login" element={user ? <Navigate to="/" replace /> : (localStorage.getItem('onboarded') ? <Login /> : <Navigate to="/onboarding" replace />)} />
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/" element={<Index />} />
         <Route path="/group/:id" element={<GroupDetail />} />
@@ -50,6 +53,7 @@ function AppRoutes() {
         <Route path="/contacts" element={<Contacts />} />
         <Route path="/contact/:userId" element={<ContactDetail />} />
         <Route path="/profil" element={<Profil />} />
+        <Route path="/legal/:page" element={<Legal />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -3,15 +3,17 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 type Theme = 'light' | 'dark';
 
 export const COLOR_THEMES = [
+  { name: 'Vert', hex: '#2a9d8f' },
   { name: 'Orange', hex: '#F97316' },
   { name: 'Bleu', hex: '#317AC1' },
   { name: 'Marine', hex: '#212E53' },
   { name: 'Ardoise', hex: '#344D59' },
-  { name: 'Vert', hex: '#2a9d8f' },
   { name: 'Gris', hex: '#585858' },
   { name: 'Mandarine', hex: '#F26619' },
   { name: 'Ciel', hex: '#5784BA' },
 ] as const;
+
+export const DEFAULT_COLOR = '#2a9d8f';
 
 interface ThemeContextType {
   theme: Theme;
@@ -23,7 +25,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType>({
   theme: 'dark',
   toggleTheme: () => {},
-  colorHex: '#F97316',
+  colorHex: DEFAULT_COLOR,
   setColorHex: () => {},
 });
 
@@ -56,7 +58,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('theme');
     return (saved === 'light' ? 'light' : 'dark') as Theme;
   });
-  const [colorHex, setColorHexState] = useState<string>(() => localStorage.getItem('colorHex') || '#F97316');
+  const [colorHex, setColorHexState] = useState<string>(() => localStorage.getItem('colorHex') || DEFAULT_COLOR);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
