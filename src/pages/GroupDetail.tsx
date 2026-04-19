@@ -99,7 +99,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
     });
   };
 
-  const listingLink = listing.zwandako_url || `${window.location.origin}/group/${listing.group_id}`;
+  const listingLink = `${window.location.origin}/listing/${listing.id}`;
 
   const handleShare = async () => {
     if (navigator.share) await navigator.share({ title: listing.title, url: listingLink });
@@ -119,7 +119,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   const images: string[] = listing.images || [];
 
   return (
-    <div className="bg-card rounded-2xl shadow-sm overflow-hidden border border-border">
+    <div id={`listing-${listing.id}`} className="bg-card rounded-2xl shadow-sm overflow-hidden border border-border scroll-mt-20">
       {images.length > 0 && (
         <div className="relative">
           <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
@@ -251,6 +251,18 @@ export default function GroupDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isMember, listings?.length]);
 
+  // Scroll to specific listing if hash present (#listing-XXX)
+  useEffect(() => {
+    if (!listings) return;
+    const hash = window.location.hash;
+    if (!hash.startsWith('#listing-')) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById(hash.slice(1));
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+    return () => clearTimeout(t);
+  }, [listings]);
+
   const filteredListings = listings?.filter(l =>
     l.title.toLowerCase().includes(search.toLowerCase()) ||
     (l.description || '').toLowerCase().includes(search.toLowerCase())
@@ -268,7 +280,7 @@ export default function GroupDetail() {
   };
 
   return (
-    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-screen">
+    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-[100dvh]">
       {/* Header */}
       <div className="px-3 py-2.5 flex items-center gap-3 bg-card/60 backdrop-blur-md border-b border-border sticky top-0 z-10">
         <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>

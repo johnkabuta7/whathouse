@@ -86,7 +86,7 @@ export default function Contacts() {
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
                     <UserPlus className="h-4 w-4 text-primary" />Sélectionner & ajouter
                   </button>
-                  <button onClick={() => { closeMenu(); navigate('/profil'); }}
+                  <button onClick={() => { closeMenu(); navigate('/profil?tab=infos'); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
                     <Settings className="h-4 w-4 text-primary" />Paramètres
                   </button>

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Download, X, Share, Plus, MoreVertical } from 'lucide-react';
+import { Download, X, Share, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePWAInstall } from '@/contexts/PWAInstallContext';
 import { useToast } from '@/hooks/use-toast';
 
-type Step = 'ask' | 'ios-guide' | 'android-guide';
+type Step = 'ask' | 'ios-guide';
 
 export function InstallPrompt({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { canInstall, isInstalled, promptInstall } = usePWAInstall();
@@ -32,10 +32,17 @@ export function InstallPrompt({ open, onClose }: { open: boolean; onClose: () =>
       handleClose();
       return;
     }
-    // No native prompt available — show step-by-step visual guide
+    // No native prompt available
     const ua = navigator.userAgent;
-    if (/iPhone|iPad|iPod/.test(ua)) setStep('ios-guide');
-    else setStep('android-guide');
+    if (/iPhone|iPad|iPod/.test(ua)) {
+      setStep('ios-guide');
+    } else {
+      toast({
+        title: 'Installation indisponible',
+        description: "Ouvrez le menu ⋮ du navigateur puis « Installer l'application ».",
+      });
+      handleClose();
+    }
     setBusy(false);
   };
 
@@ -92,31 +99,6 @@ export function InstallPrompt({ open, onClose }: { open: boolean; onClose: () =>
           </>
         )}
 
-        {step === 'android-guide' && (
-          <>
-            <h2 className="text-base font-bold text-center text-foreground">Installer sur Android</h2>
-            <p className="text-xs text-muted-foreground text-center mt-1 mb-4">2 étapes simples :</p>
-            <ol className="space-y-3">
-              <li className="flex items-start gap-3 p-3 rounded-xl bg-muted/50">
-                <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0">1</div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    Ouvrez le menu <MoreVertical className="h-4 w-4 text-primary" />
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">en haut à droite du navigateur</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3 p-3 rounded-xl bg-muted/50">
-                <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0">2</div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">Touchez "Installer l'application"</p>
-                  <p className="text-[11px] text-muted-foreground">ou "Ajouter à l'écran d'accueil"</p>
-                </div>
-              </li>
-            </ol>
-            <Button className="w-full mt-4 bg-primary text-primary-foreground" onClick={handleClose}>J'ai compris</Button>
-          </>
-        )}
       </div>
     </div>
   );

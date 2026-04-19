@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, Palette, ShieldCheck, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -41,7 +42,13 @@ export default function Profil() {
   const [lastName, setLastName] = useState(user?.profile?.last_name || '');
   const [phone, setPhone] = useState(user?.profile?.phone || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [activeTab, setActiveTab] = useState<'annonces' | 'infos' | 'admin'>('annonces');
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as 'annonces' | 'infos' | 'admin') || 'annonces';
+  const [activeTab, setActiveTab] = useState<'annonces' | 'infos' | 'admin'>(initialTab);
+  useEffect(() => {
+    const t = searchParams.get('tab') as 'annonces' | 'infos' | 'admin' | null;
+    if (t && ['annonces', 'infos', 'admin'].includes(t)) setActiveTab(t);
+  }, [searchParams]);
   const [listingSubTab, setListingSubTab] = useState<'publications' | 'favoris'>('publications');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
