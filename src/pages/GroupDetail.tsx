@@ -119,7 +119,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   const images: string[] = listing.images || [];
 
   return (
-    <div className="bg-card rounded-2xl shadow-sm overflow-hidden border border-border">
+    <div id={`listing-${listing.id}`} className="bg-card rounded-2xl shadow-sm overflow-hidden border border-border scroll-mt-20">
       {images.length > 0 && (
         <div className="relative">
           <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
@@ -250,6 +250,18 @@ export default function GroupDetail() {
     if (id && isMember && listings) markRead.mutate(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isMember, listings?.length]);
+
+  // Scroll to specific listing if hash present (#listing-XXX)
+  useEffect(() => {
+    if (!listings) return;
+    const hash = window.location.hash;
+    if (!hash.startsWith('#listing-')) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById(hash.slice(1));
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+    return () => clearTimeout(t);
+  }, [listings]);
 
   const filteredListings = listings?.filter(l =>
     l.title.toLowerCase().includes(search.toLowerCase()) ||
