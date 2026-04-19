@@ -99,7 +99,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
     });
   };
 
-  const listingLink = listing.zwandako_url || `${window.location.origin}/group/${listing.group_id}`;
+  const listingLink = `${window.location.origin}/listing/${listing.id}`;
 
   const handleShare = async () => {
     if (navigator.share) await navigator.share({ title: listing.title, url: listingLink });
@@ -268,7 +268,7 @@ export default function GroupDetail() {
   };
 
   return (
-    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-screen">
+    <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-[100dvh]">
       {/* Header */}
       <div className="px-3 py-2.5 flex items-center gap-3 bg-card/60 backdrop-blur-md border-b border-border sticky top-0 z-10">
         <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
