@@ -32,10 +32,17 @@ export function InstallPrompt({ open, onClose }: { open: boolean; onClose: () =>
       handleClose();
       return;
     }
-    // No native prompt available — show step-by-step visual guide
+    // No native prompt available
     const ua = navigator.userAgent;
-    if (/iPhone|iPad|iPod/.test(ua)) setStep('ios-guide');
-    else setStep('android-guide');
+    if (/iPhone|iPad|iPod/.test(ua)) {
+      setStep('ios-guide');
+    } else {
+      toast({
+        title: 'Installation indisponible',
+        description: "Ouvrez le menu ⋮ du navigateur puis « Installer l'application ».",
+      });
+      handleClose();
+    }
     setBusy(false);
   };
 
