@@ -17,6 +17,7 @@ import Contacts from "./pages/Contacts";
 import Profil from "./pages/Profil";
 import ContactDetail from "./pages/ContactDetail";
 import Legal from "./pages/Legal";
+import ListingRedirect from "./pages/ListingRedirect";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ function AppRoutes() {
         <Route path="/contact/:userId" element={<ContactDetail />} />
         <Route path="/profil" element={<Profil />} />
         <Route path="/legal/:page" element={<Legal />} />
+        <Route path="/listing/:id" element={<ListingRedirect />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
