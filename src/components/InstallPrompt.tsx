@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Download, X, Share, Plus, MoreVertical } from 'lucide-react';
+import { Download, X, Share, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePWAInstall } from '@/contexts/PWAInstallContext';
 import { useToast } from '@/hooks/use-toast';
 
-type Step = 'ask' | 'ios-guide' | 'android-guide';
+type Step = 'ask' | 'ios-guide';
 
 export function InstallPrompt({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { canInstall, isInstalled, promptInstall } = usePWAInstall();
