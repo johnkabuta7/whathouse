@@ -30,22 +30,31 @@ export default function Login() {
     if (mode === 'login') {
       const ok = await loginWithPhone(phone);
       if (ok) {
-        navigate('/');
-      } else {
-        toast({ title: 'Erreur', description: 'Numéro non reconnu ou compte inexistant', variant: 'destructive' });
+        navigate('/', { replace: true });
+        return;
       }
+      toast({ title: 'Erreur', description: 'Numéro non reconnu ou compte inexistant', variant: 'destructive' });
     } else {
       if (!firstName.trim() || !lastName.trim()) {
         toast({ title: 'Erreur', description: 'Tous les champs sont obligatoires', variant: 'destructive' });
         setIsLoading(false);
         return;
       }
-      const ok = await signup(phone, firstName, lastName);
-      if (ok) {
-        toast({ title: 'Compte créé !', description: 'Bienvenue sur Professionnels d\'immobilier' });
-        navigate('/');
+      const result = await signup(phone, firstName, lastName);
+      if (result.ok) {
+        toast({ title: 'Compte créé !', description: 'Bienvenue sur WhatHouse' });
+        navigate('/', { replace: true });
+        return;
+      }
+      if (result.reason === 'duplicate') {
+        toast({
+          title: 'Numéro déjà inscrit',
+          description: 'Un compte existe déjà avec ce numéro. Veuillez vous connecter.',
+          variant: 'destructive',
+        });
+        setMode('login');
       } else {
-        toast({ title: 'Erreur', description: "Impossible de créer le compte. Le numéro est peut-être déjà utilisé.", variant: 'destructive' });
+        toast({ title: 'Erreur', description: 'Impossible de créer le compte. Réessayez.', variant: 'destructive' });
       }
     }
     setIsLoading(false);
@@ -66,8 +75,8 @@ export default function Login() {
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary/10 mb-4">
             <Building2 className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-extrabold text-foreground">Professionnels d'immobilier</h1>
-          <p className="text-sm text-muted-foreground mt-1">Votre réseau immobilier professionnel</p>
+          <h1 className="text-2xl font-extrabold text-foreground">WhatHouse</h1>
+          <p className="text-sm text-muted-foreground mt-1">Pro Immobilier</p>
         </div>
 
         <Card className="border-0 shadow-md animate-slide-up">

@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_sessions: {
+        Row: {
+          session_token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          session_token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          session_token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_content: {
         Row: {
           content: string

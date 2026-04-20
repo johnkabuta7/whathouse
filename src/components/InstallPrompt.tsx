@@ -26,7 +26,7 @@ export function InstallPrompt({ open, onClose }: { open: boolean; onClose: () =>
     }
     if (canInstall) {
       const result = await promptInstall();
-      if (result === 'accepted') toast({ title: '✅ Pro Immobilier ajoutée à l\'écran d\'accueil !' });
+      if (result === 'accepted') toast({ title: '✅ WhatHouse ajoutée à l\'écran d\'accueil !' });
       else if (result === 'dismissed') toast({ title: 'Installation annulée' });
       setBusy(false);
       handleClose();
@@ -58,9 +58,9 @@ export function InstallPrompt({ open, onClose }: { open: boolean; onClose: () =>
             <div className="h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-3">
               <Download className="h-8 w-8 text-primary" />
             </div>
-            <h2 className="text-lg font-bold text-center text-foreground">Ajouter Pro Immobilier</h2>
+            <h2 className="text-lg font-bold text-center text-foreground">Ajouter WhatHouse</h2>
             <p className="text-sm text-muted-foreground text-center mt-2">
-              Voulez-vous ajouter <span className="font-semibold text-foreground">Pro Immobilier</span> à l'écran d'accueil ?
+              Voulez-vous ajouter <span className="font-semibold text-foreground">WhatHouse</span> à l'écran d'accueil ?
             </p>
             <div className="flex gap-2 mt-5">
               <Button variant="outline" className="flex-1" onClick={handleClose} disabled={busy}>Non</Button>

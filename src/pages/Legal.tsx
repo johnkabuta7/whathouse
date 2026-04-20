@@ -4,7 +4,6 @@ import { ArrowLeft, ShieldCheck, Sparkles, BookOpen, Plus, X, ImagePlus, Save } 
 import { useAppContent, useUpsertAppContent, useIsAppAdmin, uploadListingImage } from '@/hooks/use-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +13,7 @@ const META: Record<string, { title: string; icon: any; fallback: string }> = {
     title: 'Termes & Confidentialité',
     icon: ShieldCheck,
     fallback: `# 1. Acceptation des conditions
-En utilisant Pro Immobilier, vous acceptez les présentes conditions d'utilisation. Cette application est réservée aux professionnels de l'immobilier.
+En utilisant WhatHouse, vous acceptez les présentes conditions d'utilisation. Cette application est réservée aux professionnels de l'immobilier.
 
 # 2. Compte utilisateur
 L'inscription se fait via un numéro de téléphone unique. Un seul compte par numéro est autorisé.
@@ -35,7 +34,7 @@ Les administrateurs de groupe peuvent valider ou refuser les demandes d'adhésio
 Vous pouvez demander la suppression complète de votre compte à tout moment.`,
   },
   avantages: {
-    title: 'Pourquoi Pro Immobilier ?',
+    title: 'Pourquoi WhatHouse ?',
     icon: Sparkles,
     fallback: `![](https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=400&fit=crop)
 
@@ -65,9 +64,9 @@ Un bouton ouvre directement la conversation avec le propriétaire de l'annonce, 
 Soyez alerté en temps réel des nouvelles annonces de vos groupes et des demandes d'adhésion.
 
 # 📱 App native
-Installez Pro Immobilier sur votre écran d'accueil — fonctionne comme une vraie application.
+Installez WhatHouse sur votre écran d'accueil — fonctionne comme une vraie application.
 
-**En résumé : moins de chaos, plus de business.**`,
+En résumé : moins de chaos, plus de business.`,
   },
   tuto: {
     title: 'Tuto — Comment ça marche',
@@ -75,28 +74,28 @@ Installez Pro Immobilier sur votre écran d'accueil — fonctionne comme une vra
     fallback: `![](https://images.unsplash.com/photo-1580519542036-c47de6196ba5?w=800&h=400&fit=crop)
 
 # 1. Créer ou rejoindre un groupe
-Sur la page d'accueil, appuyez sur le bouton **+** en bas à droite pour créer un groupe, ou utilisez la loupe 🔍 en haut pour chercher un groupe existant et demander à le rejoindre.
+Sur la page d'accueil, appuyez sur le bouton + en bas à droite pour créer un groupe, ou utilisez la loupe 🔍 en haut pour chercher un groupe existant et demander à le rejoindre.
 
 ![](https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&h=400&fit=crop)
 
 # 2. Publier une annonce
-Ouvrez un groupe, appuyez sur **« Publier une annonce »** en bas (toujours visible). Ajoutez un titre, des photos et la description. Astuce : vous pouvez coller directement votre annonce avec ses images.
+Ouvrez un groupe, appuyez sur « Publier une annonce » en bas (toujours visible). Ajoutez un titre, des photos et la description. Astuce : vous pouvez coller directement votre annonce avec ses images.
 
 # 3. Diffusion sur zwandako.com
-Dès qu'elle est publiée, votre annonce est automatiquement envoyée à **www.zwandako.com** pour décupler son audience.
+Dès qu'elle est publiée, votre annonce est automatiquement envoyée à www.zwandako.com pour décupler son audience.
 
 ![](https://images.unsplash.com/photo-1582407947092-987bce739e14?w=800&h=400&fit=crop)
 
 # 4. Ajouter aux favoris
-Appuyez sur l'icône **marque-page** sur n'importe quelle annonce pour la sauvegarder. Retrouvez-la depuis Profil → Favoris.
+Appuyez sur l'icône marque-page sur n'importe quelle annonce pour la sauvegarder. Retrouvez-la depuis Profil → Favoris.
 
 # 5. Contacter un propriétaire
-Appuyez sur **Message** sur une annonce pour ouvrir directement la conversation avec le propriétaire — le lien de l'annonce est joint automatiquement.
+Appuyez sur Message sur une annonce pour ouvrir directement la conversation avec le propriétaire — le lien de l'annonce est joint automatiquement.
 
 ![](https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?w=800&h=400&fit=crop)
 
 # 6. Installer l'application
-Depuis le menu **⋮** en haut à droite, choisissez **« Installer l'App »**. Pro Immobilier sera ajouté à votre écran d'accueil comme une vraie app.`,
+Depuis le menu ⋮ en haut à droite, choisissez « Installer l'App ». WhatHouse sera ajouté à votre écran d'accueil comme une vraie app.`,
   },
 };
 
@@ -105,26 +104,21 @@ function renderContent(text: string) {
   return blocks.map((block, i) => {
     const trimmed = block.trim();
     if (!trimmed) return null;
-    // Image markdown ![](url)
     const imgMatch = trimmed.match(/^!\[[^\]]*\]\(([^)]+)\)$/);
     if (imgMatch) {
       return <img key={i} src={imgMatch[1]} alt="" className="w-full rounded-2xl my-3 object-cover max-h-56" loading="lazy" />;
     }
     if (trimmed.startsWith('# ')) {
-      return <h2 key={i} className="text-base font-bold text-foreground mt-4">{trimmed.slice(2)}</h2>;
+      return <h2 key={i} className="text-base font-semibold text-foreground mt-4">{trimmed.slice(2)}</h2>;
     }
     if (trimmed.startsWith('## ')) {
-      return <h3 key={i} className="text-sm font-bold text-foreground mt-3">{trimmed.slice(3)}</h3>;
+      return <h3 key={i} className="text-sm font-semibold text-foreground mt-3">{trimmed.slice(3)}</h3>;
     }
-    // Inline bold **text**
-    const parts = trimmed.split(/(\*\*[^*]+\*\*)/g);
+    // Render plain text — strip ** markers if any leftover
+    const clean = trimmed.replace(/\*\*([^*]+)\*\*/g, '$1');
     return (
-      <p key={i} className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
-        {parts.map((p, j) =>
-          p.startsWith('**') && p.endsWith('**')
-            ? <strong key={j} className="font-semibold text-foreground">{p.slice(2, -2)}</strong>
-            : <span key={j}>{p}</span>
-        )}
+      <p key={i} className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line font-normal">
+        {clean}
       </p>
     );
   });
@@ -182,7 +176,7 @@ export default function Legal() {
         <div className="px-4 py-3 flex items-center gap-3">
           <Link to="/profil" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
           <Icon className="h-5 w-5 text-primary" />
-          <h1 className="text-base font-bold flex-1 text-foreground truncate">{meta.title}</h1>
+          <h1 className="text-base font-semibold flex-1 text-foreground truncate">{meta.title}</h1>
           {isAdmin && (
             <button
               onClick={() => setEditorOpen(o => !o)}
@@ -218,7 +212,7 @@ export default function Legal() {
               <Save className="h-3.5 w-3.5 mr-1" />Publier
             </Button>
           </div>
-          <p className="text-[10px] text-muted-foreground">Astuce : <code>#</code> pour un titre, <code>**gras**</code> pour mettre en gras. Les images s'insèrent automatiquement.</p>
+          <p className="text-[10px] text-muted-foreground">Astuce : <code>#</code> pour un titre. Les images s'insèrent automatiquement.</p>
         </div>
       )}
 

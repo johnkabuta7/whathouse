@@ -1,7 +1,7 @@
 {
-  "name": "Pro Immobilier - Professionnels d'immobilier",
-  "short_name": "Pro Immo",
-  "description": "Votre réseau immobilier professionnel",
+  "name": "WhatHouse — Pro Immobilier",
+  "short_name": "WhatHouse",
+  "description": "Le réseau Pro Immobilier",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -17,12 +17,14 @@ interface AuthUser {
   profile: Profile | null;
 }
 
+type SignupResult = { ok: boolean; reason?: 'duplicate' | 'unknown' };
+
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   loginWithPhone: (phone: string) => Promise<boolean>;
   verifyOtp: (phone: string, otp: string) => Promise<boolean>;
-  signup: (phone: string, firstName: string, lastName: string) => Promise<boolean>;
+  signup: (phone: string, firstName: string, lastName: string) => Promise<SignupResult>;
   updateEmail: (newEmail: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
@@ -32,7 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   loginWithPhone: async () => false,
   verifyOtp: async () => false,
-  signup: async () => false,
+  signup: async () => ({ ok: false }),
   updateEmail: async () => false,
   logout: async () => {},
 });
@@ -41,19 +43,40 @@ export const useAuth = () => useContext(AuthContext);
 
 function phoneToEmail(phone: string): string {
   const cleaned = phone.replace(/[^0-9]/g, '');
-  return `phone_${cleaned}@proimmobilier.app`;
+  return `phone_${cleaned}@whathouse.app`;
 }
 
-const DEFAULT_PASSWORD = 'ProImmo2026!SecureDefault';
+const DEFAULT_PASSWORD = 'WhatHouse2026!SecureDefault';
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
   return data as Profile | null;
 }
 
+// Generates a unique token for this device session
+function generateSessionToken(): string {
+  let t = localStorage.getItem('whathouse_device_token');
+  if (!t) {
+    t = `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem('whathouse_device_token', t);
+  }
+  return t;
+}
+
+async function claimActiveSession(userId: string) {
+  const token = generateSessionToken();
+  await supabase.from('active_sessions' as any).upsert(
+    { user_id: userId, session_token: token, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  );
+  return token;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const sessionChannelRef = useRef<any>(null);
+  const myTokenRef = useRef<string>('');
 
   const buildUser = async (session: Session | null) => {
     if (!session?.user) {
@@ -70,6 +93,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   };
 
+  // Listen for session takeover + heartbeat presence
+  useEffect(() => {
+    if (!user?.id) return;
+    if (sessionChannelRef.current) {
+      supabase.removeChannel(sessionChannelRef.current);
+      sessionChannelRef.current = null;
+    }
+    const ch = supabase
+      .channel(`active_session_${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'active_sessions', filter: `user_id=eq.${user.id}` },
+        async (payload: any) => {
+          const newToken = payload.new?.session_token;
+          if (newToken && newToken !== myTokenRef.current) {
+            await supabase.auth.signOut();
+            window.location.href = '/login';
+          }
+        }
+      )
+      .subscribe();
+    sessionChannelRef.current = ch;
+
+    // Ensure we own the session token (in case session was restored from storage)
+    if (!myTokenRef.current) {
+      claimActiveSession(user.id).then(t => { myTokenRef.current = t; });
+    }
+
+    // Heartbeat every 60s to stay "online"
+    const heartbeat = setInterval(() => {
+      supabase.from('active_sessions' as any).update({ updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('session_token', myTokenRef.current || generateSessionToken())
+        .then(() => {});
+    }, 60_000);
+
+    return () => {
+      clearInterval(heartbeat);
+      if (sessionChannelRef.current) {
+        supabase.removeChannel(sessionChannelRef.current);
+        sessionChannelRef.current = null;
+      }
+    };
+  }, [user?.id]);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       buildUser(session);
@@ -80,29 +148,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithPhone = async (phone: string) => {
     const email = phoneToEmail(phone);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: DEFAULT_PASSWORD });
-    return !error;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: DEFAULT_PASSWORD });
+    if (error || !data.user) return false;
+    myTokenRef.current = await claimActiveSession(data.user.id);
+    return true;
   };
 
   const verifyOtp = async (phone: string, _otp: string) => {
-    // Simulated OTP - just login
     return loginWithPhone(phone);
   };
 
-  const signup = async (phone: string, firstName: string, lastName: string) => {
-    const email = phoneToEmail(phone);
+  const signup = async (phone: string, firstName: string, lastName: string): Promise<SignupResult> => {
+    // Pre-check: does a profile already exist for this phone?
+    const cleaned = phone.trim();
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('phone', cleaned)
+      .maybeSingle();
+    if (existing) return { ok: false, reason: 'duplicate' };
+
+    const email = phoneToEmail(cleaned);
     const { error } = await supabase.auth.signUp({
       email,
       password: DEFAULT_PASSWORD,
       options: {
-        data: { first_name: firstName, last_name: lastName, phone },
+        data: { first_name: firstName, last_name: lastName, phone: cleaned },
+        emailRedirectTo: window.location.origin,
       },
     });
-    if (error) return false;
-    // Auto-login after signup
+    if (error) {
+      const msg = (error.message || '').toLowerCase();
+      if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
+        return { ok: false, reason: 'duplicate' };
+      }
+      return { ok: false, reason: 'unknown' };
+    }
     await new Promise(r => setTimeout(r, 500));
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: DEFAULT_PASSWORD });
-    return !loginError;
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password: DEFAULT_PASSWORD });
+    if (loginError || !data.user) return { ok: false, reason: 'unknown' };
+    myTokenRef.current = await claimActiveSession(data.user.id);
+    return { ok: true };
   };
 
   const updateEmail = async (newEmail: string) => {

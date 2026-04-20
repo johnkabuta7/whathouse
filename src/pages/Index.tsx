@@ -16,9 +16,37 @@ function useOnlineContacts() {
     queryFn: async () => {
       const { data, error } = await supabase.from('profiles').select('*');
       if (error) throw error;
-      return data?.filter(p => p.user_id !== user?.id) || [];
+      const others = data?.filter(p => p.user_id !== user?.id) || [];
+      // Fetch online users (active in last 2 minutes)
+      const { data: sessions } = await supabase
+        .from('active_sessions' as any)
+        .select('user_id, updated_at');
+      const cutoff = Date.now() - 2 * 60 * 1000;
+      const onlineSet = new Set(
+        (sessions as any[] | null)
+          ?.filter((s: any) => new Date(s.updated_at).getTime() > cutoff)
+          .map((s: any) => s.user_id) || []
+      );
+      return others.map(p => ({ ...p, online: onlineSet.has(p.user_id) }));
     },
     enabled: !!user,
+    refetchInterval: 60_000,
+  });
+}
+
+function useNewSignupsCount() {
+  return useQuery({
+    queryKey: ['new_signups_count'],
+    queryFn: async () => {
+      // New = profile created in the last 7 days
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', since);
+      return count || 0;
+    },
+    refetchInterval: 60_000,
   });
 }
 
@@ -75,6 +103,7 @@ export default function Index() {
   const { data: allGroups } = useAllGroups();
   const { data: requestCounts } = useMyGroupJoinRequestCounts();
   const { data: unreadCounts } = useUnreadCounts();
+  const { data: newSignups } = useNewSignupsCount();
   const [selectedContact, setSelectedContact] = useState<any>(null);
 
   useRealtimeListings();
@@ -105,10 +134,15 @@ export default function Index() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border">
         <div className="px-4 py-3 flex items-center gap-3">
-          <h1 className="text-lg font-bold flex-1 text-foreground">Pro Immobilier</h1>
+          <h1 className="text-lg font-bold leading-tight flex-1 text-foreground">WhatHouse <span className="block text-[10px] font-medium text-muted-foreground">Pro Immobilier</span></h1>
           <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">
             <Search className="h-5 w-5 text-muted-foreground" />
           </button>
+          {isAdmin && (newSignups || 0) > 0 && (
+            <div title="Nouveaux inscrits (7 derniers jours)" className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-bold">
+              <UserPlus className="h-3 w-3" />{newSignups}
+            </div>
+          )}
           <button onClick={handleBellClick} className="relative p-1.5 rounded-full hover:bg-muted transition">
             <Bell className="h-5 w-5 text-muted-foreground" />
             {totalRequests > 0 && (
@@ -132,9 +166,9 @@ export default function Index() {
                   <button onClick={async () => {
                     closeMenu();
                     const url = window.location.origin;
-                    const text = `🏢 Pro Immobilier — le réseau pro des agents immobiliers. Installe l'app : ${url}`;
+                    const text = `🏢 WhatHouse — le réseau Pro Immobilier des agents. Installe l'app : ${url}`;
                     if ((navigator as any).share) {
-                      try { await (navigator as any).share({ title: 'Pro Immobilier', text, url }); } catch {}
+                      try { await (navigator as any).share({ title: 'WhatHouse', text, url }); } catch {}
                     } else {
                       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                     }
@@ -167,9 +201,17 @@ export default function Index() {
               const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
               return (
                 <button key={c.user_id} onClick={() => setSelectedContact(c)} className="flex flex-col items-center gap-1 shrink-0">
-                  <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
-                    {c.avatar_url ? <img src={c.avatar_url} alt={name} className="h-full w-full object-cover" /> :
-                      <span className="text-xs font-bold text-primary">{initials}</span>}
+                  <div className="relative">
+                    <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
+                      {c.avatar_url ? <img src={c.avatar_url} alt={name} className="h-full w-full object-cover" /> :
+                        <span className="text-xs font-bold text-primary">{initials}</span>}
+                    </div>
+                    {c.online && (
+                      <span
+                        title="En ligne"
+                        className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-primary border-2 border-card"
+                      />
+                    )}
                   </div>
                   <span className="text-[10px] text-foreground font-medium max-w-[56px] truncate">{c.first_name || '?'}</span>
                 </button>
