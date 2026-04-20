@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   };
 
-  // Listen for session takeover (another device signed in with same account)
+  // Listen for session takeover + heartbeat presence
   useEffect(() => {
     if (!user?.id) return;
     if (sessionChannelRef.current) {
@@ -108,7 +108,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         async (payload: any) => {
           const newToken = payload.new?.session_token;
           if (newToken && newToken !== myTokenRef.current) {
-            // Another device took over — sign out this one.
             await supabase.auth.signOut();
             window.location.href = '/login';
           }
@@ -116,7 +115,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
     sessionChannelRef.current = ch;
+
+    // Ensure we own the session token (in case session was restored from storage)
+    if (!myTokenRef.current) {
+      claimActiveSession(user.id).then(t => { myTokenRef.current = t; });
+    }
+
+    // Heartbeat every 60s to stay "online"
+    const heartbeat = setInterval(() => {
+      supabase.from('active_sessions' as any).update({ updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('session_token', myTokenRef.current || generateSessionToken())
+        .then(() => {});
+    }, 60_000);
+
     return () => {
+      clearInterval(heartbeat);
       if (sessionChannelRef.current) {
         supabase.removeChannel(sessionChannelRef.current);
         sessionChannelRef.current = null;
