@@ -139,7 +139,8 @@ export default function Legal() {
 
   if (!meta) return <div className="p-4 text-center text-sm text-muted-foreground">Page introuvable</div>;
   const Icon = meta.icon;
-  const content = (data?.content && data.content.trim()) || meta.fallback;
+  const hasCustomContent = !!(data?.content && data.content.trim());
+  const content = hasCustomContent ? data!.content : meta.fallback;
 
   const handleAddImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -166,6 +167,14 @@ export default function Legal() {
         setNewText('');
         setEditorOpen(false);
       },
+      onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
+    });
+  };
+
+  const handleResetToDefault = () => {
+    if (!confirm('Réinitialiser à la version par défaut ? Tout le contenu publié sera supprimé.')) return;
+    upsert.mutate({ key: page || 'terms', content: '' }, {
+      onSuccess: () => toast({ title: 'Contenu supprimé — version par défaut restaurée' }),
       onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
     });
   };
