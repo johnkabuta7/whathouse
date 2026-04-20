@@ -576,31 +576,3 @@ function NewSignupsList() {
   );
 }
 
-function ContentEditor({ pageKey, label }: { pageKey: string; label: string }) {
-  const { data } = useAppContent(pageKey);
-  const upsert = useUpsertAppContent();
-  const { toast } = useToast();
-  const [content, setContent] = useState('');
-  const [loaded, setLoaded] = useState(false);
-
-  if (data && !loaded) { setContent(data.content || ''); setLoaded(true); }
-
-  const save = () => {
-    upsert.mutate({ key: pageKey, content }, {
-      onSuccess: () => toast({ title: `${label} enregistré` }),
-      onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
-    });
-  };
-
-  return (
-    <div className="p-2 rounded-xl bg-card border border-border space-y-2">
-      <p className="text-xs font-semibold text-foreground">{label}</p>
-      <Textarea value={content} onChange={e => setContent(e.target.value)} rows={6}
-        placeholder="# Titre&#10;Texte du paragraphe..."
-        className="text-xs rounded-xl resize-y min-h-[120px]" />
-      <Button onClick={save} size="sm" className="w-full h-7 rounded-full text-xs" disabled={upsert.isPending}>
-        Enregistrer
-      </Button>
-    </div>
-  );
-}
