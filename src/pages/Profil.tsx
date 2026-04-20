@@ -444,6 +444,7 @@ export default function Profil() {
         ) : (
           /* Admin tab */
           <div className="space-y-6">
+            <NewSignupsList />
             <div>
               <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2"><Image className="h-4 w-4 text-primary" />Gérer les sliders (image + texte)</h3>
               <div className="space-y-2">
@@ -454,16 +455,7 @@ export default function Profil() {
                 </button>
                 <input ref={bannerInputRef} type="file" accept="image/*" onChange={handleBannerUpload} className="hidden" />
               </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2"><BookOpen className="h-4 w-4 text-primary" />Éditer les pages</h3>
-              <div className="space-y-3">
-                <ContentEditor pageKey="tuto" label="Tuto — Comment ça marche" />
-                <ContentEditor pageKey="avantages" label="Avantages de l'application" />
-                <ContentEditor pageKey="terms" label="Termes & Confidentialité" />
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-2">Astuce : utilisez # en début de ligne pour un titre. Laissez une ligne vide pour séparer les paragraphes.</p>
+              <p className="text-[10px] text-muted-foreground mt-2">Pour modifier les pages Tuto, Avantages et Termes : ouvrez la page concernée et utilisez le bouton + dans son entête.</p>
             </div>
           </div>
         )}
@@ -495,7 +487,7 @@ function BannerEditor({ banner }: { banner: any }) {
 
   const save = () => {
     updateBanner.mutate({ id: banner.id, caption }, {
-      onSuccess: () => toast({ title: 'Texte enregistré' }),
+      onSuccess: () => toast({ title: 'Texte publié — visible sur l\'accueil' }),
     });
   };
 
@@ -516,8 +508,69 @@ function BannerEditor({ banner }: { banner: any }) {
       </div>
       <Input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Texte affiché sur le slider..." className="text-xs h-8 rounded-full" />
       <Button onClick={save} size="sm" className="w-full h-7 rounded-full text-xs" disabled={updateBanner.isPending}>
-        Enregistrer texte
+        Publier
       </Button>
+    </div>
+  );
+}
+
+function NewSignupsList() {
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin_new_signups'],
+    queryFn: async () => {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, first_name, last_name, phone, created_at, avatar_url')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 60_000,
+  });
+
+  return (
+    <div>
+      <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
+        <User className="h-4 w-4 text-primary" />
+        Nouveaux inscrits
+        <span className="ml-auto text-xs font-bold bg-primary/15 text-primary px-2 py-0.5 rounded-full">
+          {isLoading ? '…' : (data?.length || 0)}
+        </span>
+      </h3>
+      {isLoading ? (
+        <p className="text-xs text-muted-foreground">Chargement…</p>
+      ) : !data || data.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Aucun nouvel inscrit ces 30 derniers jours.</p>
+      ) : (
+        <div className="space-y-1 max-h-64 overflow-y-auto rounded-xl border border-border bg-card">
+          {data.map((p: any) => {
+            const name = `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Sans nom';
+            const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2);
+            return (
+              <Link
+                to={`/contact/${p.user_id}`}
+                key={p.user_id}
+                className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 transition border-b border-border last:border-b-0"
+              >
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary overflow-hidden shrink-0">
+                  {p.avatar_url ? <img src={p.avatar_url} className="h-full w-full object-cover" /> : initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">{name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{p.phone || '—'}</p>
+                </div>
+                <span className="text-[10px] text-muted-foreground shrink-0">
+                  {new Date(p.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
