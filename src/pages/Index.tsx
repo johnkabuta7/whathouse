@@ -110,7 +110,7 @@ export default function Index() {
   useRealtimeJoinRequests();
 
   const isSearching = search.trim().length >= 2;
-  const displayGroups = isSearching ? searchResults : (isAdmin ? allGroups : myGroups);
+  const displayGroups = isSearching ? searchResults : myGroups;
   const totalRequests = requestCounts?.total || 0;
 
   const handleBellClick = () => {
@@ -192,28 +192,28 @@ export default function Index() {
         )}
       </header>
 
-      {/* Contact carousel */}
+      {/* Contact carousel — bigger avatars, 5mm vertical margin */}
       {contacts && contacts.length > 0 && !isSearching && (
-        <div className="px-3 py-2">
+        <div className="px-3 py-[5mm]">
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-            {contacts.slice(0, 15).map(c => {
+            {contacts.slice(0, 30).map(c => {
               const name = `${c.first_name} ${c.last_name}`.trim() || '?';
               const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
               return (
                 <button key={c.user_id} onClick={() => setSelectedContact(c)} className="flex flex-col items-center gap-1 shrink-0">
                   <div className="relative">
-                    <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
+                    <div className="h-[68px] w-[68px] rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
                       {c.avatar_url ? <img src={c.avatar_url} alt={name} className="h-full w-full object-cover" /> :
-                        <span className="text-xs font-bold text-primary">{initials}</span>}
+                        <span className="text-sm font-bold text-primary">{initials}</span>}
                     </div>
                     {c.online && (
                       <span
                         title="En ligne"
-                        className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-primary border-2 border-card"
+                        className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-primary border-2 border-card"
                       />
                     )}
                   </div>
-                  <span className="text-[10px] text-foreground font-medium max-w-[56px] truncate">{c.first_name || '?'}</span>
+                  <span className="text-[10px] text-foreground font-medium max-w-[68px] truncate">{c.first_name || '?'}</span>
                 </button>
               );
             })}
