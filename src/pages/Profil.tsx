@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme, COLOR_THEMES } from '@/contexts/ThemeContext';
-import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, useUpdateBanner, uploadBannerImage, useMyFavorites, useProfile, useAppContent, useUpsertAppContent } from '@/hooks/use-data';
+import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, useUpdateBanner, uploadBannerImage, useMyFavorites, useProfile } from '@/hooks/use-data';
 import { useNotificationSettings, useUpdateNotificationSettings, usePlayTestSound } from '@/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
