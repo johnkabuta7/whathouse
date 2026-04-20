@@ -155,7 +155,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginWithPhone = async (phone: string) => {
-    const email = phoneToEmail(phone);
+    const normalized = normalizePhone(phone);
+    if (!normalized) return false;
+    const email = phoneToEmail(normalized);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: DEFAULT_PASSWORD });
     if (error || !data.user) return false;
     myTokenRef.current = await claimActiveSession(data.user.id);
