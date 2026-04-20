@@ -105,7 +105,7 @@ export default function Index() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border">
         <div className="px-4 py-3 flex items-center gap-3">
-          <h1 className="text-lg font-bold flex-1 text-foreground">Pro Immobilier</h1>
+          <h1 className="text-lg font-bold leading-tight flex-1 text-foreground">WhatHouse <span className="block text-[10px] font-medium text-muted-foreground">Pro Immobilier</span></h1>
           <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">
             <Search className="h-5 w-5 text-muted-foreground" />
           </button>
@@ -132,9 +132,9 @@ export default function Index() {
                   <button onClick={async () => {
                     closeMenu();
                     const url = window.location.origin;
-                    const text = `🏢 Pro Immobilier — le réseau pro des agents immobiliers. Installe l'app : ${url}`;
+                    const text = `🏢 WhatHouse — le réseau Pro Immobilier des agents. Installe l'app : ${url}`;
                     if ((navigator as any).share) {
-                      try { await (navigator as any).share({ title: 'Pro Immobilier', text, url }); } catch {}
+                      try { await (navigator as any).share({ title: 'WhatHouse', text, url }); } catch {}
                     } else {
                       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                     }
