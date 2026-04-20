@@ -138,6 +138,11 @@ export default function Index() {
           <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">
             <Search className="h-5 w-5 text-muted-foreground" />
           </button>
+          {isAdmin && (newSignups || 0) > 0 && (
+            <div title="Nouveaux inscrits (7 derniers jours)" className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-bold">
+              <UserPlus className="h-3 w-3" />{newSignups}
+            </div>
+          )}
           <button onClick={handleBellClick} className="relative p-1.5 rounded-full hover:bg-muted transition">
             <Bell className="h-5 w-5 text-muted-foreground" />
             {totalRequests > 0 && (
@@ -196,9 +201,17 @@ export default function Index() {
               const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
               return (
                 <button key={c.user_id} onClick={() => setSelectedContact(c)} className="flex flex-col items-center gap-1 shrink-0">
-                  <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
-                    {c.avatar_url ? <img src={c.avatar_url} alt={name} className="h-full w-full object-cover" /> :
-                      <span className="text-xs font-bold text-primary">{initials}</span>}
+                  <div className="relative">
+                    <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
+                      {c.avatar_url ? <img src={c.avatar_url} alt={name} className="h-full w-full object-cover" /> :
+                        <span className="text-xs font-bold text-primary">{initials}</span>}
+                    </div>
+                    {c.online && (
+                      <span
+                        title="En ligne"
+                        className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-primary border-2 border-card"
+                      />
+                    )}
                   </div>
                   <span className="text-[10px] text-foreground font-medium max-w-[56px] truncate">{c.first_name || '?'}</span>
                 </button>
