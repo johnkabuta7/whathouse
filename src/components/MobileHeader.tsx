@@ -8,7 +8,7 @@ export function MobileHeader() {
   return (
     <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-md">
       <div className="px-4 py-3 flex items-center gap-3">
-        <h1 className="text-lg font-bold flex-1">Pro Immobilier</h1>
+        <h1 className="text-lg font-bold leading-tight flex-1">WhatHouse <span className="block text-[10px] font-medium opacity-80">Pro Immobilier</span></h1>
         <div className="relative">
           {totalRequests > 0 && (
             <span className="absolute -top-1.5 -right-1.5 h-5 min-w-[20px] rounded-full bg-destructive text-[10px] font-bold text-white flex items-center justify-center px-1 z-10">
