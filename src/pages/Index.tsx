@@ -16,9 +16,37 @@ function useOnlineContacts() {
     queryFn: async () => {
       const { data, error } = await supabase.from('profiles').select('*');
       if (error) throw error;
-      return data?.filter(p => p.user_id !== user?.id) || [];
+      const others = data?.filter(p => p.user_id !== user?.id) || [];
+      // Fetch online users (active in last 2 minutes)
+      const { data: sessions } = await supabase
+        .from('active_sessions' as any)
+        .select('user_id, updated_at');
+      const cutoff = Date.now() - 2 * 60 * 1000;
+      const onlineSet = new Set(
+        (sessions as any[] | null)
+          ?.filter((s: any) => new Date(s.updated_at).getTime() > cutoff)
+          .map((s: any) => s.user_id) || []
+      );
+      return others.map(p => ({ ...p, online: onlineSet.has(p.user_id) }));
     },
     enabled: !!user,
+    refetchInterval: 60_000,
+  });
+}
+
+function useNewSignupsCount() {
+  return useQuery({
+    queryKey: ['new_signups_count'],
+    queryFn: async () => {
+      // New = profile created in the last 7 days
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', since);
+      return count || 0;
+    },
+    refetchInterval: 60_000,
   });
 }
 
@@ -75,6 +103,7 @@ export default function Index() {
   const { data: allGroups } = useAllGroups();
   const { data: requestCounts } = useMyGroupJoinRequestCounts();
   const { data: unreadCounts } = useUnreadCounts();
+  const { data: newSignups } = useNewSignupsCount();
   const [selectedContact, setSelectedContact] = useState<any>(null);
 
   useRealtimeListings();
