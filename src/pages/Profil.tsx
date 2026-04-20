@@ -16,7 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function Profil() {
-  const { user, logout, updateEmail } = useAuth();
+  const { user, logout, updateEmail, updatePassword } = useAuth();
   const { theme, toggleTheme, colorHex, setColorHex } = useTheme();
   const { data: myListings } = useMyListings();
   const { data: myFavorites } = useMyFavorites();
@@ -42,7 +42,8 @@ export default function Profil() {
   const [firstName, setFirstName] = useState(user?.profile?.first_name || '');
   const [lastName, setLastName] = useState(user?.profile?.last_name || '');
   const [phone, setPhone] = useState(user?.profile?.phone || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const [email, setEmail] = useState(user?.email && !user.email.startsWith('phone_') ? user.email : '');
+  const [password, setPassword] = useState('');
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get('tab') as 'annonces' | 'infos' | 'admin') || 'annonces';
   const [activeTab, setActiveTab] = useState<'annonces' | 'infos' | 'admin'>(initialTab);
@@ -64,15 +65,19 @@ export default function Profil() {
 
   const handleSave = async () => {
     if (!user) return;
-    // Update email if changed
-    if (email && email !== user.email) {
-      const ok = await updateEmail(email);
+    if (email && email.trim() && email !== user.email) {
+      const ok = await updateEmail(email.trim());
       if (!ok) { toast({ title: 'Email non modifié', description: 'Format invalide ou déjà utilisé', variant: 'destructive' }); return; }
+    }
+    if (password && password.trim()) {
+      if (password.length < 6) { toast({ title: 'Mot de passe trop court', description: 'Minimum 6 caractères', variant: 'destructive' }); return; }
+      const ok = await updatePassword(password.trim());
+      if (!ok) { toast({ title: 'Mot de passe non modifié', variant: 'destructive' }); return; }
     }
     updateProfile.mutate(
       { userId: user.id, first_name: firstName, last_name: lastName, phone },
       {
-        onSuccess: () => { toast({ title: 'Profil mis à jour !' }); setEditing(false); },
+        onSuccess: () => { toast({ title: 'Profil mis à jour !' }); setEditing(false); setPassword(''); },
         onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
       }
     );
@@ -236,11 +241,20 @@ export default function Profil() {
             <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Prénom" className="rounded-full text-sm h-9" />
             <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Nom" className="rounded-full text-sm h-9" />
           </div>
-          <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Téléphone" className="rounded-full text-sm h-9" />
+          <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Téléphone (+33...)" className="rounded-full text-sm h-9" />
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email (optionnel)" className="rounded-full text-sm h-9 pl-10" type="email" />
+            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="Votre email (optionnel)" className="rounded-full text-sm h-9 pl-10" type="email" />
           </div>
+          <Input
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Nouveau mot de passe (laisser vide pour ne pas changer)"
+            className="rounded-full text-sm h-9"
+            type="password"
+            autoComplete="new-password"
+          />
+          <p className="text-[10px] text-muted-foreground">L'email et le mot de passe vous permettront de récupérer votre compte. Non obligatoires.</p>
           <div className="flex gap-2">
             <Button onClick={handleSave} size="sm" className="flex-1 rounded-full bg-primary text-primary-foreground" disabled={updateProfile.isPending}>
               <Save className="h-3.5 w-3.5 mr-1" />Sauvegarder
@@ -508,9 +522,11 @@ function BannerEditor({ banner }: { banner: any }) {
         </div>
       </div>
       <Input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Texte affiché sur le slider..." className="text-xs h-8 rounded-full" />
-      <Button onClick={save} size="sm" className="w-full h-7 rounded-full text-xs" disabled={updateBanner.isPending}>
-        Publier
-      </Button>
+      <div className="flex justify-end">
+        <Button onClick={save} size="sm" className="h-7 rounded-full text-[11px] px-4 bg-primary text-primary-foreground" disabled={updateBanner.isPending}>
+          Publier
+        </Button>
+      </div>
     </div>
   );
 }

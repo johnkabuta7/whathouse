@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState, useRef } from 'react';
-import { ArrowLeft, ShieldCheck, Sparkles, BookOpen, Plus, X, ImagePlus, Save } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Sparkles, BookOpen, Plus, X, ImagePlus, Save, Trash2 } from 'lucide-react';
 import { useAppContent, useUpsertAppContent, useIsAppAdmin, uploadListingImage } from '@/hooks/use-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -139,7 +139,8 @@ export default function Legal() {
 
   if (!meta) return <div className="p-4 text-center text-sm text-muted-foreground">Page introuvable</div>;
   const Icon = meta.icon;
-  const content = (data?.content && data.content.trim()) || meta.fallback;
+  const hasCustomContent = !!(data?.content && data.content.trim());
+  const content = hasCustomContent ? data!.content : meta.fallback;
 
   const handleAddImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -170,6 +171,14 @@ export default function Legal() {
     });
   };
 
+  const handleResetToDefault = () => {
+    if (!confirm('Réinitialiser à la version par défaut ? Tout le contenu publié sera supprimé.')) return;
+    upsert.mutate({ key: page || 'terms', content: '' }, {
+      onSuccess: () => toast({ title: 'Contenu supprimé — version par défaut restaurée' }),
+      onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
+    });
+  };
+
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
       <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border">
@@ -178,13 +187,24 @@ export default function Legal() {
           <Icon className="h-5 w-5 text-primary" />
           <h1 className="text-base font-semibold flex-1 text-foreground truncate">{meta.title}</h1>
           {isAdmin && (
-            <button
-              onClick={() => setEditorOpen(o => !o)}
-              className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow"
-              title="Ajouter du contenu"
-            >
-              {editorOpen ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            </button>
+            <>
+              {hasCustomContent && (
+                <button
+                  onClick={handleResetToDefault}
+                  className="h-8 w-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center"
+                  title="Supprimer le contenu publié"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                onClick={() => setEditorOpen(o => !o)}
+                className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow"
+                title="Ajouter du contenu"
+              >
+                {editorOpen ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              </button>
+            </>
           )}
         </div>
       </header>
