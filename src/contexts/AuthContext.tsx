@@ -26,6 +26,7 @@ interface AuthContextType {
   verifyOtp: (phone: string, otp: string) => Promise<boolean>;
   signup: (phone: string, firstName: string, lastName: string) => Promise<SignupResult>;
   updateEmail: (newEmail: string) => Promise<boolean>;
+  updatePassword: (newPassword: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -36,14 +37,21 @@ const AuthContext = createContext<AuthContextType>({
   verifyOtp: async () => false,
   signup: async () => ({ ok: false }),
   updateEmail: async () => false,
+  updatePassword: async () => false,
   logout: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
+// Normalize a phone to "+digits" only (strip spaces, dashes, parens, etc.)
+export function normalizePhone(phone: string): string {
+  const digits = (phone || '').replace(/[^0-9]/g, '');
+  return digits ? `+${digits}` : '';
+}
+
 function phoneToEmail(phone: string): string {
-  const cleaned = phone.replace(/[^0-9]/g, '');
-  return `phone_${cleaned}@whathouse.app`;
+  const digits = (phone || '').replace(/[^0-9]/g, '');
+  return `phone_${digits}@whathouse.app`;
 }
 
 const DEFAULT_PASSWORD = 'WhatHouse2026!SecureDefault';
@@ -159,21 +167,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signup = async (phone: string, firstName: string, lastName: string): Promise<SignupResult> => {
-    // Pre-check: does a profile already exist for this phone?
-    const cleaned = phone.trim();
+    // Pre-check: does a profile already exist for this normalized phone?
+    const normalized = normalizePhone(phone);
+    if (!normalized) return { ok: false, reason: 'unknown' };
     const { data: existing } = await supabase
       .from('profiles')
       .select('id')
-      .eq('phone', cleaned)
+      .eq('phone', normalized)
       .maybeSingle();
     if (existing) return { ok: false, reason: 'duplicate' };
 
-    const email = phoneToEmail(cleaned);
+    const email = phoneToEmail(normalized);
     const { error } = await supabase.auth.signUp({
       email,
       password: DEFAULT_PASSWORD,
       options: {
-        data: { first_name: firstName, last_name: lastName, phone: cleaned },
+        data: { first_name: firstName, last_name: lastName, phone: normalized },
         emailRedirectTo: window.location.origin,
       },
     });
@@ -196,13 +205,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return !error;
   };
 
+  const updatePassword = async (newPassword: string) => {
+    if (!newPassword || newPassword.length < 6) return false;
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return !error;
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginWithPhone, verifyOtp, signup, updateEmail, logout }}>
+    <AuthContext.Provider value={{ user, loading, loginWithPhone, verifyOtp, signup, updateEmail, updatePassword, logout }}>
       {children}
     </AuthContext.Provider>
   );
