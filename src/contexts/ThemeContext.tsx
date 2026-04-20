@@ -61,6 +61,7 @@ function hexToHsl(hex: string): string {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('theme');
+    // Dark mode by default
     return (saved === 'light' ? 'light' : 'dark') as Theme;
   });
   const [colorHex, setColorHexState] = useState<string>(() => localStorage.getItem('colorHex') || DEFAULT_COLOR);

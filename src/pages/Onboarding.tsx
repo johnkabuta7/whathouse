@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 const SLIDES = [
   {
     icon: Building2,
-    title: 'Bienvenue sur Pro Immobilier',
-    text: "Le réseau professionnel des agents immobiliers. Échangez, publiez et trouvez des biens entre vrais professionnels — sans bruit ni amateurs.",
+    title: 'Bienvenue sur WhatHouse',
+    text: "Le réseau Pro Immobilier des agents. Échangez, publiez et trouvez des biens entre vrais professionnels — sans bruit ni amateurs.",
     img: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=400&fit=crop',
   },
   {
@@ -19,7 +19,7 @@ const SLIDES = [
   {
     icon: Share2,
     title: 'Publiez en quelques secondes',
-    text: 'Collez votre texte d\'annonce, ajoutez vos photos, et envoyez. Plus rapide que la concurrence, beaucoup plus organisé.',
+    text: "Collez votre texte d'annonce, ajoutez vos photos, et envoyez. Plus rapide que la concurrence, beaucoup plus organisé.",
     img: 'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=800&h=400&fit=crop',
   },
   {
@@ -41,12 +41,12 @@ export default function Onboarding() {
   const next = () => { if (isLast) skip(); else setStep(s => s + 1); };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex justify-end p-4">
+    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
+      <div className="flex justify-end p-4 shrink-0">
         <button onClick={skip} className="text-sm text-muted-foreground font-medium">Passer</button>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full animate-fade-in" key={step}>
+      <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full animate-fade-in" key={step}>
         <div className="w-full h-44 rounded-2xl overflow-hidden mb-6 bg-muted">
           <img
             src={slide.img}
@@ -62,8 +62,8 @@ export default function Onboarding() {
         <p className="text-sm text-muted-foreground text-center mt-3 leading-relaxed">{slide.text}</p>
       </div>
 
-      <div className="p-6 max-w-md mx-auto w-full">
-        <div className="flex justify-center gap-2 mb-5">
+      <div className="shrink-0 p-6 max-w-md mx-auto w-full bg-background border-t border-border/50">
+        <div className="flex justify-center gap-2 mb-4">
           {SLIDES.map((_, i) => (
             <div key={i} className={`h-1.5 rounded-full transition-all ${i === step ? 'w-6 bg-primary' : 'w-1.5 bg-muted'}`} />
           ))}
