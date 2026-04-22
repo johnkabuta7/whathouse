@@ -67,6 +67,85 @@
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
   }
+
+  /* === THEME STYLE: MOCHA (inspired by image 1) — sombre cuivré === */
+  :root[data-style="mocha"] {
+    --background: 24 18% 10%;
+    --foreground: 30 25% 92%;
+    --card: 24 15% 14%;
+    --card-foreground: 30 25% 92%;
+    --popover: 24 15% 14%;
+    --popover-foreground: 30 25% 92%;
+    --primary: 18 70% 58%;
+    --primary-foreground: 24 25% 10%;
+    --secondary: 24 15% 20%;
+    --secondary-foreground: 30 25% 92%;
+    --muted: 24 12% 18%;
+    --muted-foreground: 28 15% 65%;
+    --accent: 18 70% 58%;
+    --accent-foreground: 24 25% 10%;
+    --border: 24 12% 22%;
+    --input: 24 12% 22%;
+    --ring: 18 70% 58%;
+    --sidebar-background: 24 18% 8%;
+    --sidebar-foreground: 30 25% 92%;
+    --sidebar-primary: 18 70% 58%;
+    --sidebar-border: 24 12% 22%;
+  }
+  :root[data-style="mocha"].dark { /* same as above */ }
+  :root[data-style="mocha"]:not(.dark) {
+    --background: 30 30% 95%;
+    --foreground: 24 25% 15%;
+    --card: 30 25% 100%;
+    --card-foreground: 24 25% 15%;
+    --muted: 30 20% 90%;
+    --muted-foreground: 24 15% 45%;
+    --border: 30 15% 85%;
+    --input: 30 15% 85%;
+    --primary: 18 70% 50%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 18 70% 50%;
+  }
+
+  /* === THEME STYLE: NATURE (inspired by image 2) — clair verdoyant === */
+  :root[data-style="nature"] {
+    --background: 100 25% 96%;
+    --foreground: 140 30% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 140 30% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 140 30% 12%;
+    --primary: 145 45% 28%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 130 25% 88%;
+    --secondary-foreground: 140 30% 12%;
+    --muted: 120 15% 92%;
+    --muted-foreground: 140 12% 40%;
+    --accent: 145 45% 28%;
+    --accent-foreground: 0 0% 100%;
+    --border: 120 15% 85%;
+    --input: 120 15% 85%;
+    --ring: 145 45% 28%;
+    --sidebar-background: 100 25% 97%;
+    --sidebar-foreground: 140 30% 12%;
+    --sidebar-primary: 145 45% 28%;
+    --sidebar-border: 120 15% 85%;
+  }
+  :root[data-style="nature"].dark {
+    --background: 145 30% 8%;
+    --foreground: 100 20% 92%;
+    --card: 145 25% 12%;
+    --card-foreground: 100 20% 92%;
+    --popover: 145 25% 12%;
+    --muted: 145 20% 16%;
+    --muted-foreground: 120 15% 60%;
+    --border: 145 20% 20%;
+    --input: 145 20% 20%;
+    --primary: 130 50% 55%;
+    --primary-foreground: 145 30% 8%;
+    --accent: 130 50% 55%;
+    --ring: 130 50% 55%;
+  }
 }
 
 @layer base {
