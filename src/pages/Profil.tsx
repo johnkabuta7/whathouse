@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme, COLOR_THEMES } from '@/contexts/ThemeContext';
+import { useTheme, COLOR_THEMES, THEME_STYLES } from '@/contexts/ThemeContext';
 import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, useUpdateBanner, uploadBannerImage, useMyFavorites, useProfile } from '@/hooks/use-data';
 import { useNotificationSettings, useUpdateNotificationSettings, usePlayTestSound } from '@/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export default function Profil() {
   const { user, logout, updateEmail, updatePassword } = useAuth();
-  const { theme, toggleTheme, colorHex, setColorHex } = useTheme();
+  const { theme, toggleTheme, colorHex, setColorHex, themeStyle, setThemeStyle } = useTheme();
   const { data: myListings } = useMyListings();
   const { data: myFavorites } = useMyFavorites();
   const { data: groups } = useMyGroups();
@@ -382,21 +382,44 @@ export default function Profil() {
 
             <div className="py-3 border-b border-border">
               <div className="flex items-center gap-3 mb-2">
-                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Palette className="h-4 w-4 text-primary" /></div>
-                <span className="text-sm text-foreground flex-1 text-left">Couleur du thème</span>
+                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Sparkles className="h-4 w-4 text-primary" /></div>
+                <span className="text-sm text-foreground flex-1 text-left">Style de thème</span>
               </div>
-              <div className="flex flex-wrap gap-2 pl-12">
-                {COLOR_THEMES.map(c => (
+              <div className="grid grid-cols-3 gap-2 pl-12">
+                {THEME_STYLES.map(s => (
                   <button
-                    key={c.hex}
-                    onClick={() => setColorHex(c.hex)}
-                    aria-label={c.name}
-                    className={`h-8 w-8 rounded-full border-2 transition ${colorHex.toLowerCase() === c.hex.toLowerCase() ? 'border-foreground scale-110' : 'border-transparent'}`}
-                    style={{ backgroundColor: c.hex }}
-                  />
+                    key={s.id}
+                    type="button"
+                    onClick={() => setThemeStyle(s.id)}
+                    className={`rounded-xl p-2 border-2 transition text-left ${themeStyle === s.id ? 'border-primary' : 'border-border'}`}
+                  >
+                    <div className="h-10 w-full rounded-lg mb-1" style={{ background: s.preview }} />
+                    <p className="text-[11px] font-semibold text-foreground">{s.name}</p>
+                    <p className="text-[9px] text-muted-foreground leading-tight">{s.description}</p>
+                  </button>
                 ))}
               </div>
             </div>
+
+            {themeStyle === 'classic' && (
+              <div className="py-3 border-b border-border">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Palette className="h-4 w-4 text-primary" /></div>
+                  <span className="text-sm text-foreground flex-1 text-left">Couleur du thème</span>
+                </div>
+                <div className="flex flex-wrap gap-2 pl-12">
+                  {COLOR_THEMES.map(c => (
+                    <button
+                      key={c.hex}
+                      onClick={() => setColorHex(c.hex)}
+                      aria-label={c.name}
+                      className={`h-8 w-8 rounded-full border-2 transition ${colorHex.toLowerCase() === c.hex.toLowerCase() ? 'border-foreground scale-110' : 'border-transparent'}`}
+                      style={{ backgroundColor: c.hex }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="w-full flex items-center gap-3 py-3 border-b border-border">
               <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Bell className="h-4 w-4 text-primary" /></div>

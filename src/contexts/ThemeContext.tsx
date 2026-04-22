@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 type Theme = 'light' | 'dark';
+export type ThemeStyle = 'classic' | 'mocha' | 'nature';
 
 export const COLOR_THEMES = [
   { name: 'Émeraude', hex: '#226D68' },
@@ -20,11 +21,19 @@ export const COLOR_THEMES = [
 
 export const DEFAULT_COLOR = '#226D68';
 
+export const THEME_STYLES: { id: ThemeStyle; name: string; description: string; preview: string }[] = [
+  { id: 'classic', name: 'Classique', description: 'Design actuel sobre', preview: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--background)))' },
+  { id: 'mocha', name: 'Mocha', description: 'Sombre cuivré, élégant', preview: 'linear-gradient(135deg, #3a2418, #d97757)' },
+  { id: 'nature', name: 'Nature', description: 'Clair, verdoyant', preview: 'linear-gradient(135deg, #e8f0e3, #2d5a3d)' },
+];
+
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
   colorHex: string;
   setColorHex: (hex: string) => void;
+  themeStyle: ThemeStyle;
+  setThemeStyle: (s: ThemeStyle) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
@@ -32,11 +41,12 @@ const ThemeContext = createContext<ThemeContextType>({
   toggleTheme: () => {},
   colorHex: DEFAULT_COLOR,
   setColorHex: () => {},
+  themeStyle: 'classic',
+  setThemeStyle: () => {},
 });
 
 export const useTheme = () => useContext(ThemeContext);
 
-// Convert hex (#RRGGBB) to "H S% L%" string for HSL CSS variables
 function hexToHsl(hex: string): string {
   const h = hex.replace('#', '');
   const r = parseInt(h.substring(0, 2), 16) / 255;
@@ -61,10 +71,13 @@ function hexToHsl(hex: string): string {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('theme');
-    // Dark mode by default
     return (saved === 'light' ? 'light' : 'dark') as Theme;
   });
   const [colorHex, setColorHexState] = useState<string>(() => localStorage.getItem('colorHex') || DEFAULT_COLOR);
+  const [themeStyle, setThemeStyleState] = useState<ThemeStyle>(() => {
+    const s = localStorage.getItem('themeStyle') as ThemeStyle | null;
+    return s === 'mocha' || s === 'nature' ? s : 'classic';
+  });
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -72,21 +85,38 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   useEffect(() => {
-    const hsl = hexToHsl(colorHex);
     const root = document.documentElement;
-    root.style.setProperty('--primary', hsl);
-    root.style.setProperty('--accent', hsl);
-    root.style.setProperty('--ring', hsl);
-    root.style.setProperty('--sidebar-primary', hsl);
-    root.style.setProperty('--sidebar-ring', hsl);
+    root.removeAttribute('data-style');
+    if (themeStyle !== 'classic') root.setAttribute('data-style', themeStyle);
+    localStorage.setItem('themeStyle', themeStyle);
+  }, [themeStyle]);
+
+  useEffect(() => {
+    // Color override only applies in classic style; mocha/nature have fixed palettes
+    const root = document.documentElement;
+    if (themeStyle === 'classic') {
+      const hsl = hexToHsl(colorHex);
+      root.style.setProperty('--primary', hsl);
+      root.style.setProperty('--accent', hsl);
+      root.style.setProperty('--ring', hsl);
+      root.style.setProperty('--sidebar-primary', hsl);
+      root.style.setProperty('--sidebar-ring', hsl);
+    } else {
+      root.style.removeProperty('--primary');
+      root.style.removeProperty('--accent');
+      root.style.removeProperty('--ring');
+      root.style.removeProperty('--sidebar-primary');
+      root.style.removeProperty('--sidebar-ring');
+    }
     localStorage.setItem('colorHex', colorHex);
-  }, [colorHex]);
+  }, [colorHex, themeStyle]);
 
   const toggleTheme = () => setTheme(t => t === 'light' ? 'dark' : 'light');
   const setColorHex = (hex: string) => setColorHexState(hex);
+  const setThemeStyle = (s: ThemeStyle) => setThemeStyleState(s);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, colorHex, setColorHex }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, colorHex, setColorHex, themeStyle, setThemeStyle }}>
       {children}
     </ThemeContext.Provider>
   );

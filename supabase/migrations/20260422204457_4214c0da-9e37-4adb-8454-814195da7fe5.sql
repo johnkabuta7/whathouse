@@ -1,0 +1,12 @@
+-- Delete all accounts except admin akhenaton
+DELETE FROM public.user_roles WHERE user_id <> 'd39b4ffa-b7ea-4dc3-bf21-7888b2c06d46';
+DELETE FROM public.active_sessions WHERE user_id <> 'd39b4ffa-b7ea-4dc3-bf21-7888b2c06d46';
+DELETE FROM public.notification_settings WHERE user_id <> 'd39b4ffa-b7ea-4dc3-bf21-7888b2c06d46';
+DELETE FROM public.group_reads WHERE user_id <> 'd39b4ffa-b7ea-4dc3-bf21-7888b2c06d46';
+DELETE FROM public.listing_favorites WHERE user_id <> 'd39b4ffa-b7ea-4dc3-bf21-7888b2c06d46';
+DELETE FROM public.listing_likes WHERE user_id <> 'd39b4ffa-b7ea-4dc3-bf21-7888b2c06d46';
+DELETE FROM public.group_join_requests WHERE user_id <> 'd39b4ffa-b7ea-4dc3-bf21-7888b2c06d46';
+DELETE FROM public.group_members WHERE user_id <> 'd39b4ffa-b7ea-4dc3-bf21-7888b2c06d46';
+DELETE FROM public.listings WHERE user_id <> 'd39b4ffa-b7ea-4dc3-bf21-7888b2c06d46';
+DELETE FROM public.profiles WHERE user_id <> 'd39b4ffa-b7ea-4dc3-bf21-7888b2c06d46';
+DELETE FROM auth.users WHERE id <> 'd39b4ffa-b7ea-4dc3-bf21-7888b2c06d46';

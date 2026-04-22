@@ -37,13 +37,18 @@ export default function Onboarding() {
   const Icon = slide.icon;
   const isLast = step === SLIDES.length - 1;
 
-  const skip = () => { localStorage.setItem('onboarded', '1'); navigate('/login'); };
-  const next = () => { if (isLast) skip(); else setStep(s => s + 1); };
+  const goToLogin = () => {
+    try { localStorage.setItem('onboarded', '1'); } catch {}
+    navigate('/login', { replace: true });
+  };
+  const next = () => { if (isLast) goToLogin(); else setStep(s => s + 1); };
 
   return (
     <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
       <div className="flex justify-end p-4 shrink-0">
-        <button onClick={skip} className="text-sm text-muted-foreground font-medium">Passer</button>
+        <button onClick={goToLogin} type="button" className="text-sm text-muted-foreground font-medium px-3 py-1.5 rounded-full hover:bg-muted active:bg-muted/70 transition">
+          Passer
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full animate-fade-in" key={step}>
@@ -68,10 +73,12 @@ export default function Onboarding() {
             <div key={i} className={`h-1.5 rounded-full transition-all ${i === step ? 'w-6 bg-primary' : 'w-1.5 bg-muted'}`} />
           ))}
         </div>
-        <Button onClick={next} className="w-full rounded-full font-semibold bg-primary text-primary-foreground">
+        <Button onClick={next} type="button" className="w-full rounded-full font-semibold bg-primary text-primary-foreground">
           {isLast ? "Commencer" : 'Suivant'} <ChevronRight className="h-4 w-4 ml-1" />
         </Button>
-        <button onClick={skip} className="w-full text-center text-xs text-muted-foreground mt-3">Aller à la connexion</button>
+        <button onClick={goToLogin} type="button" className="w-full text-center text-xs text-muted-foreground mt-3 py-2">
+          Aller à la connexion
+        </button>
       </div>
     </div>
   );
