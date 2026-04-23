@@ -2,15 +2,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 const WP_BASE = "https://zwandako.com/wp-json/wp/v2";
 const WP_ADMIN_USER = Deno.env.get("WP_ADMIN_USER") || "";
 const WP_ADMIN_APP_PASSWORD = Deno.env.get("WP_ADMIN_APP_PASSWORD") || "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
+  "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ||
+  Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
 
 type ProfileRow = {
   user_id: string;
@@ -54,7 +57,8 @@ function buildWpUsername(phone: string | null | undefined) {
 }
 
 function isWpUserCreationBlocked(status: number, bodyText: string) {
-  return status === 401 || /rest_cannot_create_user|not allowed to create new users/i.test(bodyText);
+  return status === 401 ||
+    /rest_cannot_create_user|not allowed to create new users/i.test(bodyText);
 }
 
 async function fetchWpJson(path: string, init: RequestInit) {
@@ -87,26 +91,34 @@ async function getAdminActor(): Promise<WpActor> {
 }
 
 async function lookupExistingWpUser(username: string) {
-  const { res, json, text } = await fetchWpJson(`/users?search=${encodeURIComponent(username)}&context=edit`, {
-    headers: { Authorization: adminAuthHeader() },
-  });
+  const { res, json, text } = await fetchWpJson(
+    `/users?search=${encodeURIComponent(username)}&context=edit`,
+    {
+      headers: { Authorization: adminAuthHeader() },
+    },
+  );
 
   if (!res.ok || !Array.isArray(json)) {
     throw new Error(`WP user lookup failed [${res.status}]: ${text}`);
   }
 
-  return json.find((u: any) => u.slug === username || u.username === username) || null;
+  return json.find((u: any) =>
+    u.slug === username || u.username === username
+  ) || null;
 }
 
 async function createWpApplicationPassword(wpUserId: number) {
-  const { res, json, text } = await fetchWpJson(`/users/${wpUserId}/application-passwords`, {
-    method: "POST",
-    headers: {
-      Authorization: adminAuthHeader(),
-      "Content-Type": "application/json",
+  const { res, json, text } = await fetchWpJson(
+    `/users/${wpUserId}/application-passwords`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: adminAuthHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: "WhatHouse App" }),
     },
-    body: JSON.stringify({ name: "WhatHouse App" }),
-  });
+  );
 
   if (!res.ok || !json?.password) {
     throw new Error(`WP app-password create failed [${res.status}]: ${text}`);
@@ -118,7 +130,9 @@ async function createWpApplicationPassword(wpUserId: number) {
 async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("user_id, first_name, last_name, phone, wp_user_id, wp_user_password")
+    .select(
+      "user_id, first_name, last_name, phone, wp_user_id, wp_user_password",
+    )
     .eq("user_id", userId)
     .single<ProfileRow>();
 
@@ -137,25 +151,27 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
   const username = buildWpUsername(profile.phone);
   const phoneDigits = normalizePhoneDigits(profile.phone);
   const email = `${phoneDigits}@zwandako.com`;
-  const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || username;
+  const fullName =
+    `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || username;
   const accountPassword = crypto.randomUUID() + crypto.randomUUID();
 
-  const { res: createRes, text: createText, json: createJson } = await fetchWpJson(`/users`, {
-    method: "POST",
-    headers: {
-      Authorization: adminAuthHeader(),
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      username,
-      email,
-      password: accountPassword,
-      name: fullName,
-      first_name: profile.first_name || "",
-      last_name: profile.last_name || "",
-      roles: ["author"],
-    }),
-  });
+  const { res: createRes, text: createText, json: createJson } =
+    await fetchWpJson(`/users`, {
+      method: "POST",
+      headers: {
+        Authorization: adminAuthHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username,
+        email,
+        password: accountPassword,
+        name: fullName,
+        first_name: profile.first_name || "",
+        last_name: profile.last_name || "",
+        roles: ["author"],
+      }),
+    });
 
   let wpUserId: number | null = null;
 
@@ -165,12 +181,16 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
     const existing = await lookupExistingWpUser(username);
     if (existing?.id) wpUserId = existing.id;
   } else if (isWpUserCreationBlocked(createRes.status, createText)) {
-    console.warn("WP user creation blocked, falling back to admin publisher account");
+    console.warn(
+      "WP user creation blocked, falling back to admin publisher account",
+    );
     return await getAdminActor();
   }
 
   if (!wpUserId) {
-    throw new Error(`WP user create failed [${createRes.status}]: ${createText}`);
+    throw new Error(
+      `WP user create failed [${createRes.status}]: ${createText}`,
+    );
   }
 
   const appPassword = await createWpApplicationPassword(wpUserId);
@@ -197,7 +217,8 @@ async function uploadMedia(authHeader: string, fileUrl: string) {
   if (!imgRes.ok) throw new Error(`fetch image failed [${imgRes.status}]`);
 
   const blob = await imgRes.blob();
-  const filename = fileUrl.split("/").pop()?.split("?")[0] || `image-${Date.now()}.jpg`;
+  const filename = fileUrl.split("/").pop()?.split("?")[0] ||
+    `image-${Date.now()}.jpg`;
 
   const { res, json, text } = await fetchWpJson(`/media`, {
     method: "POST",
@@ -217,7 +238,9 @@ async function uploadMedia(authHeader: string, fileUrl: string) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
     if (!WP_ADMIN_USER || !WP_ADMIN_APP_PASSWORD) {
@@ -238,7 +261,8 @@ Deno.serve(async (req) => {
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    const { data: claimsData, error: claimsError } = await userClient.auth
+      .getClaims(token);
     const uid = claimsData?.claims?.sub;
 
     if (claimsError || !uid) {
@@ -296,17 +320,20 @@ Deno.serve(async (req) => {
         postBody.featured_media = featured;
       }
 
-      const { res: postRes, json: postJson, text: postText } = await fetchWpJson(`/posts`, {
-        method: "POST",
-        headers: {
-          Authorization: wpActor.authHeader,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(postBody),
-      });
+      const { res: postRes, json: postJson, text: postText } =
+        await fetchWpJson(`/posts`, {
+          method: "POST",
+          headers: {
+            Authorization: wpActor.authHeader,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(postBody),
+        });
 
       if (!postRes.ok || !postJson?.id) {
-        throw new Error(`WP post create failed [${postRes.status}]: ${postText}`);
+        throw new Error(
+          `WP post create failed [${postRes.status}]: ${postText}`,
+        );
       }
 
       if (listing_id) {
@@ -336,9 +363,12 @@ Deno.serve(async (req) => {
     if (action === "list_posts") {
       const page = payload?.page || 1;
       const perPage = payload?.per_page || 20;
-      const { res, json, text } = await fetchWpJson(`/posts?_embed&per_page=${perPage}&page=${page}`, {
-        headers: { Authorization: adminAuthHeader() },
-      });
+      const { res, json, text } = await fetchWpJson(
+        `/posts?_embed&per_page=${perPage}&page=${page}`,
+        {
+          headers: { Authorization: adminAuthHeader() },
+        },
+      );
 
       if (!res.ok) {
         throw new Error(`WP post list failed [${res.status}]: ${text}`);
