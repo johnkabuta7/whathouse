@@ -356,24 +356,53 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Save the gallery on the property using Houzez's expected meta keys.
+      // Save the gallery on the property using Houzez's expected meta keys,
+      // and (best effort) reassign the property to the real user.
+      const updatePayload: Record<string, unknown> = {};
       if (mediaIds.length > 0) {
+        updatePayload.meta = {
+          fave_property_images: mediaIds,
+          fave_attachments: mediaIds,
+        };
+      }
+      if (wpActor.userId > 0) {
+        updatePayload.author = wpActor.userId;
+      }
+
+      if (Object.keys(updatePayload).length > 0) {
         try {
-          await fetchWpJson(`/properties/${postJson.id}`, {
-            method: "POST",
-            headers: {
-              Authorization: adminAuth,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              meta: {
-                fave_property_images: mediaIds,
-                fave_attachments: mediaIds,
+          const { res: upRes, text: upText } = await fetchWpJson(
+            `/properties/${postJson.id}`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: adminAuth,
+                "Content-Type": "application/json",
               },
-            }),
-          });
+              body: JSON.stringify(updatePayload),
+            },
+          );
+          if (!upRes.ok) {
+            console.warn(
+              `property update non-fatal [${upRes.status}]: ${upText}`,
+            );
+            // Retry without the author field if reassignment is forbidden.
+            if (updatePayload.author) {
+              const { meta } = updatePayload as { meta?: unknown };
+              if (meta) {
+                await fetchWpJson(`/properties/${postJson.id}`, {
+                  method: "POST",
+                  headers: {
+                    Authorization: adminAuth,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ meta }),
+                });
+              }
+            }
+          }
         } catch (e) {
-          console.error("property gallery meta error:", e);
+          console.error("property update error:", e);
         }
       }
 
