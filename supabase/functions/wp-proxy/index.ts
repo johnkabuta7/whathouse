@@ -181,7 +181,7 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
         name: fullName,
         first_name: profile.first_name || "",
         last_name: profile.last_name || "",
-        roles: ["editor"],
+        roles: ["houzez_agent"],
       }),
     });
 
