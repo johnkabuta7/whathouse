@@ -447,6 +447,13 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true, posts: json || [] });
     }
 
+    if (action === "debug_admin") {
+      const { res, text } = await fetchWpJson(`/users/me?context=edit`, {
+        headers: { Authorization: adminAuthHeader() },
+      });
+      return jsonResponse({ ok: true, status: res.status, body: text });
+    }
+
     return jsonResponse({ error: "unknown action" }, 400);
   } catch (err) {
     console.error("wp-proxy error:", err);
