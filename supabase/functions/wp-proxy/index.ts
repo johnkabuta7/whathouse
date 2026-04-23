@@ -314,21 +314,37 @@ Deno.serve(async (req) => {
         postBody.featured_media = featured;
       }
 
-      // The Houzez "property" CPT is restricted: subscribers/authors cannot
-      // create it via REST. We publish using the admin credentials but pass
-      // `author = wpActor.userId` so the listing is attributed to the real
-      // WhatHouse user on the WordPress side.
-      const adminAuth = adminAuthHeader();
-
-      const { res: postRes, json: postJson, text: postText } =
+      // Try first with the user's own WP credentials (so author is auto-set
+      // and Houzez agent linkage works). If that fails (cap missing), fall
+      // back to admin credentials.
+      let postAuth = wpActor.authHeader;
+      let { res: postRes, json: postJson, text: postText } =
         await fetchWpJson(`/properties`, {
           method: "POST",
           headers: {
-            Authorization: adminAuth,
+            Authorization: postAuth,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(postBody),
         });
+
+      if (!postRes.ok && wpActor.mode === "user") {
+        console.warn(
+          `user-mode property create failed [${postRes.status}], retrying with admin`,
+        );
+        postAuth = adminAuthHeader();
+        const retry = await fetchWpJson(`/properties`, {
+          method: "POST",
+          headers: {
+            Authorization: postAuth,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ ...postBody, author: wpActor.userId }),
+        });
+        postRes = retry.res;
+        postJson = retry.json;
+        postText = retry.text;
+      }
 
       if (!postRes.ok || !postJson?.id) {
         throw new Error(
