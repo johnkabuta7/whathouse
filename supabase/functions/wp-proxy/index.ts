@@ -119,6 +119,24 @@ async function createWpApplicationPassword(wpUserId: number) {
   return json.password as string;
 }
 
+async function promoteWpUserToEditor(wpUserId: number) {
+  try {
+    const { res, text } = await fetchWpJson(`/users/${wpUserId}`, {
+      method: "POST",
+      headers: {
+        Authorization: adminAuthHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ roles: ["editor"] }),
+    });
+    if (!res.ok) {
+      console.warn(`promote user ${wpUserId} failed [${res.status}]: ${text}`);
+    }
+  } catch (e) {
+    console.warn(`promote user ${wpUserId} threw:`, e);
+  }
+}
+
 async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
   const { data: profile, error } = await supabase
     .from("profiles")
@@ -132,6 +150,8 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
 
   if (profile.wp_user_id && profile.wp_user_password) {
     const username = buildWpUsername(profile.phone);
+    // Best-effort: ensure existing WP user has editor role for property CPT.
+    await promoteWpUserToEditor(profile.wp_user_id);
     return {
       userId: profile.wp_user_id,
       username,
@@ -161,7 +181,7 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
         name: fullName,
         first_name: profile.first_name || "",
         last_name: profile.last_name || "",
-        roles: ["author"],
+        roles: ["houzez_agent"],
       }),
     });
 
@@ -300,34 +320,105 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Build the property payload. We deliberately omit `author` here:
+      // the admin REST user may not have the `edit_others_properties` cap
+      // required to assign a property to a different user at creation time.
+      // We re-assign the author in a follow-up request below (best effort).
       const postBody: Record<string, unknown> = {
         title,
         content,
         status: "publish",
       };
 
-      if (wpActor.userId > 0) {
-        postBody.author = wpActor.userId;
-      }
-
       if (featured) {
         postBody.featured_media = featured;
       }
 
-      const { res: postRes, json: postJson, text: postText } =
-        await fetchWpJson(`/posts`, {
+      // Try first with the user's own WP credentials (so author is auto-set
+      // and Houzez agent linkage works). If that fails (cap missing), fall
+      // back to admin credentials.
+      let postAuth = wpActor.authHeader;
+      let { res: postRes, json: postJson, text: postText } =
+        await fetchWpJson(`/properties`, {
           method: "POST",
           headers: {
-            Authorization: wpActor.authHeader,
+            Authorization: postAuth,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(postBody),
         });
 
+      if (!postRes.ok && wpActor.mode === "user") {
+        console.warn(
+          `user-mode property create failed [${postRes.status}], retrying with admin`,
+        );
+        postAuth = adminAuthHeader();
+        // Append author info into content since admin (john) cannot reassign
+        // posts to other users (lacks edit_others_properties cap).
+        const adminContent = `${content}\n\n<p><em>Publié via WhatHouse par utilisateur #${wpActor.userId} (${wpActor.username})</em></p>`;
+        const retry = await fetchWpJson(`/properties`, {
+          method: "POST",
+          headers: {
+            Authorization: postAuth,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ ...postBody, content: adminContent }),
+        });
+        postRes = retry.res;
+        postJson = retry.json;
+        postText = retry.text;
+      }
+
       if (!postRes.ok || !postJson?.id) {
         throw new Error(
-          `WP post create failed [${postRes.status}]: ${postText}`,
+          `WP property create failed [${postRes.status}]: ${postText}`,
         );
+      }
+
+      // Attach all uploaded images to this property so the gallery is linked
+      // to this specific listing (not orphaned in the media library).
+      for (const mediaId of mediaIds) {
+        try {
+          await fetchWpJson(`/media/${mediaId}`, {
+            method: "POST",
+            headers: {
+              Authorization: postAuth,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ post: postJson.id }),
+          });
+        } catch (e) {
+          console.error("media attach error:", e);
+        }
+      }
+
+      // Save the gallery on the property using Houzez's expected meta keys.
+      if (mediaIds.length > 0) {
+        try {
+          const { res: upRes, text: upText } = await fetchWpJson(
+            `/properties/${postJson.id}`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: postAuth,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                meta: {
+                  fave_property_images: mediaIds,
+                  fave_attachments: mediaIds,
+                },
+              }),
+            },
+          );
+          if (!upRes.ok) {
+            console.warn(
+              `property gallery update non-fatal [${upRes.status}]: ${upText}`,
+            );
+          }
+        } catch (e) {
+          console.error("property update error:", e);
+        }
       }
 
       if (listing_id) {
@@ -369,6 +460,13 @@ Deno.serve(async (req) => {
       }
 
       return jsonResponse({ ok: true, posts: json || [] });
+    }
+
+    if (action === "debug_admin") {
+      const { res, text } = await fetchWpJson(`/users/me?context=edit`, {
+        headers: { Authorization: adminAuthHeader() },
+      });
+      return jsonResponse({ ok: true, status: res.status, body: text });
     }
 
     return jsonResponse({ error: "unknown action" }, 400);
