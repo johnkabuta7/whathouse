@@ -74,17 +74,9 @@ async function fetchWpJson(path: string, init: RequestInit) {
 }
 
 async function getAdminActor(): Promise<WpActor> {
-  const { res, text, json } = await fetchWpJson(`/users/me?context=edit`, {
-    headers: { Authorization: adminAuthHeader() },
-  });
-
-  if (!res.ok || !json?.id) {
-    throw new Error(`WP admin profile lookup failed [${res.status}]: ${text}`);
-  }
-
   return {
-    userId: json.id,
-    username: json.slug || json.username || WP_ADMIN_USER,
+    userId: 0,
+    username: WP_ADMIN_USER,
     authHeader: adminAuthHeader(),
     mode: "admin_fallback",
   };
@@ -312,8 +304,11 @@ Deno.serve(async (req) => {
         title,
         content,
         status: "publish",
-        author: wpActor.userId,
       };
+
+      if (wpActor.userId > 0) {
+        postBody.author = wpActor.userId;
+      }
 
       if (featured) {
         postBody.featured_media = featured;
