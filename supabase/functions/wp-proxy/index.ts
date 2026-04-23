@@ -353,13 +353,16 @@ Deno.serve(async (req) => {
           `user-mode property create failed [${postRes.status}], retrying with admin`,
         );
         postAuth = adminAuthHeader();
+        // Append author info into content since admin (john) cannot reassign
+        // posts to other users (lacks edit_others_properties cap).
+        const adminContent = `${content}\n\n<p><em>Publié via WhatHouse par utilisateur #${wpActor.userId} (${wpActor.username})</em></p>`;
         const retry = await fetchWpJson(`/properties`, {
           method: "POST",
           headers: {
             Authorization: postAuth,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ ...postBody, author: wpActor.userId }),
+          body: JSON.stringify({ ...postBody, content: adminContent }),
         });
         postRes = retry.res;
         postJson = retry.json;
