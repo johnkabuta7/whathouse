@@ -446,9 +446,9 @@ export function useCreateListing() {
     mutationFn: async (listing: { group_id: string; user_id: string; title: string; description: string; images: string[]; zwandako_url?: string }) => {
       const { data, error } = await supabase.from('listings').insert(listing).select().single();
       if (error) throw error;
-      // Push to WordPress (zwandako.com) — non-blocking on failure
+      // Push to WordPress (zwandako.com) — block success if publication fails
       try {
-        await supabase.functions.invoke('wp-proxy', {
+        const { error: publishError } = await supabase.functions.invoke('wp-proxy', {
           body: {
             action: 'publish_listing',
             payload: {
@@ -459,8 +459,14 @@ export function useCreateListing() {
             },
           },
         });
+
+        if (publishError) {
+          throw publishError;
+        }
       } catch (e) {
+        await supabase.from('listings').delete().eq('id', data.id);
         console.error('WP publish failed:', e);
+        throw e;
       }
       return data;
     },
