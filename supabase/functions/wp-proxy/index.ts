@@ -300,15 +300,15 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Build the property payload. We deliberately omit `author` here:
+      // the admin REST user may not have the `edit_others_properties` cap
+      // required to assign a property to a different user at creation time.
+      // We re-assign the author in a follow-up request below (best effort).
       const postBody: Record<string, unknown> = {
         title,
         content,
         status: "publish",
       };
-
-      if (wpActor.userId > 0) {
-        postBody.author = wpActor.userId;
-      }
 
       if (featured) {
         postBody.featured_media = featured;
