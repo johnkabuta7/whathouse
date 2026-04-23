@@ -314,12 +314,17 @@ Deno.serve(async (req) => {
         postBody.featured_media = featured;
       }
 
-      // Publish as a Houzez "property" custom post type (rest_base: properties)
+      // The Houzez "property" CPT is restricted: subscribers/authors cannot
+      // create it via REST. We publish using the admin credentials but pass
+      // `author = wpActor.userId` so the listing is attributed to the real
+      // WhatHouse user on the WordPress side.
+      const adminAuth = adminAuthHeader();
+
       const { res: postRes, json: postJson, text: postText } =
         await fetchWpJson(`/properties`, {
           method: "POST",
           headers: {
-            Authorization: wpActor.authHeader,
+            Authorization: adminAuth,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(postBody),
@@ -331,30 +336,33 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Attach all uploaded images to this property (so the gallery is linked
-      // to this specific listing, not orphaned in the media library).
+      // Attach all uploaded images to this property so the gallery is linked
+      // to this specific listing (not orphaned in the media library).
       for (const mediaId of mediaIds) {
         try {
           await fetchWpJson(`/media/${mediaId}`, {
             method: "POST",
             headers: {
-              Authorization: wpActor.authHeader,
+              Authorization: adminAuth,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ post: postJson.id }),
+            body: JSON.stringify({
+              post: postJson.id,
+              author: wpActor.userId > 0 ? wpActor.userId : undefined,
+            }),
           });
         } catch (e) {
           console.error("media attach error:", e);
         }
       }
 
-      // Save the gallery on the property using Houzez's expected meta key.
+      // Save the gallery on the property using Houzez's expected meta keys.
       if (mediaIds.length > 0) {
         try {
           await fetchWpJson(`/properties/${postJson.id}`, {
             method: "POST",
             headers: {
-              Authorization: wpActor.authHeader,
+              Authorization: adminAuth,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
