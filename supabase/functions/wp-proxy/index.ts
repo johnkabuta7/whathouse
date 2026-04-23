@@ -119,6 +119,24 @@ async function createWpApplicationPassword(wpUserId: number) {
   return json.password as string;
 }
 
+async function promoteWpUserToEditor(wpUserId: number) {
+  try {
+    const { res, text } = await fetchWpJson(`/users/${wpUserId}`, {
+      method: "POST",
+      headers: {
+        Authorization: adminAuthHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ roles: ["editor"] }),
+    });
+    if (!res.ok) {
+      console.warn(`promote user ${wpUserId} failed [${res.status}]: ${text}`);
+    }
+  } catch (e) {
+    console.warn(`promote user ${wpUserId} threw:`, e);
+  }
+}
+
 async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
   const { data: profile, error } = await supabase
     .from("profiles")
@@ -132,6 +150,8 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
 
   if (profile.wp_user_id && profile.wp_user_password) {
     const username = buildWpUsername(profile.phone);
+    // Best-effort: ensure existing WP user has editor role for property CPT.
+    await promoteWpUserToEditor(profile.wp_user_id);
     return {
       userId: profile.wp_user_id,
       username,
