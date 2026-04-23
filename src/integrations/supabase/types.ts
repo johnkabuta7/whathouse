@@ -250,6 +250,8 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          wp_media_ids: number[] | null
+          wp_post_id: number | null
           zwandako_url: string | null
         }
         Insert: {
@@ -261,6 +263,8 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          wp_media_ids?: number[] | null
+          wp_post_id?: number | null
           zwandako_url?: string | null
         }
         Update: {
@@ -272,6 +276,8 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          wp_media_ids?: number[] | null
+          wp_post_id?: number | null
           zwandako_url?: string | null
         }
         Relationships: [
@@ -325,6 +331,8 @@ export type Database = {
           phone: string | null
           updated_at: string
           user_id: string
+          wp_user_id: number | null
+          wp_user_password: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -336,6 +344,8 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id: string
+          wp_user_id?: number | null
+          wp_user_password?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -347,6 +357,8 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+          wp_user_id?: number | null
+          wp_user_password?: string | null
         }
         Relationships: []
       }
