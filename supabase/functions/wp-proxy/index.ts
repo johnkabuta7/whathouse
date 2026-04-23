@@ -314,8 +314,9 @@ Deno.serve(async (req) => {
         postBody.featured_media = featured;
       }
 
+      // Publish as a Houzez "property" custom post type (rest_base: properties)
       const { res: postRes, json: postJson, text: postText } =
-        await fetchWpJson(`/posts`, {
+        await fetchWpJson(`/properties`, {
           method: "POST",
           headers: {
             Authorization: wpActor.authHeader,
@@ -326,8 +327,46 @@ Deno.serve(async (req) => {
 
       if (!postRes.ok || !postJson?.id) {
         throw new Error(
-          `WP post create failed [${postRes.status}]: ${postText}`,
+          `WP property create failed [${postRes.status}]: ${postText}`,
         );
+      }
+
+      // Attach all uploaded images to this property (so the gallery is linked
+      // to this specific listing, not orphaned in the media library).
+      for (const mediaId of mediaIds) {
+        try {
+          await fetchWpJson(`/media/${mediaId}`, {
+            method: "POST",
+            headers: {
+              Authorization: wpActor.authHeader,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ post: postJson.id }),
+          });
+        } catch (e) {
+          console.error("media attach error:", e);
+        }
+      }
+
+      // Save the gallery on the property using Houzez's expected meta key.
+      if (mediaIds.length > 0) {
+        try {
+          await fetchWpJson(`/properties/${postJson.id}`, {
+            method: "POST",
+            headers: {
+              Authorization: wpActor.authHeader,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              meta: {
+                fave_property_images: mediaIds,
+                fave_attachments: mediaIds,
+              },
+            }),
+          });
+        } catch (e) {
+          console.error("property gallery meta error:", e);
+        }
       }
 
       if (listing_id) {
