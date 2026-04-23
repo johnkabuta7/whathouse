@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const WP_BASE = "https://zwandano.com/wp-json/wp/v2";
+const WP_BASE = "https://zwandako.com/wp-json/wp/v2";
 const WP_ADMIN_USER = Deno.env.get("WP_ADMIN_USER") || "";
 const WP_ADMIN_APP_PASSWORD = Deno.env.get("WP_ADMIN_APP_PASSWORD") || "";
 
@@ -35,7 +35,7 @@ async function ensureWpUser(supabase: any, userId: string) {
   const phoneDigits = (profile.phone || "").replace(/[^0-9]/g, "");
   if (!phoneDigits) throw new Error("Profile has no phone number");
   const username = `u${phoneDigits}`;
-  const email = `${phoneDigits}@zwandano.com`;
+  const email = `${phoneDigits}@zwandako.com`;
   const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || username;
   // Strong random password for the WP account itself (not the app password)
   const accountPassword = crypto.randomUUID() + crypto.randomUUID();
@@ -79,7 +79,7 @@ async function ensureWpUser(supabase: any, userId: string) {
   }
 
   // Create application password for this user (so we can post on their behalf)
-  const appPwRes = await fetch(`https://zwandano.com/wp-json/wp/v2/users/${wpUserId}/application-passwords`, {
+  const appPwRes = await fetch(`https://zwandako.com/wp-json/wp/v2/users/${wpUserId}/application-passwords`, {
     method: "POST",
     headers: {
       Authorization: adminAuthHeader(),
