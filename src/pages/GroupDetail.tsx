@@ -307,7 +307,8 @@ export default function GroupDetail() {
   const leaveGroup = useLeaveGroup();
   const markRead = useMarkGroupRead();
   const { toast } = useToast();
-  const [showPublish, setShowPublish] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [showPublish, setShowPublish] = useState(searchParams.get('draft') === '1');
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
