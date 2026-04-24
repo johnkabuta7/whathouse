@@ -170,8 +170,26 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
 
   const images: string[] = listing.images || [];
 
+  const agentName = `${ownerProfile?.first_name || ''} ${ownerProfile?.last_name || ''}`.trim() || 'Agent';
+  const agentInitials = agentName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'A';
+  const dateStr = new Date(listing.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+
   return (
     <div id={`listing-${listing.id}`} className="bg-card rounded-2xl shadow-sm overflow-hidden border border-border scroll-mt-20">
+      {/* Agent header */}
+      <div className="flex items-center gap-2.5 px-3 pt-3 pb-2">
+        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-primary/20">
+          {ownerProfile?.avatar_url ? (
+            <img src={ownerProfile.avatar_url} alt={agentName} className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-xs font-bold text-primary">{agentInitials}</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-foreground truncate leading-tight">{agentName}</p>
+          <p className="text-[10px] text-muted-foreground leading-tight">{dateStr}</p>
+        </div>
+      </div>
       {images.length > 0 && (
         <div className="relative">
           <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
