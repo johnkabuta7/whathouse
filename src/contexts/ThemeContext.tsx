@@ -3,23 +3,15 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 type Theme = 'light' | 'dark';
 export type ThemeStyle = 'classic' | 'mocha' | 'nature';
 
-export const COLOR_THEMES = [
-  { name: 'Émeraude', hex: '#226D68' },
-  { name: 'Terracotta', hex: '#D46F4D' },
-  { name: 'Bleu', hex: '#317AC1' },
-  { name: 'Mandarine', hex: '#F27438' },
-  { name: 'Framboise', hex: '#CA3C66' },
-  { name: 'Sable', hex: '#D6955B' },
-  { name: 'Sarcelle', hex: '#137C8B' },
-  { name: 'Feu', hex: '#FC4E00' },
-  { name: 'Magenta', hex: '#FE277E' },
-  { name: 'Menthe', hex: '#3CCDB4' },
-  { name: 'Corail', hex: '#ED4353' },
-  { name: 'Azur', hex: '#2599FB' },
-  { name: 'Océan', hex: '#007FA9' },
-] as const;
+// Each theme style has its own fixed brand color — no per-user color picker.
+export const STYLE_COLORS: Record<ThemeStyle, string> = {
+  classic: '#F2742E', // Orange (couleur 1)
+  mocha:   '#D97757', // Cuivré mocha (inchangé)
+  nature:  '#2599FB', // Azur (couleur 3)
+};
 
-export const DEFAULT_COLOR = '#226D68';
+// Kept for backward-compat (some components may still import it). Do NOT extend.
+export const DEFAULT_COLOR = STYLE_COLORS.classic;
 
 export const THEME_STYLES: { id: ThemeStyle; name: string; description: string; preview: string }[] = [
   { id: 'classic', name: 'Classique', description: 'Design actuel sobre', preview: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--background)))' },
@@ -31,7 +23,6 @@ interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
   colorHex: string;
-  setColorHex: (hex: string) => void;
   themeStyle: ThemeStyle;
   setThemeStyle: (s: ThemeStyle) => void;
 }
@@ -40,7 +31,6 @@ const ThemeContext = createContext<ThemeContextType>({
   theme: 'dark',
   toggleTheme: () => {},
   colorHex: DEFAULT_COLOR,
-  setColorHex: () => {},
   themeStyle: 'classic',
   setThemeStyle: () => {},
 });
@@ -73,11 +63,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('theme');
     return (saved === 'light' ? 'light' : 'dark') as Theme;
   });
-  const [colorHex, setColorHexState] = useState<string>(() => localStorage.getItem('colorHex') || DEFAULT_COLOR);
   const [themeStyle, setThemeStyleState] = useState<ThemeStyle>(() => {
     const s = localStorage.getItem('themeStyle') as ThemeStyle | null;
     return s === 'mocha' || s === 'nature' ? s : 'classic';
   });
+  const colorHex = STYLE_COLORS[themeStyle];
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -92,10 +82,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [themeStyle]);
 
   useEffect(() => {
-    // Color override only applies in classic style; mocha/nature have fixed palettes
     const root = document.documentElement;
+    // Each style now has its own brand color injected via index.css. We only
+    // override CSS variables for the classic style (so users keep the orange
+    // identity even if other developers tweak base tokens later).
     if (themeStyle === 'classic') {
-      const hsl = hexToHsl(colorHex);
+      const hsl = hexToHsl(STYLE_COLORS.classic);
       root.style.setProperty('--primary', hsl);
       root.style.setProperty('--accent', hsl);
       root.style.setProperty('--ring', hsl);
@@ -108,15 +100,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.style.removeProperty('--sidebar-primary');
       root.style.removeProperty('--sidebar-ring');
     }
-    localStorage.setItem('colorHex', colorHex);
-  }, [colorHex, themeStyle]);
+  }, [themeStyle]);
 
   const toggleTheme = () => setTheme(t => t === 'light' ? 'dark' : 'light');
-  const setColorHex = (hex: string) => setColorHexState(hex);
   const setThemeStyle = (s: ThemeStyle) => setThemeStyleState(s);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, colorHex, setColorHex, themeStyle, setThemeStyle }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, colorHex, themeStyle, setThemeStyle }}>
       {children}
     </ThemeContext.Provider>
   );
