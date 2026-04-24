@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, Palette, ShieldCheck, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, ShieldCheck, Sparkles, BookOpen, ChevronRight, FileText } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme, COLOR_THEMES, THEME_STYLES } from '@/contexts/ThemeContext';
+import { useTheme, THEME_STYLES } from '@/contexts/ThemeContext';
+import { useAllDrafts, deleteDraft } from '@/hooks/use-drafts';
 import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, useUpdateBanner, uploadBannerImage, useMyFavorites, useProfile } from '@/hooks/use-data';
 import { useNotificationSettings, useUpdateNotificationSettings, usePlayTestSound } from '@/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export default function Profil() {
   const { user, logout, updateEmail, updatePassword } = useAuth();
-  const { theme, toggleTheme, colorHex, setColorHex, themeStyle, setThemeStyle } = useTheme();
+  const { theme, toggleTheme, themeStyle, setThemeStyle } = useTheme();
   const { data: myListings } = useMyListings();
   const { data: myFavorites } = useMyFavorites();
   const { data: groups } = useMyGroups();
@@ -34,6 +35,7 @@ export default function Profil() {
   const playTestSound = usePlayTestSound();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +53,8 @@ export default function Profil() {
     const t = searchParams.get('tab') as 'annonces' | 'infos' | 'admin' | null;
     if (t && ['annonces', 'infos', 'admin'].includes(t)) setActiveTab(t);
   }, [searchParams]);
-  const [listingSubTab, setListingSubTab] = useState<'publications' | 'favoris'>('publications');
+  const [listingSubTab, setListingSubTab] = useState<'publications' | 'favoris' | 'brouillons'>('publications');
+  const drafts = useAllDrafts();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
   const [editingListing, setEditingListing] = useState<string | null>(null);
