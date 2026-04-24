@@ -297,6 +297,14 @@ export default function Profil() {
                 <Bookmark className="h-3 w-3" />Favoris
                 {listingSubTab === 'favoris' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-1/4 bg-primary rounded-full" />}
               </button>
+              <button onClick={() => setListingSubTab('brouillons')}
+                className={`flex-1 py-2 text-xs font-semibold text-center transition flex items-center justify-center gap-1 relative ${listingSubTab === 'brouillons' ? 'text-primary' : 'text-muted-foreground'}`}>
+                <FileText className="h-3 w-3" />Brouillons
+                {drafts.length > 0 && (
+                  <span className="ml-1 h-4 min-w-[16px] rounded-full bg-destructive text-[9px] font-bold text-white inline-flex items-center justify-center px-1">{drafts.length}</span>
+                )}
+                {listingSubTab === 'brouillons' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-1/4 bg-primary rounded-full" />}
+              </button>
             </div>
 
             {listingSubTab === 'publications' ? (
@@ -345,7 +353,7 @@ export default function Profil() {
                   ))}
                 </div>
               )
-            ) : (
+            ) : listingSubTab === 'favoris' ? (
               /* Favoris tab */
               (!myFavorites || myFavorites.length === 0) ? (
                 <div className="text-center py-8">
@@ -367,6 +375,49 @@ export default function Profil() {
                         <p className="text-xs text-muted-foreground truncate mt-0.5">{l.description?.slice(0, 50) || ''}</p>
                       </div>
                       <Bookmark className="h-4 w-4 text-primary fill-current shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              /* Brouillons tab — anciennement page dédiée /drafts */
+              drafts.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">Aucun brouillon</p>
+                  <p className="text-xs text-muted-foreground mt-1">Vos annonces non publiées apparaîtront ici.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {drafts.map(d => (
+                    <div key={d.group_id} className="bg-card border border-border rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => navigate(`/group/${d.group_id}?draft=1`)}
+                        className="w-full flex items-center gap-3 p-2.5 text-left hover:bg-muted/50 transition"
+                      >
+                        {d.image_previews[0] ? (
+                          <img src={d.image_previews[0]} className="h-12 w-12 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <FileText className="h-5 w-5 text-primary" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{d.title || 'Sans titre'}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {new Date(d.updated_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </button>
+                      <div className="px-3 pb-2 flex justify-end">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteDraft(d.group_id); toast({ title: 'Brouillon supprimé' }); }}
+                          className="flex items-center gap-1 text-[11px] font-medium text-destructive px-2 py-1 rounded-full hover:bg-destructive/10 transition"
+                        >
+                          <Trash2 className="h-3 w-3" /> Supprimer
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
