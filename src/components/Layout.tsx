@@ -6,10 +6,10 @@ export function Layout() {
   const { pathname } = useLocation();
   const { themeStyle } = useTheme();
   const isGroupPage = pathname.startsWith('/group/');
-  const isMocha = themeStyle === 'mocha';
+  const isFloating = themeStyle === 'mocha' || themeStyle === 'nature';
 
-  // Mocha bottom nav floats with extra spacing; default has fixed h-14 bar.
-  const padBottom = isGroupPage ? '' : isMocha ? 'pb-24' : 'pb-14';
+  // Mocha + nature bottom navs float with extra spacing; classic uses a fixed h-14 bar.
+  const padBottom = isGroupPage ? '' : isFloating ? 'pb-24' : 'pb-14';
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
