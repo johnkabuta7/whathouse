@@ -594,7 +594,8 @@ export function useProfile(userId: string) {
   return useQuery({
     queryKey: ['profile', userId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
+      if (!userId) return null;
+      const { data, error } = await supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle();
       if (error) throw error;
       return data;
     },

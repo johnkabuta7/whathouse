@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone, Bookmark, Camera, Edit2, Save, LogOut } from 'lucide-react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone, Bookmark, Camera, Edit2, Save, LogOut, Save as SaveIcon, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
@@ -8,21 +8,42 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage, useMarkGroupRead, useProfile, useLeaveGroup } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
+import { useDraft, deleteDraft, fileToDataUrl, dataUrlToFile } from '@/hooks/use-drafts';
 
 function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: string; onDone: () => void }) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [zwandakoUrl, setZwandakoUrl] = useState('');
+  const { draft, setDraft } = useDraft(groupId);
+  const [title, setTitle] = useState(draft?.title || '');
+  const [description, setDescription] = useState(draft?.description || '');
+  const [zwandakoUrl, setZwandakoUrl] = useState(draft?.zwandako_url || '');
   const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [previews, setPreviews] = useState<string[]>(draft?.image_previews || []);
   const [isLoading, setIsLoading] = useState(false);
   const createListing = useCreateListing();
   const { toast } = useToast();
 
-  const addFiles = useCallback((newFiles: File[]) => {
+  // Hydrate File objects from existing draft data URLs once at mount
+  useEffect(() => {
+    if (draft?.image_previews?.length && files.length === 0) {
+      Promise.all(draft.image_previews.map((d, i) => dataUrlToFile(d, `draft-${i}.jpg`)))
+        .then(setFiles)
+        .catch(() => {/* ignore */});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-save draft on every change (debounced via microtask)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDraft({ title, description, zwandako_url: zwandakoUrl, image_previews: previews });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [title, description, zwandakoUrl, previews, setDraft]);
+
+  const addFiles = useCallback(async (newFiles: File[]) => {
     const imgs = newFiles.filter(f => f.type.startsWith('image/'));
     setFiles(p => [...p, ...imgs]);
-    setPreviews(p => [...p, ...imgs.map(f => URL.createObjectURL(f))]);
+    const dataUrls = await Promise.all(imgs.map(fileToDataUrl));
+    setPreviews(p => [...p, ...dataUrls]);
   }, []);
 
   const removeFile = (i: number) => {
@@ -43,13 +64,40 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
     if (!title.trim()) return;
     setIsLoading(true);
     try {
+      // Make sure we have File objects for every preview (older drafts)
+      let actualFiles = files;
+      if (actualFiles.length !== previews.length) {
+        actualFiles = await Promise.all(previews.map((d, i) => dataUrlToFile(d, `draft-${i}.jpg`)));
+      }
       const urls: string[] = [];
-      for (const f of files) urls.push(await uploadListingImage(f, userId));
+      for (const f of actualFiles) urls.push(await uploadListingImage(f, userId));
       createListing.mutate(
         { group_id: groupId, user_id: userId, title: title.trim(), description: description.trim(), images: urls, zwandako_url: zwandakoUrl.trim() || undefined },
-        { onSuccess: () => { toast({ title: 'Annonce publiée !' }); onDone(); setTitle(''); setDescription(''); setZwandakoUrl(''); setFiles([]); setPreviews([]); setIsLoading(false); }, onError: () => { toast({ title: 'Erreur', variant: 'destructive' }); setIsLoading(false); } }
+        {
+          onSuccess: () => {
+            toast({ title: 'Annonce publiée !', description: 'Visible aussi sur zwandako.com' });
+            deleteDraft(groupId);
+            onDone();
+            setTitle(''); setDescription(''); setZwandakoUrl(''); setFiles([]); setPreviews([]);
+            setIsLoading(false);
+          },
+          onError: (err: any) => {
+            const msg = err?.message || err?.context?.error || 'Publication échouée';
+            toast({ title: 'Erreur de publication', description: String(msg).slice(0, 200), variant: 'destructive' });
+            setIsLoading(false);
+          },
+        }
       );
-    } catch { toast({ title: 'Erreur upload', variant: 'destructive' }); setIsLoading(false); }
+    } catch (err: any) {
+      toast({ title: 'Erreur upload', description: err?.message || 'Impossible de téléverser les images', variant: 'destructive' });
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveDraft = () => {
+    setDraft({ title, description, zwandako_url: zwandakoUrl, image_previews: previews });
+    toast({ title: 'Brouillon enregistré', description: 'Retrouvez-le dans l\'onglet Brouillons.' });
+    onDone();
   };
 
   return (
@@ -72,8 +120,12 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
             ))}
           </div>
         )}
+        <button type="button" onClick={handleSaveDraft} title="Enregistrer en brouillon"
+          className="h-9 w-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
+          <SaveIcon className="h-4 w-4" />
+        </button>
         <Button type="submit" size="sm" className="rounded-full shrink-0 bg-primary text-primary-foreground" disabled={isLoading || !title.trim()}>
-          <Send className="h-4 w-4" />
+          {isLoading ? <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
     </form>
@@ -118,8 +170,26 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
 
   const images: string[] = listing.images || [];
 
+  const agentName = `${ownerProfile?.first_name || ''} ${ownerProfile?.last_name || ''}`.trim() || 'Agent';
+  const agentInitials = agentName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'A';
+  const dateStr = new Date(listing.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+
   return (
     <div id={`listing-${listing.id}`} className="bg-card rounded-2xl shadow-sm overflow-hidden border border-border scroll-mt-20">
+      {/* Agent header */}
+      <div className="flex items-center gap-2.5 px-3 pt-3 pb-2">
+        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-primary/20">
+          {ownerProfile?.avatar_url ? (
+            <img src={ownerProfile.avatar_url} alt={agentName} className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-xs font-bold text-primary">{agentInitials}</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-foreground truncate leading-tight">{agentName}</p>
+          <p className="text-[10px] text-muted-foreground leading-tight">{dateStr}</p>
+        </div>
+      </div>
       {images.length > 0 && (
         <div className="relative">
           <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
@@ -237,7 +307,8 @@ export default function GroupDetail() {
   const leaveGroup = useLeaveGroup();
   const markRead = useMarkGroupRead();
   const { toast } = useToast();
-  const [showPublish, setShowPublish] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [showPublish, setShowPublish] = useState(searchParams.get('draft') === '1');
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
