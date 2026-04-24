@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, Palette, ShieldCheck, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, ShieldCheck, Sparkles, BookOpen, ChevronRight, FileText } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme, COLOR_THEMES, THEME_STYLES } from '@/contexts/ThemeContext';
+import { useTheme, THEME_STYLES } from '@/contexts/ThemeContext';
+import { useAllDrafts, deleteDraft } from '@/hooks/use-drafts';
 import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, useUpdateBanner, uploadBannerImage, useMyFavorites, useProfile } from '@/hooks/use-data';
 import { useNotificationSettings, useUpdateNotificationSettings, usePlayTestSound } from '@/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export default function Profil() {
   const { user, logout, updateEmail, updatePassword } = useAuth();
-  const { theme, toggleTheme, colorHex, setColorHex, themeStyle, setThemeStyle } = useTheme();
+  const { theme, toggleTheme, themeStyle, setThemeStyle } = useTheme();
   const { data: myListings } = useMyListings();
   const { data: myFavorites } = useMyFavorites();
   const { data: groups } = useMyGroups();
@@ -34,6 +35,7 @@ export default function Profil() {
   const playTestSound = usePlayTestSound();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +53,8 @@ export default function Profil() {
     const t = searchParams.get('tab') as 'annonces' | 'infos' | 'admin' | null;
     if (t && ['annonces', 'infos', 'admin'].includes(t)) setActiveTab(t);
   }, [searchParams]);
-  const [listingSubTab, setListingSubTab] = useState<'publications' | 'favoris'>('publications');
+  const [listingSubTab, setListingSubTab] = useState<'publications' | 'favoris' | 'brouillons'>('publications');
+  const drafts = useAllDrafts();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
   const [editingListing, setEditingListing] = useState<string | null>(null);
@@ -294,6 +297,14 @@ export default function Profil() {
                 <Bookmark className="h-3 w-3" />Favoris
                 {listingSubTab === 'favoris' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-1/4 bg-primary rounded-full" />}
               </button>
+              <button onClick={() => setListingSubTab('brouillons')}
+                className={`flex-1 py-2 text-xs font-semibold text-center transition flex items-center justify-center gap-1 relative ${listingSubTab === 'brouillons' ? 'text-primary' : 'text-muted-foreground'}`}>
+                <FileText className="h-3 w-3" />Brouillons
+                {drafts.length > 0 && (
+                  <span className="ml-1 h-4 min-w-[16px] rounded-full bg-destructive text-[9px] font-bold text-white inline-flex items-center justify-center px-1">{drafts.length}</span>
+                )}
+                {listingSubTab === 'brouillons' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-1/4 bg-primary rounded-full" />}
+              </button>
             </div>
 
             {listingSubTab === 'publications' ? (
@@ -342,7 +353,7 @@ export default function Profil() {
                   ))}
                 </div>
               )
-            ) : (
+            ) : listingSubTab === 'favoris' ? (
               /* Favoris tab */
               (!myFavorites || myFavorites.length === 0) ? (
                 <div className="text-center py-8">
@@ -364,6 +375,49 @@ export default function Profil() {
                         <p className="text-xs text-muted-foreground truncate mt-0.5">{l.description?.slice(0, 50) || ''}</p>
                       </div>
                       <Bookmark className="h-4 w-4 text-primary fill-current shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              /* Brouillons tab — anciennement page dédiée /drafts */
+              drafts.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">Aucun brouillon</p>
+                  <p className="text-xs text-muted-foreground mt-1">Vos annonces non publiées apparaîtront ici.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {drafts.map(d => (
+                    <div key={d.group_id} className="bg-card border border-border rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => navigate(`/group/${d.group_id}?draft=1`)}
+                        className="w-full flex items-center gap-3 p-2.5 text-left hover:bg-muted/50 transition"
+                      >
+                        {d.image_previews[0] ? (
+                          <img src={d.image_previews[0]} className="h-12 w-12 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <FileText className="h-5 w-5 text-primary" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{d.title || 'Sans titre'}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {new Date(d.updated_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </button>
+                      <div className="px-3 pb-2 flex justify-end">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteDraft(d.group_id); toast({ title: 'Brouillon supprimé' }); }}
+                          className="flex items-center gap-1 text-[11px] font-medium text-destructive px-2 py-1 rounded-full hover:bg-destructive/10 transition"
+                        >
+                          <Trash2 className="h-3 w-3" /> Supprimer
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -401,25 +455,7 @@ export default function Profil() {
               </div>
             </div>
 
-            {themeStyle === 'classic' && (
-              <div className="py-3 border-b border-border">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Palette className="h-4 w-4 text-primary" /></div>
-                  <span className="text-sm text-foreground flex-1 text-left">Couleur du thème</span>
-                </div>
-                <div className="flex flex-wrap gap-2 pl-12">
-                  {COLOR_THEMES.map(c => (
-                    <button
-                      key={c.hex}
-                      onClick={() => setColorHex(c.hex)}
-                      aria-label={c.name}
-                      className={`h-8 w-8 rounded-full border-2 transition ${colorHex.toLowerCase() === c.hex.toLowerCase() ? 'border-foreground scale-110' : 'border-transparent'}`}
-                      style={{ backgroundColor: c.hex }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* La couleur d'accent est maintenant fixée par le style de thème (classique → orange, mocha → cuivré, nature → bleu). */}
 
             <div className="w-full flex items-center gap-3 py-3 border-b border-border">
               <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Bell className="h-4 w-4 text-primary" /></div>

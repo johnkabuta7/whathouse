@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage, useMarkGroupRead, useProfile, useLeaveGroup } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 import { useDraft, deleteDraft, fileToDataUrl, dataUrlToFile } from '@/hooks/use-drafts';
+import { usePlayTestSound } from '@/hooks/use-notifications';
 
 function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: string; onDone: () => void }) {
   const { draft, setDraft } = useDraft(groupId);
@@ -20,6 +21,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   const [isLoading, setIsLoading] = useState(false);
   const createListing = useCreateListing();
   const { toast } = useToast();
+  const playSuccessSound = usePlayTestSound();
 
   // Hydrate File objects from existing draft data URLs once at mount
   useEffect(() => {
@@ -76,6 +78,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
         {
           onSuccess: () => {
             toast({ title: 'Annonce publiée !', description: 'Visible aussi sur zwandako.com' });
+            try { playSuccessSound(); } catch { /* sound is best-effort */ }
             deleteDraft(groupId);
             onDone();
             setTitle(''); setDescription(''); setZwandakoUrl(''); setFiles([]); setPreviews([]);
