@@ -404,25 +404,7 @@ export default function Profil() {
               </div>
             </div>
 
-            {themeStyle === 'classic' && (
-              <div className="py-3 border-b border-border">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Palette className="h-4 w-4 text-primary" /></div>
-                  <span className="text-sm text-foreground flex-1 text-left">Couleur du thème</span>
-                </div>
-                <div className="flex flex-wrap gap-2 pl-12">
-                  {COLOR_THEMES.map(c => (
-                    <button
-                      key={c.hex}
-                      onClick={() => setColorHex(c.hex)}
-                      aria-label={c.name}
-                      className={`h-8 w-8 rounded-full border-2 transition ${colorHex.toLowerCase() === c.hex.toLowerCase() ? 'border-foreground scale-110' : 'border-transparent'}`}
-                      style={{ backgroundColor: c.hex }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* La couleur d'accent est maintenant fixée par le style de thème (classique → orange, mocha → cuivré, nature → bleu). */}
 
             <div className="w-full flex items-center gap-3 py-3 border-b border-border">
               <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Bell className="h-4 w-4 text-primary" /></div>
