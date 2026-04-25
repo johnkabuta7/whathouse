@@ -307,7 +307,7 @@ export default function Profil() {
                 className={`flex-1 py-2 text-xs font-semibold text-center transition flex items-center justify-center gap-1 relative ${listingSubTab === 'brouillons' ? 'text-primary' : 'text-muted-foreground'}`}>
                 <FileText className="h-3 w-3" />Brouillons
                 {drafts.length > 0 && (
-                  <span className="ml-1 h-4 min-w-[16px] rounded-full bg-destructive text-[9px] font-bold text-white inline-flex items-center justify-center px-1">{drafts.length}</span>
+                  <span className="ml-1 h-4 min-w-[16px] rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground inline-flex items-center justify-center px-1">{drafts.length}</span>
                 )}
                 {listingSubTab === 'brouillons' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-1/4 bg-primary rounded-full" />}
               </button>
