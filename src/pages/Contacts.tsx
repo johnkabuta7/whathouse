@@ -76,7 +76,17 @@ export default function Contacts() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border">
         <div className="px-4 py-3 flex items-center gap-3">
-          <h1 className="text-lg font-bold flex-1 text-foreground">Contacts</h1>
+          <h1 className="text-lg font-bold flex-1 text-foreground flex items-center gap-2">
+            Contacts
+            {recentMode && (
+              <button
+                onClick={() => setRecentMode(false)}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/15 text-primary"
+              >
+                <Clock className="h-3 w-3" />Récents ✕
+              </button>
+            )}
+          </h1>
           <button onClick={() => setSearchOpen(!searchOpen)} className="p-1.5 rounded-full hover:bg-muted transition">
             <Search className="h-5 w-5 text-muted-foreground" />
           </button>
