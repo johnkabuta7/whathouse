@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, MoreVertical, Plus, Download, Settings, Users } from 'lucide-react';
+import { Search, UserPlus, MoreVertical, Plus, Download, Settings, Users, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,10 +31,20 @@ export default function Contacts() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showInstall, setShowInstall] = useState(false);
+  const [recentMode, setRecentMode] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const handler = () => setRecentMode(v => !v);
+    window.addEventListener('contacts:show-recent', handler as any);
+    return () => window.removeEventListener('contacts:show-recent', handler as any);
+  }, []);
+
   const others = profiles?.filter(p => p.user_id !== user?.id);
-  const filtered = others?.filter(p =>
+  const baseList = recentMode
+    ? [...(others || [])].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    : others;
+  const filtered = baseList?.filter(p =>
     `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
     (p.phone || '').includes(search)
   );
