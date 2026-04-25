@@ -435,24 +435,32 @@ export default function Profil() {
             </div>
 
             <div className="py-3 border-b border-border">
-              <div className="flex items-center gap-3 mb-2">
+              <button
+                type="button"
+                onClick={() => setShowStylePicker(s => !s)}
+                className="w-full flex items-center gap-3"
+              >
                 <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Sparkles className="h-4 w-4 text-primary" /></div>
                 <span className="text-sm text-foreground flex-1 text-left">Style de thème</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 pl-12">
-                {THEME_STYLES.map(s => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setThemeStyle(s.id)}
-                    className={`rounded-xl p-2 border-2 transition text-left ${themeStyle === s.id ? 'border-primary' : 'border-border'}`}
-                  >
-                    <div className="h-10 w-full rounded-lg mb-1" style={{ background: s.preview }} />
-                    <p className="text-[11px] font-semibold text-foreground">{s.name}</p>
-                    <p className="text-[9px] text-muted-foreground leading-tight">{s.description}</p>
-                  </button>
-                ))}
-              </div>
+                <span className="text-[11px] text-muted-foreground capitalize">{themeStyle}</span>
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${showStylePicker ? 'rotate-90' : ''}`} />
+              </button>
+              {showStylePicker && (
+                <div className="grid grid-cols-3 gap-2 pl-12 mt-3 animate-fade-in">
+                  {THEME_STYLES.map(s => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setThemeStyle(s.id)}
+                      className={`rounded-xl p-2 border-2 transition text-left ${themeStyle === s.id ? 'border-primary' : 'border-border'}`}
+                    >
+                      <div className="h-10 w-full rounded-lg mb-1" style={{ background: s.preview }} />
+                      <p className="text-[11px] font-semibold text-foreground">{s.name}</p>
+                      <p className="text-[9px] text-muted-foreground leading-tight">{s.description}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* La couleur d'accent est maintenant fixée par le style de thème (classique → orange, mocha → cuivré, nature → bleu). */}
