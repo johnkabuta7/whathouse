@@ -94,7 +94,7 @@ function useFeaturedProperties() {
     queryKey: ['wp_featured_properties'],
     queryFn: async () => {
       try {
-        const res = await fetch('https://zwandako.com/wp-json/wp/v2/property?_embed&per_page=10&orderby=date&order=desc');
+        const res = await fetch('https://zwandako.com/wp-json/wp/v2/properties?_embed&per_page=10&orderby=date&order=desc');
         if (!res.ok) return [];
         const data = await res.json();
         return Array.isArray(data) ? data : [];
