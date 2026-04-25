@@ -520,7 +520,7 @@ Deno.serve(async (req) => {
 
     if (action === "debug_admin") {
       const capabilities = await getAdminCapabilities();
-      return jsonResponse({ ok: true, ...capabilities });
+      return jsonResponse({ ...capabilities, request_ok: true });
     }
 
     return jsonResponse({ error: "unknown action" }, 400);
