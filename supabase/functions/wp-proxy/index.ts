@@ -7,8 +7,9 @@ const corsHeaders = {
 };
 
 const WP_BASE = "https://zwandako.com/wp-json/wp/v2";
-const WP_ADMIN_USER = Deno.env.get("WP_ADMIN_USER") || "";
-const WP_ADMIN_APP_PASSWORD = Deno.env.get("WP_ADMIN_APP_PASSWORD") || "";
+const WP_ADMIN_USER = (Deno.env.get("WP_ADMIN_USER") || "").trim();
+const WP_ADMIN_APP_PASSWORD = (Deno.env.get("WP_ADMIN_APP_PASSWORD") || "")
+  .replace(/\s+/g, "");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
   "";
@@ -43,7 +44,7 @@ function adminAuthHeader() {
 }
 
 function userAuthHeader(username: string, appPassword: string) {
-  return "Basic " + btoa(`${username}:${appPassword}`);
+  return "Basic " + btoa(`${username.trim()}:${appPassword.replace(/\s+/g, "")}`);
 }
 
 function normalizePhoneDigits(phone: string | null | undefined) {
