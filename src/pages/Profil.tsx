@@ -41,6 +41,11 @@ export default function Profil() {
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    const handler = () => setEditing(true);
+    window.addEventListener('profil:edit', handler as any);
+    return () => window.removeEventListener('profil:edit', handler as any);
+  }, []);
   const [firstName, setFirstName] = useState(user?.profile?.first_name || '');
   const [lastName, setLastName] = useState(user?.profile?.last_name || '');
   const [phone, setPhone] = useState(user?.profile?.phone || '');
