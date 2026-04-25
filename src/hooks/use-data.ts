@@ -446,9 +446,10 @@ export function useCreateListing() {
     mutationFn: async (listing: { group_id: string; user_id: string; title: string; description: string; images: string[]; zwandako_url?: string }) => {
       const { data, error } = await supabase.from('listings').insert(listing).select().single();
       if (error) throw error;
-      // Push to WordPress (zwandako.com) — block success if publication fails
+      // Push to WordPress (zwandako.com) without blocking local publication.
+      let wpSyncFailed = false;
       try {
-        const { error: publishError } = await supabase.functions.invoke('wp-proxy', {
+        const { data: publishData, error: publishError } = await supabase.functions.invoke('wp-proxy', {
           body: {
             action: 'publish_listing',
             payload: {
@@ -463,12 +464,12 @@ export function useCreateListing() {
         if (publishError) {
           throw publishError;
         }
+        wpSyncFailed = Boolean(publishData?.wp_sync_failed);
       } catch (e) {
-        await supabase.from('listings').delete().eq('id', data.id);
-        console.error('WP publish failed:', e);
-        throw e;
+        wpSyncFailed = true;
+        console.warn('WP publish failed, keeping local listing:', e);
       }
-      return data;
+      return { ...data, wp_sync_failed: wpSyncFailed };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['listings', data.group_id] });
