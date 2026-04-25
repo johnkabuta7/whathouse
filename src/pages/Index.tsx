@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2 } from 'lucide-react';
+import { Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts, useUnreadCounts } from '@/hooks/use-data';
@@ -53,6 +53,7 @@ function useNewSignupsCount() {
 function SliderBanner() {
   const { data: banners } = useSliderBanners();
   const [current, setCurrent] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
 
   const defaultBanners = [
     { id: '1', image_url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=200&fit=crop', link_url: null },
@@ -68,8 +69,23 @@ function SliderBanner() {
     return () => clearInterval(timer);
   }, [slides.length]);
 
+  const goTo = (direction: 1 | -1) => {
+    setCurrent(p => (p + direction + slides.length) % slides.length);
+  };
+
+  const handleTouchEnd = (x: number) => {
+    if (touchStart === null || slides.length <= 1) return;
+    const delta = touchStart - x;
+    if (Math.abs(delta) > 35) goTo(delta > 0 ? 1 : -1);
+    setTouchStart(null);
+  };
+
   return (
-    <div className="relative w-full h-[100px] overflow-hidden">
+    <div
+      className="relative w-full h-[100px] overflow-hidden touch-pan-y"
+      onTouchStart={e => setTouchStart(e.touches[0].clientX)}
+      onTouchEnd={e => handleTouchEnd(e.changedTouches[0].clientX)}
+    >
       {slides.map((slide: any, i) => (
         <div key={slide.id} className={`absolute inset-0 transition-opacity duration-500 ${i === current ? 'opacity-100' : 'opacity-0'}`}>
           <img src={slide.image_url} alt="" className="w-full h-full object-cover" />
@@ -254,28 +270,28 @@ export default function Index() {
         )}
       </header>
 
-      {/* Contact carousel — bigger avatars, 5mm vertical margin */}
+      {/* Contact carousel — Messenger style online indicator */}
       {contacts && contacts.length > 0 && !isSearching && (
-        <div className="px-3 py-[5mm]">
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+        <div className="px-3 pt-[5mm] pb-3">
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1">
             {contacts.slice(0, 30).map(c => {
               const name = `${c.first_name} ${c.last_name}`.trim() || '?';
               const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
               return (
                 <button key={c.user_id} onClick={() => setSelectedContact(c)} className="flex flex-col items-center gap-1 shrink-0">
                   <div className="relative">
-                    <div className="h-[68px] w-[68px] rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
+                    <div className={`h-[68px] w-[68px] rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ${c.online ? 'ring-primary/40 opacity-100' : 'ring-border opacity-55 grayscale'}`}>
                       {c.avatar_url ? <img src={c.avatar_url} alt={name} className="h-full w-full object-cover" /> :
                         <span className="text-sm font-bold text-primary">{initials}</span>}
                     </div>
                     {c.online && (
                       <span
                         title="En ligne"
-                        className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-card"
+                        className="absolute bottom-0.5 right-0.5 h-4 w-4 rounded-full bg-success border-2 border-card"
                       />
                     )}
                   </div>
-                  <span className="text-[10px] text-foreground font-medium max-w-[68px] truncate">{c.first_name || '?'}</span>
+                  <span className={`text-[10px] font-medium max-w-[68px] truncate ${c.online ? 'text-foreground' : 'text-muted-foreground'}`}>{c.first_name || '?'}</span>
                 </button>
               );
             })}
@@ -377,14 +393,6 @@ export default function Index() {
           })}
         </div>
       )}
-
-      {/* FAB */}
-      {!isSearching && (
-        <Link to="/create-group" className="fixed bottom-20 right-4 h-14 w-14 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:opacity-90 transition z-40">
-          <Plus className="h-6 w-6" />
-        </Link>
-      )}
-
       <InstallPrompt open={showInstall} onClose={() => setShowInstall(false)} />
     </div>
   );
