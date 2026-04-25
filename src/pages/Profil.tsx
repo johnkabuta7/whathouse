@@ -532,7 +532,6 @@ export default function Profil() {
         ) : (
           /* Admin tab */
           <div className="space-y-6">
-            <NewSignupsList />
             <div>
               <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2"><Image className="h-4 w-4 text-primary" />Gérer les sliders (image + texte)</h3>
               <div className="space-y-2">
@@ -545,6 +544,7 @@ export default function Profil() {
               </div>
               <p className="text-[10px] text-muted-foreground mt-2">Pour modifier les pages Tuto, Avantages et Termes : ouvrez la page concernée et utilisez le bouton + dans son entête.</p>
             </div>
+            <NewSignupsList />
           </div>
         )}
       </div>
