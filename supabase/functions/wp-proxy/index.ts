@@ -402,6 +402,29 @@ Deno.serve(async (req) => {
         postText = retry.text;
       }
 
+      if (!postRes.ok && isWpPermissionError(postRes.status, postText)) {
+        const admin = await getAdminCapabilities();
+        console.error("WP permission error:", { status: postRes.status, body: postText, admin });
+
+        if (listing_id) {
+          await supabase
+            .from("listings")
+            .update({ zwandako_url: null })
+            .eq("id", listing_id);
+        }
+
+        return jsonResponse({
+          ok: true,
+          wp_post_id: null,
+          link: null,
+          media_ids: mediaIds,
+          mode: wpActor.mode,
+          wp_sync_failed: true,
+          error: "WordPress credentials or property permissions are invalid",
+          details: admin,
+        });
+      }
+
       if (!postRes.ok || !postJson?.id) {
         throw new Error(
           `WP property create failed [${postRes.status}]: ${postText}`,
@@ -496,10 +519,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "debug_admin") {
-      const { res, text } = await fetchWpJson(`/users/me?context=edit`, {
-        headers: { Authorization: adminAuthHeader() },
-      });
-      return jsonResponse({ ok: true, status: res.status, body: text });
+      const capabilities = await getAdminCapabilities();
+      return jsonResponse({ ok: true, ...capabilities });
     }
 
     return jsonResponse({ error: "unknown action" }, 400);
