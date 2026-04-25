@@ -150,6 +150,8 @@ function FeaturedProperties() {
     </div>
   );
 }
+
+export default function Index() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
