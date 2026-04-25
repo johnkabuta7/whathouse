@@ -61,6 +61,21 @@ function isWpUserCreationBlocked(status: number, bodyText: string) {
     /rest_cannot_create_user|not allowed to create new users/i.test(bodyText);
 }
 
+function wpErrorCode(bodyText: string) {
+  try {
+    return JSON.parse(bodyText)?.code || "";
+  } catch {
+    return "";
+  }
+}
+
+function isWpPermissionError(status: number, bodyText: string) {
+  const code = wpErrorCode(bodyText);
+  return status === 401 || status === 403 ||
+    /rest_cannot_create|rest_not_logged_in|not allowed/i.test(code) ||
+    /rest_cannot_create|rest_not_logged_in|not allowed/i.test(bodyText);
+}
+
 async function fetchWpJson(path: string, init: RequestInit) {
   const res = await fetch(`${WP_BASE}${path}`, init);
   const text = await res.text();
@@ -79,6 +94,22 @@ async function getAdminActor(): Promise<WpActor> {
     username: WP_ADMIN_USER,
     authHeader: adminAuthHeader(),
     mode: "admin_fallback",
+  };
+}
+
+async function getAdminCapabilities() {
+  const { res, json, text } = await fetchWpJson(`/users/me?context=edit`, {
+    headers: { Authorization: adminAuthHeader() },
+  });
+
+  return {
+    ok: res.ok,
+    status: res.status,
+    code: wpErrorCode(text),
+    username: json?.username || WP_ADMIN_USER,
+    roles: json?.roles || [],
+    canCreatePosts: Boolean(json?.capabilities?.publish_posts),
+    canCreateProperties: Boolean(json?.capabilities?.publish_properties),
   };
 }
 
