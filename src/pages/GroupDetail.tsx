@@ -325,17 +325,23 @@ export default function GroupDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isMember, listings?.length]);
 
-  // Scroll to specific listing if hash present (#listing-XXX)
+  // Scroll : si #listing-XXX → cibler ; sinon → aller à la dernière (la plus récente, en bas)
   useEffect(() => {
-    if (!listings) return;
+    if (!listings || listings.length === 0) return;
     const hash = window.location.hash;
-    if (!hash.startsWith('#listing-')) return;
     const t = setTimeout(() => {
-      const el = document.getElementById(hash.slice(1));
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 200);
+      if (hash.startsWith('#listing-')) {
+        const el = document.getElementById(hash.slice(1));
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        const last = listings[listings.length - 1];
+        const el = document.getElementById(`listing-${last.id}`);
+        if (el) el.scrollIntoView({ behavior: 'auto', block: 'end' });
+        else window.scrollTo({ top: document.body.scrollHeight, behavior: 'auto' });
+      }
+    }, 250);
     return () => clearTimeout(t);
-  }, [listings]);
+  }, [listings?.length]);
 
   const filteredListings = listings?.filter(l =>
     l.title.toLowerCase().includes(search.toLowerCase()) ||
