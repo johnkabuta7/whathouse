@@ -61,6 +61,7 @@ export default function Profil() {
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [showStylePicker, setShowStylePicker] = useState(false);
 
   // Use live profile data for avatar/background
   const avatarUrl = profile?.avatar_url || user?.profile?.avatar_url;
