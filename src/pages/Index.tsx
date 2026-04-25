@@ -286,6 +286,9 @@ export default function Index() {
       {/* Slider banner - full width */}
       {!isSearching && <SliderBanner />}
 
+      {/* Featured properties from Zwandako */}
+      {!isSearching && <FeaturedProperties />}
+
       {/* Contact modal */}
       {selectedContact && (
         <div className="fixed inset-0 bg-foreground/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedContact(null)}>
