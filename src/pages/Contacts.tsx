@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, MoreVertical, Plus, Download, Settings, Users } from 'lucide-react';
+import { Search, UserPlus, MoreVertical, Plus, Download, Settings, Users, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,10 +31,20 @@ export default function Contacts() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showInstall, setShowInstall] = useState(false);
+  const [recentMode, setRecentMode] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const handler = () => setRecentMode(v => !v);
+    window.addEventListener('contacts:show-recent', handler as any);
+    return () => window.removeEventListener('contacts:show-recent', handler as any);
+  }, []);
+
   const others = profiles?.filter(p => p.user_id !== user?.id);
-  const filtered = others?.filter(p =>
+  const baseList = recentMode
+    ? [...(others || [])].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    : others;
+  const filtered = baseList?.filter(p =>
     `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
     (p.phone || '').includes(search)
   );
@@ -66,7 +76,17 @@ export default function Contacts() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border">
         <div className="px-4 py-3 flex items-center gap-3">
-          <h1 className="text-lg font-bold flex-1 text-foreground">Contacts</h1>
+          <h1 className="text-lg font-bold flex-1 text-foreground flex items-center gap-2">
+            Contacts
+            {recentMode && (
+              <button
+                onClick={() => setRecentMode(false)}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/15 text-primary"
+              >
+                <Clock className="h-3 w-3" />Récents ✕
+              </button>
+            )}
+          </h1>
           <button onClick={() => setSearchOpen(!searchOpen)} className="p-1.5 rounded-full hover:bg-muted transition">
             <Search className="h-5 w-5 text-muted-foreground" />
           </button>

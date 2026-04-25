@@ -5,9 +5,9 @@ export type ThemeStyle = 'classic' | 'mocha' | 'nature';
 
 // Each theme style has its own fixed brand color — no per-user color picker.
 export const STYLE_COLORS: Record<ThemeStyle, string> = {
-  classic: '#F2742E', // Orange (couleur 1)
-  mocha:   '#D97757', // Cuivré mocha (inchangé)
-  nature:  '#2599FB', // Azur (couleur 3)
+  classic: '#00A0B0', // Teal (couleur 1)
+  mocha:   '#0084FA', // Bleu (couleur 2) — fond noir
+  nature:  '#F5432D', // Rouge-orangé (couleur 3)
 };
 
 // Kept for backward-compat (some components may still import it). Do NOT extend.
