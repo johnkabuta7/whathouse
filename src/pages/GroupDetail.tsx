@@ -236,7 +236,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           <button onClick={handleShare} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-muted text-muted-foreground">
             <Share2 className="h-3.5 w-3.5" />
           </button>
-          <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-green-500 text-white">
+          <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-success text-success-foreground">
             <Send className="h-3.5 w-3.5" />Message
           </button>
           <a href={listing.zwandako_url || `https://zwandako.com/?p=${listing.wp_post_id || ''}`} target="_blank" rel="noopener noreferrer"
