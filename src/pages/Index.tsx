@@ -90,8 +90,8 @@ function SliderBanner() {
         <div key={slide.id} className={`absolute inset-0 transition-opacity duration-500 ${i === current ? 'opacity-100' : 'opacity-0'}`}>
           <img src={slide.image_url} alt="" className="w-full h-full object-cover" />
           {slide.caption && (
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-6 pb-3">
-              <p className="text-white text-xs font-semibold drop-shadow line-clamp-2">{slide.caption}</p>
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/70 to-transparent px-3 pt-6 pb-3">
+              <p className="text-background text-xs font-semibold drop-shadow line-clamp-2">{slide.caption}</p>
             </div>
           )}
         </div>
@@ -224,7 +224,7 @@ export default function Index() {
           <button onClick={handleBellClick} className="relative p-1.5 rounded-full hover:bg-muted transition">
             <Bell className="h-5 w-5 text-muted-foreground" />
             {totalRequests > 0 && (
-              <span className="absolute -top-1 -right-1 h-5 min-w-[20px] rounded-full bg-destructive text-[10px] font-bold text-white flex items-center justify-center px-1">
+              <span className="absolute -top-1 -right-1 h-5 min-w-[20px] rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center px-1">
                 {totalRequests}
               </span>
             )}
@@ -318,11 +318,11 @@ export default function Index() {
             <div className="flex gap-3 mt-4">
               {selectedContact.phone && (
                 <>
-                  <a href={`tel:${selectedContact.phone}`} className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500 text-white">
+                  <a href={`tel:${selectedContact.phone}`} className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-success text-success-foreground">
                     <Phone className="h-5 w-5" /><span className="text-xs font-medium">Appeler</span>
                   </a>
                   <a href={`https://wa.me/${selectedContact.phone.replace(/[^0-9+]/g, '')}`} target="_blank" rel="noopener noreferrer"
-                    className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500 text-white">
+                    className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-success text-success-foreground">
                     <MessageSquare className="h-5 w-5" /><span className="text-xs font-medium">Message</span>
                   </a>
                 </>
