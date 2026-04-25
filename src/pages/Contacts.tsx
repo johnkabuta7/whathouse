@@ -10,13 +10,25 @@ import { SelectGroupModal } from '@/components/SelectGroupModal';
 import { InstallPrompt } from '@/components/InstallPrompt';
 
 function useAllProfiles() {
+  const { user } = useAuth();
   return useQuery({
     queryKey: ['all_profiles'],
     queryFn: async () => {
       const { data, error } = await supabase.from('profiles').select('*');
       if (error) throw error;
-      return data;
+      const { data: sessions } = await supabase
+        .from('active_sessions' as any)
+        .select('user_id, updated_at');
+      const cutoff = Date.now() - 2 * 60 * 1000;
+      const onlineSet = new Set(
+        (sessions as any[] | null)
+          ?.filter((s: any) => new Date(s.updated_at).getTime() > cutoff)
+          .map((s: any) => s.user_id) || []
+      );
+      return (data || []).map(p => ({ ...p, online: onlineSet.has(p.user_id) }));
     },
+    enabled: !!user,
+    refetchInterval: 30_000,
   });
 }
 
@@ -43,7 +55,7 @@ export default function Contacts() {
   const others = profiles?.filter(p => p.user_id !== user?.id);
   const baseList = recentMode
     ? [...(others || [])].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    : others;
+    : [...(others || [])].sort((a: any, b: any) => Number(b.online) - Number(a.online));
   const filtered = baseList?.filter(p =>
     `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
     (p.phone || '').includes(search)
@@ -172,12 +184,15 @@ export default function Contacts() {
                 onTouchEnd={cancelLongPress}
                 className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer ${isSelected ? 'bg-primary/10' : ''}`}
               >
-                <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+                <div className="relative shrink-0">
+                <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden ${isSelected ? 'bg-primary text-primary-foreground' : `bg-primary/10 text-primary ${(p as any).online ? '' : 'opacity-55 grayscale'}`}`}>
                   {isSelected ? '✓' : p.avatar_url ? <img src={p.avatar_url} className="h-full w-full object-cover rounded-full" /> : initials}
+                </div>
+                {(p as any).online && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-success border-2 border-card" />}
                 </div>
                 <div className="flex-1 min-w-0 border-b border-border pb-3">
                   <p className="text-sm font-medium text-foreground truncate">{name}</p>
-                  {p.phone && <p className="text-xs text-muted-foreground">{p.phone}</p>}
+                  <p className="text-xs text-muted-foreground">{(p as any).online ? 'En ligne' : (p.phone || 'Hors ligne')}</p>
                 </div>
               </div>
             );
