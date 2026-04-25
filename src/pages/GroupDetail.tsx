@@ -36,6 +36,10 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   // Auto-save draft on every change (debounced via microtask)
   useEffect(() => {
     const t = setTimeout(() => {
+      if (!title.trim() && !description.trim() && !zwandakoUrl.trim() && previews.length === 0) {
+        setDraft(null);
+        return;
+      }
       setDraft({ title, description, zwandako_url: zwandakoUrl, image_previews: previews });
     }, 300);
     return () => clearTimeout(t);
@@ -79,12 +83,13 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
           onSuccess: (result: any) => {
             toast({
               title: 'Annonce publiée !',
-              description: result?.wp_sync_failed ? 'Enregistrée dans l’application, synchronisation zwandako à vérifier.' : 'Visible aussi sur zwandako.com',
+              description: result?.zwandako_url ? 'Visible aussi sur zwandako.com' : 'Enregistrée dans l’application, synchronisation zwandako à vérifier.',
             });
             try { playSuccessSound(); } catch { /* sound is best-effort */ }
             deleteDraft(groupId);
-            onDone();
             setTitle(''); setDescription(''); setZwandakoUrl(''); setFiles([]); setPreviews([]);
+            setDraft(null);
+            onDone();
             setIsLoading(false);
           },
           onError: (err: any) => {
@@ -234,12 +239,11 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-green-500 text-white">
             <Send className="h-3.5 w-3.5" />Message
           </button>
-          {listing.zwandako_url && (
-            <a href={listing.zwandako_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full bg-primary text-primary-foreground ml-auto">
-              <ExternalLink className="h-3.5 w-3.5" />Voir
-            </a>
-          )}
+          <a href={listing.zwandako_url || `https://zwandako.com/?p=${listing.wp_post_id || ''}`} target="_blank" rel="noopener noreferrer"
+            aria-disabled={!listing.zwandako_url && !listing.wp_post_id}
+            className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full ml-auto ${listing.zwandako_url || listing.wp_post_id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground pointer-events-none opacity-60'}`}>
+            <ExternalLink className="h-3.5 w-3.5" />Voir
+          </a>
         </div>
       </div>
     </div>
