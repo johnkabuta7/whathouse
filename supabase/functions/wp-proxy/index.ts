@@ -169,13 +169,15 @@ async function promoteWpUserToEditor(wpUserId: number) {
 }
 
 async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
-  const { data: profile, error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select(
       "user_id, first_name, last_name, phone, wp_user_id, wp_user_password",
     )
     .eq("user_id", userId)
-    .single<ProfileRow>();
+    .single();
+
+  const profile = data as ProfileRow | null;
 
   if (error || !profile) throw new Error("Profile not found");
 
