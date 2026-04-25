@@ -389,7 +389,7 @@ export default function GroupDetail() {
         <Link to={`/group/${id}/members`} className="p-1.5 rounded-full hover:bg-muted transition relative">
           <Users className="h-4 w-4 text-muted-foreground" />
           {isCreator && pendingCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-4 min-w-[16px] rounded-full bg-destructive text-[9px] font-bold text-white flex items-center justify-center px-0.5">
+            <span className="absolute -top-1 -right-1 h-4 min-w-[16px] rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground flex items-center justify-center px-0.5">
               {pendingCount}
             </span>
           )}
