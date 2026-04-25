@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, MoreVertical, Plus, Download, Settings, Users, Clock } from 'lucide-react';
+import { Search, UserPlus, MoreVertical, Settings, Users, Clock, History } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,13 +10,25 @@ import { SelectGroupModal } from '@/components/SelectGroupModal';
 import { InstallPrompt } from '@/components/InstallPrompt';
 
 function useAllProfiles() {
+  const { user } = useAuth();
   return useQuery({
     queryKey: ['all_profiles'],
     queryFn: async () => {
       const { data, error } = await supabase.from('profiles').select('*');
       if (error) throw error;
-      return data;
+      const { data: sessions } = await supabase
+        .from('active_sessions' as any)
+        .select('user_id, updated_at');
+      const cutoff = Date.now() - 2 * 60 * 1000;
+      const onlineSet = new Set(
+        (sessions as any[] | null)
+          ?.filter((s: any) => new Date(s.updated_at).getTime() > cutoff)
+          .map((s: any) => s.user_id) || []
+      );
+      return (data || []).map(p => ({ ...p, online: onlineSet.has(p.user_id) }));
     },
+    enabled: !!user,
+    refetchInterval: 30_000,
   });
 }
 
@@ -43,7 +55,7 @@ export default function Contacts() {
   const others = profiles?.filter(p => p.user_id !== user?.id);
   const baseList = recentMode
     ? [...(others || [])].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    : others;
+    : [...(others || [])].sort((a: any, b: any) => Number(b.online) - Number(a.online));
   const filtered = baseList?.filter(p =>
     `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
     (p.phone || '').includes(search)
@@ -97,17 +109,21 @@ export default function Contacts() {
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={closeMenu} />
-                <div className="absolute right-0 top-full mt-1 w-60 bg-card rounded-xl shadow-lg border border-border z-50 py-1 animate-fade-in">
+                <div className="absolute right-0 top-full mt-1 w-60 bg-popover text-popover-foreground rounded-xl shadow-xl border border-border z-50 py-1 animate-fade-in">
+                  <button onClick={() => { closeMenu(); setRecentMode(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-popover-foreground hover:bg-muted transition">
+                    <History className="h-4 w-4 text-primary" />Historique
+                  </button>
                   <button onClick={() => { closeMenu(); navigate('/create-group'); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-popover-foreground hover:bg-muted transition">
                     <Users className="h-4 w-4 text-primary" />Créer un groupe
                   </button>
                   <button onClick={() => { closeMenu(); setSelecting(true); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-popover-foreground hover:bg-muted transition">
                     <UserPlus className="h-4 w-4 text-primary" />Sélectionner & ajouter
                   </button>
                   <button onClick={() => { closeMenu(); navigate('/profil?tab=infos'); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-popover-foreground hover:bg-muted transition">
                     <Settings className="h-4 w-4 text-primary" />Paramètres
                   </button>
                 </div>
@@ -168,12 +184,15 @@ export default function Contacts() {
                 onTouchEnd={cancelLongPress}
                 className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer ${isSelected ? 'bg-primary/10' : ''}`}
               >
-                <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+                <div className="relative shrink-0">
+                <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden ${isSelected ? 'bg-primary text-primary-foreground' : `bg-primary/10 text-primary ${(p as any).online ? '' : 'opacity-55 grayscale'}`}`}>
                   {isSelected ? '✓' : p.avatar_url ? <img src={p.avatar_url} className="h-full w-full object-cover rounded-full" /> : initials}
+                </div>
+                {(p as any).online && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-success border-2 border-card" />}
                 </div>
                 <div className="flex-1 min-w-0 border-b border-border pb-3">
                   <p className="text-sm font-medium text-foreground truncate">{name}</p>
-                  {p.phone && <p className="text-xs text-muted-foreground">{p.phone}</p>}
+                  <p className="text-xs text-muted-foreground">{(p as any).online ? 'En ligne' : (p.phone || 'Hors ligne')}</p>
                 </div>
               </div>
             );

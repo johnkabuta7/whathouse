@@ -129,13 +129,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       claimActiveSession(user.id).then(t => { myTokenRef.current = t; });
     }
 
-    // Heartbeat every 60s to stay "online"
+    // Heartbeat every 20s to keep online status responsive.
     const heartbeat = setInterval(() => {
       supabase.from('active_sessions' as any).update({ updated_at: new Date().toISOString() })
         .eq('user_id', user.id)
         .eq('session_token', myTokenRef.current || generateSessionToken())
         .then(() => {});
-    }, 60_000);
+    }, 20_000);
 
     return () => {
       clearInterval(heartbeat);

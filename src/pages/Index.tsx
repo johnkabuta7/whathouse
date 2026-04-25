@@ -53,6 +53,7 @@ function useNewSignupsCount() {
 function SliderBanner() {
   const { data: banners } = useSliderBanners();
   const [current, setCurrent] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
 
   const defaultBanners = [
     { id: '1', image_url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=200&fit=crop', link_url: null },
@@ -68,14 +69,29 @@ function SliderBanner() {
     return () => clearInterval(timer);
   }, [slides.length]);
 
+  const goTo = (direction: 1 | -1) => {
+    setCurrent(p => (p + direction + slides.length) % slides.length);
+  };
+
+  const handleTouchEnd = (x: number) => {
+    if (touchStart === null || slides.length <= 1) return;
+    const delta = touchStart - x;
+    if (Math.abs(delta) > 35) goTo(delta > 0 ? 1 : -1);
+    setTouchStart(null);
+  };
+
   return (
-    <div className="relative w-full h-[100px] overflow-hidden">
+    <div
+      className="relative w-full h-[100px] overflow-hidden touch-pan-y"
+      onTouchStart={e => setTouchStart(e.touches[0].clientX)}
+      onTouchEnd={e => handleTouchEnd(e.changedTouches[0].clientX)}
+    >
       {slides.map((slide: any, i) => (
         <div key={slide.id} className={`absolute inset-0 transition-opacity duration-500 ${i === current ? 'opacity-100' : 'opacity-0'}`}>
           <img src={slide.image_url} alt="" className="w-full h-full object-cover" />
           {slide.caption && (
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-6 pb-3">
-              <p className="text-white text-xs font-semibold drop-shadow line-clamp-2">{slide.caption}</p>
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/70 to-transparent px-3 pt-6 pb-3">
+              <p className="text-background text-xs font-semibold drop-shadow line-clamp-2">{slide.caption}</p>
             </div>
           )}
         </div>
@@ -208,7 +224,7 @@ export default function Index() {
           <button onClick={handleBellClick} className="relative p-1.5 rounded-full hover:bg-muted transition">
             <Bell className="h-5 w-5 text-muted-foreground" />
             {totalRequests > 0 && (
-              <span className="absolute -top-1 -right-1 h-5 min-w-[20px] rounded-full bg-destructive text-[10px] font-bold text-white flex items-center justify-center px-1">
+              <span className="absolute -top-1 -right-1 h-5 min-w-[20px] rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center px-1">
                 {totalRequests}
               </span>
             )}
@@ -220,9 +236,9 @@ export default function Index() {
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={closeMenu} />
-                <div className="absolute right-0 top-full mt-1 w-60 bg-card rounded-xl shadow-lg border border-border z-50 py-1 animate-fade-in">
+                <div className="absolute right-0 top-full mt-1 w-60 bg-popover text-popover-foreground rounded-xl shadow-xl border border-border z-50 py-1 animate-fade-in">
                   <button onClick={() => { closeMenu(); setShowInstall(true); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-popover-foreground hover:bg-muted transition">
                     <Download className="h-4 w-4 text-primary" />Installer l'App
                   </button>
                   <button onClick={async () => {
@@ -235,7 +251,7 @@ export default function Index() {
                       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                     }
                   }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-popover-foreground hover:bg-muted transition">
                     <Share2 className="h-4 w-4 text-primary" />Partager l'application
                   </button>
                 </div>
@@ -254,28 +270,28 @@ export default function Index() {
         )}
       </header>
 
-      {/* Contact carousel — bigger avatars, 5mm vertical margin */}
+      {/* Contact carousel — Messenger style online indicator */}
       {contacts && contacts.length > 0 && !isSearching && (
-        <div className="px-3 py-[5mm]">
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+        <div className="px-3 pt-[5mm] pb-3">
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1">
             {contacts.slice(0, 30).map(c => {
               const name = `${c.first_name} ${c.last_name}`.trim() || '?';
               const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
               return (
                 <button key={c.user_id} onClick={() => setSelectedContact(c)} className="flex flex-col items-center gap-1 shrink-0">
                   <div className="relative">
-                    <div className="h-[68px] w-[68px] rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
+                    <div className={`h-[68px] w-[68px] rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ${c.online ? 'ring-primary/40 opacity-100' : 'ring-border opacity-55 grayscale'}`}>
                       {c.avatar_url ? <img src={c.avatar_url} alt={name} className="h-full w-full object-cover" /> :
                         <span className="text-sm font-bold text-primary">{initials}</span>}
                     </div>
                     {c.online && (
                       <span
                         title="En ligne"
-                        className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-card"
+                        className="absolute bottom-0.5 right-0.5 h-4 w-4 rounded-full bg-success border-2 border-card"
                       />
                     )}
                   </div>
-                  <span className="text-[10px] text-foreground font-medium max-w-[68px] truncate">{c.first_name || '?'}</span>
+                  <span className={`text-[10px] font-medium max-w-[68px] truncate ${c.online ? 'text-foreground' : 'text-muted-foreground'}`}>{c.first_name || '?'}</span>
                 </button>
               );
             })}
@@ -302,11 +318,11 @@ export default function Index() {
             <div className="flex gap-3 mt-4">
               {selectedContact.phone && (
                 <>
-                  <a href={`tel:${selectedContact.phone}`} className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500 text-white">
+                  <a href={`tel:${selectedContact.phone}`} className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-success text-success-foreground">
                     <Phone className="h-5 w-5" /><span className="text-xs font-medium">Appeler</span>
                   </a>
                   <a href={`https://wa.me/${selectedContact.phone.replace(/[^0-9+]/g, '')}`} target="_blank" rel="noopener noreferrer"
-                    className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500 text-white">
+                    className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl bg-success text-success-foreground">
                     <MessageSquare className="h-5 w-5" /><span className="text-xs font-medium">Message</span>
                   </a>
                 </>
@@ -377,14 +393,6 @@ export default function Index() {
           })}
         </div>
       )}
-
-      {/* FAB */}
-      {!isSearching && (
-        <Link to="/create-group" className="fixed bottom-20 right-4 h-14 w-14 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:opacity-90 transition z-40">
-          <Plus className="h-6 w-6" />
-        </Link>
-      )}
-
       <InstallPrompt open={showInstall} onClose={() => setShowInstall(false)} />
     </div>
   );

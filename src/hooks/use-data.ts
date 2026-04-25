@@ -448,6 +448,7 @@ export function useCreateListing() {
       if (error) throw error;
       // Push to WordPress (zwandako.com) without blocking local publication.
       let wpSyncFailed = false;
+      let zwandakoUrl = data.zwandako_url;
       try {
         const { data: publishData, error: publishError } = await supabase.functions.invoke('wp-proxy', {
           body: {
@@ -465,11 +466,12 @@ export function useCreateListing() {
           throw publishError;
         }
         wpSyncFailed = Boolean(publishData?.wp_sync_failed);
+        if (publishData?.link) zwandakoUrl = publishData.link;
       } catch (e) {
         wpSyncFailed = true;
         console.warn('WP publish failed, keeping local listing:', e);
       }
-      return { ...data, wp_sync_failed: wpSyncFailed };
+      return { ...data, zwandako_url: zwandakoUrl, wp_sync_failed: wpSyncFailed };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['listings', data.group_id] });

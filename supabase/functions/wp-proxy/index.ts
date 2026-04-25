@@ -73,8 +73,46 @@ function wpErrorCode(bodyText: string) {
 function isWpPermissionError(status: number, bodyText: string) {
   const code = wpErrorCode(bodyText);
   return status === 401 || status === 403 ||
-    /rest_cannot_create|rest_not_logged_in|not allowed/i.test(code) ||
-    /rest_cannot_create|rest_not_logged_in|not allowed/i.test(bodyText);
+    /rest_cannot_create|rest_cannot_create_user|rest_not_logged_in|not allowed/i.test(code) ||
+    /rest_cannot_create|rest_cannot_create_user|rest_not_logged_in|not allowed/i.test(bodyText);
+}
+
+async function createPropertyWithFallback(
+  postBody: Record<string, unknown>,
+  wpActor: WpActor,
+) {
+  const attempts = [
+    { path: "/properties", authHeader: wpActor.authHeader, status: "publish" },
+    { path: "/properties", authHeader: adminAuthHeader(), status: "publish" },
+    { path: "/property", authHeader: adminAuthHeader(), status: "publish" },
+    { path: "/properties", authHeader: adminAuthHeader(), status: "pending" },
+    { path: "/posts", authHeader: adminAuthHeader(), status: "pending" },
+  ];
+
+  let last: { res: Response; json: any; text: string } | null = null;
+
+  for (const attempt of attempts) {
+    const content = attempt.authHeader === adminAuthHeader() && wpActor.mode === "user"
+      ? `${String(postBody.content || "")}\n\n<p><em>Publié via WhatHouse par utilisateur #${wpActor.userId} (${wpActor.username})</em></p>`
+      : postBody.content;
+    const result = await fetchWpJson(attempt.path, {
+      method: "POST",
+      headers: {
+        Authorization: attempt.authHeader,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ...postBody, content, status: attempt.status }),
+    });
+    last = result;
+    if (result.res.ok && result.json?.id) {
+      return { ...result, authHeader: attempt.authHeader, path: attempt.path };
+    }
+    if (!isWpPermissionError(result.res.status, result.text)) break;
+    console.warn(`WP create attempt failed ${attempt.path} [${result.res.status}]: ${result.text}`);
+  }
+
+  if (!last) throw new Error("WP property create was not attempted");
+  return { ...last, authHeader: adminAuthHeader(), path: "" };
 }
 
 async function fetchWpJson(path: string, init: RequestInit) {
@@ -368,40 +406,11 @@ Deno.serve(async (req) => {
         postBody.featured_media = featured;
       }
 
-      // Try first with the user's own WP credentials (so author is auto-set
-      // and Houzez agent linkage works). If that fails (cap missing), fall
-      // back to admin credentials.
-      let postAuth = wpActor.authHeader;
-      let { res: postRes, json: postJson, text: postText } =
-        await fetchWpJson(`/properties`, {
-          method: "POST",
-          headers: {
-            Authorization: postAuth,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(postBody),
-        });
-
-      if (!postRes.ok && wpActor.mode === "user") {
-        console.warn(
-          `user-mode property create failed [${postRes.status}], retrying with admin`,
-        );
-        postAuth = adminAuthHeader();
-        // Append author info into content since admin (john) cannot reassign
-        // posts to other users (lacks edit_others_properties cap).
-        const adminContent = `${content}\n\n<p><em>Publié via WhatHouse par utilisateur #${wpActor.userId} (${wpActor.username})</em></p>`;
-        const retry = await fetchWpJson(`/properties`, {
-          method: "POST",
-          headers: {
-            Authorization: postAuth,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ ...postBody, content: adminContent }),
-        });
-        postRes = retry.res;
-        postJson = retry.json;
-        postText = retry.text;
-      }
+      const createResult = await createPropertyWithFallback(postBody, wpActor);
+      const postAuth = createResult.authHeader;
+      const postRes = createResult.res;
+      const postJson = createResult.json;
+      const postText = createResult.text;
 
       if (!postRes.ok && isWpPermissionError(postRes.status, postText)) {
         const admin = await getAdminCapabilities();

@@ -1,5 +1,5 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageSquare, Users, User, Plus, Clock, UserCog } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { MessageSquare, Users, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -11,38 +11,11 @@ const navItems = [
 
 export function BottomNav() {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const { themeStyle } = useTheme();
   const isFloating = themeStyle === 'mocha' || themeStyle === 'nature';
 
   // Hide bottom nav when inside a group
   if (pathname.startsWith('/group/')) return null;
-
-  // Dynamic + button: action depends on the active route.
-  // Accueil → créer un groupe. Contacts → contacts récents. Profil → modifier le profil.
-  const plusAction = (() => {
-    if (pathname.startsWith('/contacts')) {
-      return { label: 'Contacts récents', icon: Clock, run: () => window.dispatchEvent(new CustomEvent('contacts:show-recent')) };
-    }
-    if (pathname.startsWith('/profil')) {
-      return { label: 'Modifier le profil', icon: UserCog, run: () => window.dispatchEvent(new CustomEvent('profil:edit')) };
-    }
-    return { label: 'Nouveau groupe', icon: Plus, run: () => navigate('/create-group') };
-  })();
-
-  // Bouton + universel : fond rouge, icône blanche.
-  const PlusButton = ({ size = 'h-12 w-12' }: { size?: string }) => (
-    <button
-      onClick={plusAction.run}
-      aria-label={plusAction.label}
-      className={cn(
-        size,
-        'rounded-full bg-[#F5432D] text-white flex items-center justify-center active:scale-95 transition shadow-lg shadow-[#F5432D]/40'
-      )}
-    >
-      <plusAction.icon className="h-5 w-5" />
-    </button>
-  );
 
   if (isFloating) {
     const isNature = themeStyle === 'nature';
@@ -70,7 +43,6 @@ export function BottomNav() {
                 </Link>
               );
             })}
-            <PlusButton />
           </div>
         </nav>
       );
@@ -98,39 +70,33 @@ export function BottomNav() {
               );
             })}
           </div>
-          <PlusButton />
         </div>
       </nav>
     );
   }
 
-  // ---- Default (classic) — barre fixe sobre + bouton + flottant rouge ----
+  // ---- Default (classic) — barre fixe sobre ----
   return (
-    <>
-      <div className="fixed bottom-16 right-4 z-50">
-        <PlusButton size="h-14 w-14" />
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+      <div className="max-w-lg mx-auto flex items-center justify-around h-14">
+        {navItems.map(item => {
+          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              className={cn(
+                'flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-colors relative',
+                isActive ? 'text-primary' : 'text-muted-foreground'
+              )}
+            >
+              {isActive && <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />}
+              <item.icon className={cn('h-5 w-5', isActive && 'text-primary')} />
+              <span className="text-[10px] font-semibold">{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
-        <div className="max-w-lg mx-auto flex items-center justify-around h-14">
-          {navItems.map(item => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  'flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-colors relative',
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                )}
-              >
-                {isActive && <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />}
-                <item.icon className={cn('h-5 w-5', isActive && 'text-primary')} />
-                <span className="text-[10px] font-semibold">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-    </>
+    </nav>
   );
 }
