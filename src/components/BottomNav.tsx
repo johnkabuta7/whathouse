@@ -26,17 +26,49 @@ export function BottomNav() {
   })();
 
   if (isFloating) {
-    // Mocha = pilule sombre cuivrée. Nature = pilule blanche/bleue inspirée de la référence Tinder-like.
     const isNature = themeStyle === 'nature';
+
+    // === NATURE: 3 cercles séparés (style Tinder/Bumble) ===
+    if (isNature) {
+      return (
+        <nav className="fixed bottom-4 left-0 right-0 z-50 px-4 pointer-events-none">
+          <div className="max-w-lg mx-auto flex items-center justify-center gap-3 pointer-events-auto">
+            {navItems.map(item => {
+              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  aria-label={item.label}
+                  className={cn(
+                    'rounded-full backdrop-blur-xl flex items-center justify-center transition-all active:scale-95',
+                    isActive
+                      ? 'h-14 w-14 bg-primary text-primary-foreground shadow-xl shadow-primary/40 ring-4 ring-primary/15'
+                      : 'h-12 w-12 bg-card/95 text-muted-foreground border border-border/60 shadow-md'
+                  )}
+                >
+                  <item.icon className={cn(isActive ? 'h-6 w-6' : 'h-5 w-5')} />
+                </Link>
+              );
+            })}
+            {/* Dynamic + */}
+            <button
+              onClick={plusAction.run}
+              aria-label={plusAction.label}
+              className="h-12 w-12 rounded-full bg-card/95 text-primary border border-border/60 shadow-md flex items-center justify-center active:scale-95 transition"
+            >
+              <plusAction.icon className="h-5 w-5" />
+            </button>
+          </div>
+        </nav>
+      );
+    }
+
+    // === MOCHA: pilule sombre cuivrée ===
     return (
       <nav className="fixed bottom-3 left-0 right-0 z-50 px-3 pointer-events-none">
         <div className="max-w-lg mx-auto flex items-center justify-center gap-2 pointer-events-auto">
-          <div className={cn(
-            'flex-1 flex items-center justify-around backdrop-blur-xl border rounded-full px-2 py-1.5',
-            isNature
-              ? 'bg-card/95 border-border/40 shadow-xl shadow-primary/10'
-              : 'bg-card/85 border-border/60 shadow-lg shadow-black/20'
-          )}>
+          <div className="flex-1 flex items-center justify-around backdrop-blur-xl border rounded-full px-2 py-1.5 bg-card/85 border-border/60 shadow-lg shadow-black/20">
             {navItems.map(item => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
               return (
@@ -57,10 +89,7 @@ export function BottomNav() {
           <button
             onClick={plusAction.run}
             aria-label={plusAction.label}
-            className={cn(
-              'h-12 w-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition',
-              isNature ? 'shadow-xl shadow-primary/40 ring-4 ring-primary/15' : 'shadow-lg shadow-primary/30'
-            )}
+            className="h-12 w-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition shadow-lg shadow-primary/30"
           >
             <plusAction.icon className="h-5 w-5" />
           </button>

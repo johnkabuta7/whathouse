@@ -89,6 +89,68 @@ function SliderBanner() {
   );
 }
 
+function useFeaturedProperties() {
+  return useQuery({
+    queryKey: ['wp_featured_properties'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('https://zwandako.com/wp-json/wp/v2/property?_embed&per_page=10&orderby=date&order=desc');
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+function FeaturedProperties() {
+  const { data: properties, isLoading } = useFeaturedProperties();
+
+  if (isLoading) {
+    return (
+      <div className="px-3 py-3">
+        <div className="flex gap-3 overflow-x-auto no-scrollbar">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-40 w-44 rounded-2xl shrink-0" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (!properties || properties.length === 0) return null;
+
+  return (
+    <div className="py-3">
+      <div className="px-4 flex items-center justify-between mb-2">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">À la une sur Zwandako</h2>
+        <a href="https://zwandako.com" target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold text-primary">Voir tout →</a>
+      </div>
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1">
+        {properties.map((p: any) => {
+          const img = p._embedded?.['wp:featuredmedia']?.[0]?.source_url
+            || p.jetpack_featured_media_url
+            || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop';
+          const title = p.title?.rendered?.replace(/<[^>]+>/g, '') || 'Propriété';
+          return (
+            <a key={p.id} href={p.link} target="_blank" rel="noopener noreferrer"
+              className="shrink-0 w-44 rounded-2xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition">
+              <div className="h-28 w-full overflow-hidden bg-muted">
+                <img src={img} alt={title} className="h-full w-full object-cover" loading="lazy" />
+              </div>
+              <div className="p-2">
+                <p className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">{title}</p>
+                <p className="text-[10px] text-primary font-bold mt-1">Voir l'annonce →</p>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Index() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -209,7 +271,7 @@ export default function Index() {
                     {c.online && (
                       <span
                         title="En ligne"
-                        className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-primary border-2 border-card"
+                        className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-card"
                       />
                     )}
                   </div>
@@ -223,6 +285,9 @@ export default function Index() {
 
       {/* Slider banner - full width */}
       {!isSearching && <SliderBanner />}
+
+      {/* Featured properties from Zwandako */}
+      {!isSearching && <FeaturedProperties />}
 
       {/* Contact modal */}
       {selectedContact && (

@@ -410,7 +410,7 @@ export function useListings(groupId: string) {
   return useQuery({
     queryKey: ['listings', groupId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('listings').select('*').eq('group_id', groupId).order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('listings').select('*').eq('group_id', groupId).order('created_at', { ascending: true });
       if (error) throw error;
       return data;
     },
