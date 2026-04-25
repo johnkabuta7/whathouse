@@ -89,7 +89,7 @@ async function createPropertyWithFallback(
     { path: "/posts", authHeader: adminAuthHeader(), status: "pending" },
   ];
 
-  let last = { res: null as Response | null, json: null as any, text: "" };
+  let last: { res: Response; json: any; text: string } | null = null;
 
   for (const attempt of attempts) {
     const content = attempt.authHeader === adminAuthHeader() && wpActor.mode === "user"
@@ -111,6 +111,7 @@ async function createPropertyWithFallback(
     console.warn(`WP create attempt failed ${attempt.path} [${result.res.status}]: ${result.text}`);
   }
 
+  if (!last) throw new Error("WP property create was not attempted");
   return { ...last, authHeader: adminAuthHeader(), path: "" };
 }
 
