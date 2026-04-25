@@ -21,7 +21,7 @@ function useOnlineContacts() {
       const { data: sessions } = await supabase
         .from('active_sessions' as any)
         .select('user_id, updated_at');
-      const cutoff = Date.now() - 2 * 60 * 1000;
+      const cutoff = Date.now() - 60 * 1000; // 60s = en ligne
       const onlineSet = new Set(
         (sessions as any[] | null)
           ?.filter((s: any) => new Date(s.updated_at).getTime() > cutoff)
@@ -280,18 +280,18 @@ export default function Index() {
               return (
                 <button key={c.user_id} onClick={() => setSelectedContact(c)} className="flex flex-col items-center gap-1 shrink-0">
                   <div className="relative">
-                    <div className={`h-[68px] w-[68px] rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ${c.online ? 'ring-primary/40 opacity-100' : 'ring-border opacity-55 grayscale'}`}>
+                    <div className="h-[68px] w-[68px] rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-border">
                       {c.avatar_url ? <img src={c.avatar_url} alt={name} className="h-full w-full object-cover" /> :
                         <span className="text-sm font-bold text-primary">{initials}</span>}
                     </div>
                     {c.online && (
                       <span
                         title="En ligne"
-                        className="absolute bottom-0.5 right-0.5 h-4 w-4 rounded-full bg-success border-2 border-card"
+                        className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[#22C55E] border-2 border-card shadow"
                       />
                     )}
                   </div>
-                  <span className={`text-[10px] font-medium max-w-[68px] truncate ${c.online ? 'text-foreground' : 'text-muted-foreground'}`}>{c.first_name || '?'}</span>
+                  <span className="text-[10px] font-medium max-w-[68px] truncate text-foreground">{c.first_name || '?'}</span>
                 </button>
               );
             })}

@@ -70,9 +70,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const colorHex = STYLE_COLORS[themeStyle];
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+    // Mocha n'a qu'un mode sombre — on force dark dès qu'on l'active.
+    const effectiveTheme = themeStyle === 'mocha' ? 'dark' : theme;
+    document.documentElement.classList.toggle('dark', effectiveTheme === 'dark');
     localStorage.setItem('theme', theme);
-  }, [theme]);
+  }, [theme, themeStyle]);
 
   useEffect(() => {
     const root = document.documentElement;
