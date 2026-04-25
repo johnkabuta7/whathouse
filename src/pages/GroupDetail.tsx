@@ -76,8 +76,11 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
       createListing.mutate(
         { group_id: groupId, user_id: userId, title: title.trim(), description: description.trim(), images: urls, zwandako_url: zwandakoUrl.trim() || undefined },
         {
-          onSuccess: () => {
-            toast({ title: 'Annonce publiée !', description: 'Visible aussi sur zwandako.com' });
+          onSuccess: (result: any) => {
+            toast({
+              title: 'Annonce publiée !',
+              description: result?.wp_sync_failed ? 'Enregistrée dans l’application, synchronisation zwandako à vérifier.' : 'Visible aussi sur zwandako.com',
+            });
             try { playSuccessSound(); } catch { /* sound is best-effort */ }
             deleteDraft(groupId);
             onDone();

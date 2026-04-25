@@ -7,8 +7,9 @@ const corsHeaders = {
 };
 
 const WP_BASE = "https://zwandako.com/wp-json/wp/v2";
-const WP_ADMIN_USER = Deno.env.get("WP_ADMIN_USER") || "";
-const WP_ADMIN_APP_PASSWORD = Deno.env.get("WP_ADMIN_APP_PASSWORD") || "";
+const WP_ADMIN_USER = (Deno.env.get("WP_ADMIN_USER") || "").trim();
+const WP_ADMIN_APP_PASSWORD = (Deno.env.get("WP_ADMIN_APP_PASSWORD") || "")
+  .replace(/\s+/g, "");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
   "";
@@ -43,7 +44,7 @@ function adminAuthHeader() {
 }
 
 function userAuthHeader(username: string, appPassword: string) {
-  return "Basic " + btoa(`${username}:${appPassword}`);
+  return "Basic " + btoa(`${username.trim()}:${appPassword.replace(/\s+/g, "")}`);
 }
 
 function normalizePhoneDigits(phone: string | null | undefined) {
@@ -59,6 +60,21 @@ function buildWpUsername(phone: string | null | undefined) {
 function isWpUserCreationBlocked(status: number, bodyText: string) {
   return status === 401 ||
     /rest_cannot_create_user|not allowed to create new users/i.test(bodyText);
+}
+
+function wpErrorCode(bodyText: string) {
+  try {
+    return JSON.parse(bodyText)?.code || "";
+  } catch {
+    return "";
+  }
+}
+
+function isWpPermissionError(status: number, bodyText: string) {
+  const code = wpErrorCode(bodyText);
+  return status === 401 || status === 403 ||
+    /rest_cannot_create|rest_not_logged_in|not allowed/i.test(code) ||
+    /rest_cannot_create|rest_not_logged_in|not allowed/i.test(bodyText);
 }
 
 async function fetchWpJson(path: string, init: RequestInit) {
@@ -79,6 +95,22 @@ async function getAdminActor(): Promise<WpActor> {
     username: WP_ADMIN_USER,
     authHeader: adminAuthHeader(),
     mode: "admin_fallback",
+  };
+}
+
+async function getAdminCapabilities() {
+  const { res, json, text } = await fetchWpJson(`/users/me?context=edit`, {
+    headers: { Authorization: adminAuthHeader() },
+  });
+
+  return {
+    ok: res.ok,
+    status: res.status,
+    code: wpErrorCode(text),
+    username: json?.username || WP_ADMIN_USER,
+    roles: json?.roles || [],
+    canCreatePosts: Boolean(json?.capabilities?.publish_posts),
+    canCreateProperties: Boolean(json?.capabilities?.publish_properties),
   };
 }
 
@@ -138,13 +170,15 @@ async function promoteWpUserToEditor(wpUserId: number) {
 }
 
 async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
-  const { data: profile, error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select(
       "user_id, first_name, last_name, phone, wp_user_id, wp_user_password",
     )
     .eq("user_id", userId)
-    .single<ProfileRow>();
+    .single();
+
+  const profile = data as ProfileRow | null;
 
   if (error || !profile) throw new Error("Profile not found");
 
@@ -369,6 +403,29 @@ Deno.serve(async (req) => {
         postText = retry.text;
       }
 
+      if (!postRes.ok && isWpPermissionError(postRes.status, postText)) {
+        const admin = await getAdminCapabilities();
+        console.error("WP permission error:", { status: postRes.status, body: postText, admin });
+
+        if (listing_id) {
+          await supabase
+            .from("listings")
+            .update({ zwandako_url: null })
+            .eq("id", listing_id);
+        }
+
+        return jsonResponse({
+          ok: true,
+          wp_post_id: null,
+          link: null,
+          media_ids: mediaIds,
+          mode: wpActor.mode,
+          wp_sync_failed: true,
+          error: "WordPress credentials or property permissions are invalid",
+          details: admin,
+        });
+      }
+
       if (!postRes.ok || !postJson?.id) {
         throw new Error(
           `WP property create failed [${postRes.status}]: ${postText}`,
@@ -463,10 +520,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "debug_admin") {
-      const { res, text } = await fetchWpJson(`/users/me?context=edit`, {
-        headers: { Authorization: adminAuthHeader() },
-      });
-      return jsonResponse({ ok: true, status: res.status, body: text });
+      const capabilities = await getAdminCapabilities();
+      return jsonResponse({ ...capabilities, request_ok: true });
     }
 
     return jsonResponse({ error: "unknown action" }, 400);
