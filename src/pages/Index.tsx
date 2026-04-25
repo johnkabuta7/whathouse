@@ -236,9 +236,9 @@ export default function Index() {
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={closeMenu} />
-                <div className="absolute right-0 top-full mt-1 w-60 bg-card rounded-xl shadow-lg border border-border z-50 py-1 animate-fade-in">
+                <div className="absolute right-0 top-full mt-1 w-60 bg-popover text-popover-foreground rounded-xl shadow-xl border border-border z-50 py-1 animate-fade-in">
                   <button onClick={() => { closeMenu(); setShowInstall(true); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-popover-foreground hover:bg-muted transition">
                     <Download className="h-4 w-4 text-primary" />Installer l'App
                   </button>
                   <button onClick={async () => {
@@ -251,7 +251,7 @@ export default function Index() {
                       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                     }
                   }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition">
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-popover-foreground hover:bg-muted transition">
                     <Share2 className="h-4 w-4 text-primary" />Partager l'application
                   </button>
                 </div>
