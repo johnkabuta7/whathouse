@@ -67,7 +67,11 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || !description.trim()) return;
+    if (previews.length === 0) {
+      toast({ title: 'Image obligatoire', description: 'Ajoutez au moins une image avant de publier.', variant: 'destructive' });
+      return;
+    }
     setIsLoading(true);
     try {
       // Make sure we have File objects for every preview (older drafts)
@@ -83,7 +87,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
           onSuccess: (result: any) => {
             toast({
               title: 'Annonce publiée !',
-              description: result?.zwandako_url ? 'Visible aussi sur zwandako.com' : 'Enregistrée dans l’application, synchronisation zwandako à vérifier.',
+              description: result?.zwandako_url ? 'Visible aussi sur zwandako.com' : 'Publication Zwandako confirmée.',
             });
             try { playSuccessSound(); } catch { /* sound is best-effort */ }
             deleteDraft(groupId);
@@ -114,7 +118,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   return (
     <form onSubmit={handleSubmit} onPaste={handlePaste} className="p-3 bg-card border-t border-border space-y-2">
       <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de l'annonce *" className="rounded-full text-sm h-9" required />
-      <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description... (collez votre texte d'annonce ici)" className="rounded-xl text-sm resize-none" rows={2} />
+      <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description complète *" className="rounded-xl text-sm resize-none" rows={2} required />
       <Input value={zwandakoUrl} onChange={e => setZwandakoUrl(e.target.value)} placeholder="Lien Zwandako (optionnel)" className="rounded-full text-sm h-9" />
       <div className="flex gap-2 items-center">
         <label className="cursor-pointer shrink-0">
@@ -135,7 +139,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
           className="h-9 w-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
           <SaveIcon className="h-4 w-4" />
         </button>
-        <Button type="submit" size="sm" className="rounded-full shrink-0 bg-primary text-primary-foreground" disabled={isLoading || !title.trim()}>
+        <Button type="submit" size="sm" className="rounded-full shrink-0 bg-primary text-primary-foreground" disabled={isLoading || !title.trim() || !description.trim() || previews.length === 0}>
           {isLoading ? <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
@@ -180,6 +184,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   };
 
   const images: string[] = listing.images || [];
+  const zwandakoHref = listing.zwandako_url || (listing.wp_post_id ? `https://zwandako.com/?p=${listing.wp_post_id}` : `https://zwandako.com/?s=${encodeURIComponent(listing.title || '')}`);
 
   const agentName = `${ownerProfile?.first_name || ''} ${ownerProfile?.last_name || ''}`.trim() || 'Agent';
   const agentInitials = agentName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'A';
@@ -239,9 +244,8 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-success text-success-foreground">
             <Send className="h-3.5 w-3.5" />Message
           </button>
-          <a href={listing.zwandako_url || `https://zwandako.com/?p=${listing.wp_post_id || ''}`} target="_blank" rel="noopener noreferrer"
-            aria-disabled={!listing.zwandako_url && !listing.wp_post_id}
-            className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full ml-auto ${listing.zwandako_url || listing.wp_post_id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground pointer-events-none opacity-60'}`}>
+          <a href={zwandakoHref} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full ml-auto bg-primary text-primary-foreground">
             <ExternalLink className="h-3.5 w-3.5" />Voir
           </a>
         </div>
