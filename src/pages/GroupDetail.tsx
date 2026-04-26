@@ -10,6 +10,7 @@ import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, up
 import { useToast } from '@/hooks/use-toast';
 import { useDraft, deleteDraft, fileToDataUrl, dataUrlToFile } from '@/hooks/use-drafts';
 import { usePlayTestSound } from '@/hooks/use-notifications';
+import { ShareToGroupsModal } from '@/components/ShareToGroupsModal';
 
 function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: string; onDone: () => void }) {
   const { draft, setDraft } = useDraft(groupId);
