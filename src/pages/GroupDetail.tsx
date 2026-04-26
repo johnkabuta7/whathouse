@@ -249,6 +249,17 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           </a>
         </div>
       </div>
+      <ShareToGroupsModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        listing={{
+          id: listing.id,
+          title: listing.title,
+          description: listing.description,
+          images: listing.images,
+          group_id: listing.group_id,
+        }}
+      />
     </div>
   );
 }
