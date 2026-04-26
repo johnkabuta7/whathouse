@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, ShieldCheck, Sparkles, BookOpen, ChevronRight, FileText } from 'lucide-react';
+import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, ShieldCheck, Sparkles, BookOpen, ChevronRight, FileText, ImagePlus, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme, THEME_STYLES } from '@/contexts/ThemeContext';
 import { useAllDrafts, deleteDraft } from '@/hooks/use-drafts';
-import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, useUpdateBanner, uploadBannerImage, useMyFavorites, useProfile } from '@/hooks/use-data';
+import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, uploadListingImage, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, useUpdateBanner, uploadBannerImage, useMyFavorites, useProfile } from '@/hooks/use-data';
 import { useNotificationSettings, useUpdateNotificationSettings, usePlayTestSound } from '@/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -65,6 +65,8 @@ export default function Profil() {
   const [editingListing, setEditingListing] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [editImages, setEditImages] = useState<string[]>([]);
+  const [editUploading, setEditUploading] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
 
@@ -141,11 +143,31 @@ export default function Profil() {
     setEditingListing(l.id);
     setEditTitle(l.title);
     setEditDesc(l.description || '');
+    setEditImages(Array.isArray(l.images) ? [...l.images] : []);
   };
+
+  const handleEditAddImages = async (files: FileList | null) => {
+    if (!files || !user) return;
+    setEditUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const f of Array.from(files)) {
+        if (!f.type.startsWith('image/')) continue;
+        urls.push(await uploadListingImage(f, user.id));
+      }
+      setEditImages(p => [...p, ...urls]);
+    } catch (err: any) {
+      toast({ title: 'Erreur upload', description: err?.message || 'Impossible d\'ajouter les images', variant: 'destructive' });
+    } finally {
+      setEditUploading(false);
+    }
+  };
+
+  const removeEditImage = (i: number) => setEditImages(p => p.filter((_, idx) => idx !== i));
 
   const saveEdit = () => {
     if (!editingListing) return;
-    updateListing.mutate({ id: editingListing, title: editTitle, description: editDesc }, {
+    updateListing.mutate({ id: editingListing, title: editTitle, description: editDesc, images: editImages }, {
       onSuccess: () => { toast({ title: 'Annonce modifiée !' }); setEditingListing(null); },
       onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
     });
