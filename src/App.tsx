@@ -20,6 +20,7 @@ import Legal from "./pages/Legal";
 import ListingRedirect from "./pages/ListingRedirect";
 import NotFound from "./pages/NotFound";
 import Drafts from "./pages/Drafts";
+import Publish from "./pages/Publish";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ function AppRoutes() {
         <Route path="/legal/:page" element={<Legal />} />
         <Route path="/listing/:id" element={<ListingRedirect />} />
         <Route path="/drafts" element={<Drafts />} />
+        <Route path="/publish" element={<Publish />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
