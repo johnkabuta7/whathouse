@@ -444,11 +444,13 @@ export function useCreateListing() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (listing: { group_id: string; user_id: string; title: string; description: string; images: string[]; zwandako_url?: string }) => {
+      if (!listing.description.trim()) throw new Error('La description est obligatoire pour publier sur Zwandako.');
+      if (!listing.images?.length) throw new Error('Ajoutez au moins une image pour publier sur Zwandako.');
       const { data, error } = await supabase.from('listings').insert(listing).select().single();
       if (error) throw error;
-      // Push to WordPress (zwandako.com) without blocking local publication.
-      let wpSyncFailed = false;
       let zwandakoUrl = data.zwandako_url;
+      let wpPostId: number | null = null;
+      let wpMediaIds: number[] | null = null;
       try {
         const { data: publishData, error: publishError } = await supabase.functions.invoke('wp-proxy', {
           body: {
@@ -465,13 +467,18 @@ export function useCreateListing() {
         if (publishError) {
           throw publishError;
         }
-        wpSyncFailed = Boolean(publishData?.wp_sync_failed);
+        if (publishData?.wp_sync_failed || !publishData?.wp_post_id || !publishData?.link) {
+          throw new Error(publishData?.error || 'Publication Zwandako échouée.');
+        }
         if (publishData?.link) zwandakoUrl = publishData.link;
+        wpPostId = publishData.wp_post_id;
+        wpMediaIds = publishData.media_ids || [];
       } catch (e) {
-        wpSyncFailed = true;
-        console.warn('WP publish failed, keeping local listing:', e);
+        await supabase.from('listings').delete().eq('id', data.id);
+        console.error('WP publish failed, local listing removed:', e);
+        throw e;
       }
-      return { ...data, zwandako_url: zwandakoUrl, wp_sync_failed: wpSyncFailed };
+      return { ...data, zwandako_url: zwandakoUrl, wp_post_id: wpPostId, wp_media_ids: wpMediaIds, wp_sync_failed: false };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['listings', data.group_id] });

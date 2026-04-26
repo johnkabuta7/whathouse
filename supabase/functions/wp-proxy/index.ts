@@ -32,6 +32,30 @@ type WpActor = {
   mode: "user" | "admin_fallback";
 };
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function profileName(profile: ProfileRow) {
+  return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() ||
+    buildWpUsername(profile.phone);
+}
+
+function withPublisherInfo(content: string, profile: ProfileRow) {
+  const name = escapeHtml(profileName(profile));
+  const phone = escapeHtml(profile.phone || "Non renseigné");
+  return `${content.trim()}\n\n<p><strong>Publié par :</strong> ${name}</p>\n<p><strong>Contact :</strong> ${phone}</p>`;
+}
+
+function wpPublicLink(postJson: any) {
+  return postJson?.link || (postJson?.id ? `https://zwandako.com/?p=${postJson.id}` : null);
+}
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -84,24 +108,18 @@ async function createPropertyWithFallback(
   const attempts = [
     { path: "/properties", authHeader: wpActor.authHeader, status: "publish" },
     { path: "/properties", authHeader: adminAuthHeader(), status: "publish" },
-    { path: "/property", authHeader: adminAuthHeader(), status: "publish" },
-    { path: "/properties", authHeader: adminAuthHeader(), status: "pending" },
-    { path: "/posts", authHeader: adminAuthHeader(), status: "pending" },
   ];
 
   let last: { res: Response; json: any; text: string } | null = null;
 
   for (const attempt of attempts) {
-    const content = attempt.authHeader === adminAuthHeader() && wpActor.mode === "user"
-      ? `${String(postBody.content || "")}\n\n<p><em>Publié via WhatHouse par utilisateur #${wpActor.userId} (${wpActor.username})</em></p>`
-      : postBody.content;
     const result = await fetchWpJson(attempt.path, {
       method: "POST",
       headers: {
         Authorization: attempt.authHeader,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ...postBody, content, status: attempt.status }),
+      body: JSON.stringify({ ...postBody, status: attempt.status }),
     });
     last = result;
     if (result.res.ok && result.json?.id) {
@@ -375,21 +393,40 @@ Deno.serve(async (req) => {
       if (!title || !content) {
         return jsonResponse({ error: "title and content required" }, 400);
       }
+      if (!Array.isArray(image_urls) || image_urls.length === 0) {
+        return jsonResponse({ error: "at least one image is required" }, 400);
+      }
 
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name, phone, wp_user_id, wp_user_password")
+        .eq("user_id", uid)
+        .single();
+      if (profileError || !profileData) throw new Error("Profile not found");
+      const profile = profileData as ProfileRow;
       const wpActor = await ensureWpActor(supabase, uid);
       const mediaIds: number[] = [];
       let featured: number | null = null;
 
-      if (Array.isArray(image_urls)) {
-        for (const url of image_urls) {
+      for (const url of image_urls) {
+        try {
+          const media = await uploadMedia(wpActor.authHeader, url);
+          mediaIds.push(media.id);
+          if (featured === null) featured = media.id;
+        } catch (userUploadError) {
+          console.warn("media upload with user failed, retrying admin:", userUploadError);
           try {
-            const media = await uploadMedia(wpActor.authHeader, url);
+            const media = await uploadMedia(adminAuthHeader(), url);
             mediaIds.push(media.id);
             if (featured === null) featured = media.id;
-          } catch (e) {
-            console.error("media upload error:", e);
+          } catch (adminUploadError) {
+            console.error("media upload error:", adminUploadError);
           }
         }
+      }
+
+      if (!featured) {
+        throw new Error("WordPress media upload failed: at least one image is required");
       }
 
       // Build the property payload. We deliberately omit `author` here:
@@ -398,7 +435,7 @@ Deno.serve(async (req) => {
       // We re-assign the author in a follow-up request below (best effort).
       const postBody: Record<string, unknown> = {
         title,
-        content,
+        content: withPublisherInfo(String(content), profile),
         status: "publish",
       };
 
@@ -493,7 +530,7 @@ Deno.serve(async (req) => {
           .update({
             wp_post_id: postJson.id,
             wp_media_ids: mediaIds,
-            zwandako_url: postJson.link,
+            zwandako_url: wpPublicLink(postJson),
           })
           .eq("id", listing_id);
 
@@ -505,7 +542,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         ok: true,
         wp_post_id: postJson.id,
-        link: postJson.link,
+        link: wpPublicLink(postJson),
         media_ids: mediaIds,
         mode: wpActor.mode,
       });
