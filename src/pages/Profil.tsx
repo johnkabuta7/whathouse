@@ -369,8 +369,33 @@ export default function Profil() {
                         <div className="mt-1 p-3 rounded-xl bg-muted/50 border border-border space-y-2">
                           <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Titre" className="rounded-full text-sm h-9" />
                           <Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Description" className="rounded-xl text-sm resize-y min-h-[200px]" rows={10} />
+
+                          {/* Photos */}
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-semibold text-muted-foreground">Photos ({editImages.length})</p>
+                            <div className="flex gap-2 flex-wrap items-center">
+                              {editImages.map((src, i) => (
+                                <div key={i} className="relative h-16 w-16 rounded-lg overflow-hidden border border-border shrink-0">
+                                  <img src={src} className="h-full w-full object-cover" />
+                                  <button type="button" onClick={() => removeEditImage(i)} aria-label="Supprimer la photo"
+                                    className="absolute top-0 right-0 bg-foreground/70 text-background rounded-full p-0.5">
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                              <label className="cursor-pointer h-16 w-16 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 flex items-center justify-center text-primary shrink-0">
+                                <input type="file" accept="image/*" multiple className="hidden" onChange={e => handleEditAddImages(e.target.files)} />
+                                {editUploading ? (
+                                  <div className="h-4 w-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                ) : (
+                                  <ImagePlus className="h-5 w-5" />
+                                )}
+                              </label>
+                            </div>
+                          </div>
+
                           <div className="flex gap-2">
-                            <Button onClick={saveEdit} size="sm" className="flex-1 rounded-full bg-primary text-primary-foreground" disabled={updateListing.isPending}>
+                            <Button onClick={saveEdit} size="sm" className="flex-1 rounded-full bg-primary text-primary-foreground" disabled={updateListing.isPending || editUploading}>
                               <Save className="h-3.5 w-3.5 mr-1" />Sauvegarder
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => setEditingListing(null)} className="rounded-full">Annuler</Button>
