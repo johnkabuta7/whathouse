@@ -412,6 +412,41 @@ export default function Index() {
           })}
         </div>
       )}
+
+      {/* Zwandako property search results */}
+      {isSearching && zwandakoResults && zwandakoResults.length > 0 && (
+        <div className="px-4 pt-4 pb-2">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Propriétés sur Zwandako</h2>
+          <div className="space-y-2">
+            {zwandakoResults.map((p: any) => {
+              const img = p._embedded?.['wp:featuredmedia']?.[0]?.source_url || p.jetpack_featured_media_url;
+              const title = p.title?.rendered?.replace(/<[^>]+>/g, '') || 'Propriété';
+              return (
+                <a key={p.id} href={p.link} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-2 rounded-xl bg-card border border-border hover:bg-muted/50 transition">
+                  <div className="h-14 w-14 rounded-lg overflow-hidden bg-muted shrink-0">
+                    {img && <img src={img} alt={title} className="h-full w-full object-cover" loading="lazy" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground line-clamp-2 leading-tight">{title}</p>
+                    <p className="text-[10px] text-primary font-bold mt-1">Voir sur Zwandako →</p>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Button — create group */}
+      <Link
+        to="/create-group"
+        title="Créer un groupe"
+        className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+      >
+        <Plus className="h-6 w-6" />
+      </Link>
+
       <InstallPrompt open={showInstall} onClose={() => setShowInstall(false)} />
     </div>
   );
