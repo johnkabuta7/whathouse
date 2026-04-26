@@ -36,7 +36,7 @@ export function BottomNav() {
                     'rounded-full backdrop-blur-xl flex items-center justify-center transition-all active:scale-95',
                     isActive
                       ? 'h-14 w-14 bg-primary text-primary-foreground shadow-xl shadow-primary/40 ring-4 ring-primary/15'
-                      : 'h-12 w-12 bg-card/95 text-muted-foreground border-2 border-border shadow-md'
+                      : 'h-12 w-12 bg-card/95 text-foreground border-[2.5px] border-foreground/40 shadow-md'
                   )}
                 >
                   <item.icon className={cn(isActive ? 'h-6 w-6' : 'h-5 w-5')} />
