@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, ShieldCheck, Sparkles, BookOpen, ChevronRight, FileText } from 'lucide-react';
+import { User, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, ShieldCheck, Sparkles, BookOpen, ChevronRight, FileText, ImagePlus, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme, THEME_STYLES } from '@/contexts/ThemeContext';
 import { useAllDrafts, deleteDraft } from '@/hooks/use-drafts';
-import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, useUpdateBanner, uploadBannerImage, useMyFavorites, useProfile } from '@/hooks/use-data';
+import { useMyListings, useUpdateProfile, useDeleteListing, useUpdateListing, useMyGroups, uploadAvatar, uploadBackground, uploadListingImage, useIsAppAdmin, useAllSliderBanners, useCreateBanner, useDeleteBanner, useUpdateBanner, uploadBannerImage, useMyFavorites, useProfile } from '@/hooks/use-data';
 import { useNotificationSettings, useUpdateNotificationSettings, usePlayTestSound } from '@/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -65,6 +65,8 @@ export default function Profil() {
   const [editingListing, setEditingListing] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [editImages, setEditImages] = useState<string[]>([]);
+  const [editUploading, setEditUploading] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
 
@@ -141,11 +143,31 @@ export default function Profil() {
     setEditingListing(l.id);
     setEditTitle(l.title);
     setEditDesc(l.description || '');
+    setEditImages(Array.isArray(l.images) ? [...l.images] : []);
   };
+
+  const handleEditAddImages = async (files: FileList | null) => {
+    if (!files || !user) return;
+    setEditUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const f of Array.from(files)) {
+        if (!f.type.startsWith('image/')) continue;
+        urls.push(await uploadListingImage(f, user.id));
+      }
+      setEditImages(p => [...p, ...urls]);
+    } catch (err: any) {
+      toast({ title: 'Erreur upload', description: err?.message || 'Impossible d\'ajouter les images', variant: 'destructive' });
+    } finally {
+      setEditUploading(false);
+    }
+  };
+
+  const removeEditImage = (i: number) => setEditImages(p => p.filter((_, idx) => idx !== i));
 
   const saveEdit = () => {
     if (!editingListing) return;
-    updateListing.mutate({ id: editingListing, title: editTitle, description: editDesc }, {
+    updateListing.mutate({ id: editingListing, title: editTitle, description: editDesc, images: editImages }, {
       onSuccess: () => { toast({ title: 'Annonce modifiée !' }); setEditingListing(null); },
       onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
     });
@@ -347,8 +369,33 @@ export default function Profil() {
                         <div className="mt-1 p-3 rounded-xl bg-muted/50 border border-border space-y-2">
                           <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Titre" className="rounded-full text-sm h-9" />
                           <Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Description" className="rounded-xl text-sm resize-y min-h-[200px]" rows={10} />
+
+                          {/* Photos */}
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-semibold text-muted-foreground">Photos ({editImages.length})</p>
+                            <div className="flex gap-2 flex-wrap items-center">
+                              {editImages.map((src, i) => (
+                                <div key={i} className="relative h-16 w-16 rounded-lg overflow-hidden border border-border shrink-0">
+                                  <img src={src} className="h-full w-full object-cover" />
+                                  <button type="button" onClick={() => removeEditImage(i)} aria-label="Supprimer la photo"
+                                    className="absolute top-0 right-0 bg-foreground/70 text-background rounded-full p-0.5">
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                              <label className="cursor-pointer h-16 w-16 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 flex items-center justify-center text-primary shrink-0">
+                                <input type="file" accept="image/*" multiple className="hidden" onChange={e => handleEditAddImages(e.target.files)} />
+                                {editUploading ? (
+                                  <div className="h-4 w-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                ) : (
+                                  <ImagePlus className="h-5 w-5" />
+                                )}
+                              </label>
+                            </div>
+                          </div>
+
                           <div className="flex gap-2">
-                            <Button onClick={saveEdit} size="sm" className="flex-1 rounded-full bg-primary text-primary-foreground" disabled={updateListing.isPending}>
+                            <Button onClick={saveEdit} size="sm" className="flex-1 rounded-full bg-primary text-primary-foreground" disabled={updateListing.isPending || editUploading}>
                               <Save className="h-3.5 w-3.5 mr-1" />Sauvegarder
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => setEditingListing(null)} className="rounded-full">Annuler</Button>

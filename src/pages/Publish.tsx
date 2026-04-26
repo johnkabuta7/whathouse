@@ -1,0 +1,176 @@
+import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, ImagePlus, X, Send, Users, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMyGroups, useCreateMultiGroupListing, uploadListingImage } from '@/hooks/use-data';
+import { useToast } from '@/hooks/use-toast';
+
+export default function Publish() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { data: myGroups } = useMyGroups();
+  const createMulti = useCreateMultiGroupListing();
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [zwandakoUrl, setZwandakoUrl] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const addFiles = useCallback(async (newFiles: File[]) => {
+    const imgs = newFiles.filter(f => f.type.startsWith('image/'));
+    setFiles(p => [...p, ...imgs]);
+    const dataUrls = await Promise.all(imgs.map(f => new Promise<string>((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result as string);
+      r.onerror = rej;
+      r.readAsDataURL(f);
+    })));
+    setPreviews(p => [...p, ...dataUrls]);
+  }, []);
+
+  const removeFile = (i: number) => {
+    setFiles(p => p.filter((_, idx) => idx !== i));
+    setPreviews(p => p.filter((_, idx) => idx !== i));
+  };
+
+  const toggleGroup = (id: string) =>
+    setSelectedGroups(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (!title.trim() || !description.trim()) {
+      toast({ title: 'Champs requis', description: 'Titre et description obligatoires.', variant: 'destructive' });
+      return;
+    }
+    if (files.length === 0) {
+      toast({ title: 'Image obligatoire', description: 'Ajoutez au moins une image.', variant: 'destructive' });
+      return;
+    }
+    if (selectedGroups.length === 0) {
+      toast({ title: 'Groupes requis', description: 'Cochez au moins un groupe pour publier.', variant: 'destructive' });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const f of files) urls.push(await uploadListingImage(f, user.id));
+
+      createMulti.mutate({
+        group_ids: selectedGroups,
+        user_id: user.id,
+        title: title.trim(),
+        description: description.trim(),
+        images: urls,
+        zwandako_url: zwandakoUrl.trim() || undefined,
+      }, {
+        onSuccess: (res) => {
+          toast({
+            title: 'Annonce publiée !',
+            description: `Partagée dans ${res.groups_count} groupe${res.groups_count > 1 ? 's' : ''}${res.zwandako_url ? ' + Zwandako (en attente de validation)' : ''}.`,
+          });
+          setUploading(false);
+          navigate('/');
+        },
+        onError: (err: any) => {
+          toast({ title: 'Erreur', description: err?.message || 'Publication échouée', variant: 'destructive' });
+          setUploading(false);
+        },
+      });
+    } catch (err: any) {
+      toast({ title: 'Erreur upload', description: err?.message || 'Impossible de téléverser les images', variant: 'destructive' });
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-lg mx-auto min-h-screen pb-24 animate-fade-in">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
+        <div className="px-4 py-3 flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-1.5 rounded-full hover:bg-muted" aria-label="Retour">
+            <ArrowLeft className="h-5 w-5 text-foreground" />
+          </button>
+          <h1 className="text-base font-bold text-foreground flex-1">Publier une annonce</h1>
+        </div>
+      </header>
+
+      <form onSubmit={handleSubmit} className="p-4 space-y-3">
+        <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de l'annonce *" className="rounded-full text-sm h-10" required />
+        <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description complète *" className="rounded-xl text-sm resize-y min-h-[140px]" rows={6} required />
+        <Input value={zwandakoUrl} onChange={e => setZwandakoUrl(e.target.value)} placeholder="Lien Zwandako (optionnel)" className="rounded-full text-sm h-10" />
+
+        {/* Photos */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-foreground">Photos ({previews.length}) *</p>
+          <div className="flex gap-2 flex-wrap">
+            {previews.map((p, i) => (
+              <div key={i} className="relative h-20 w-20 rounded-lg overflow-hidden border border-border">
+                <img src={p} className="h-full w-full object-cover" />
+                <button type="button" onClick={() => removeFile(i)} className="absolute top-0 right-0 bg-foreground/70 text-background rounded-full p-0.5">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            <label className="cursor-pointer h-20 w-20 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 flex items-center justify-center text-primary">
+              <input type="file" accept="image/*" multiple className="hidden" onChange={e => addFiles(Array.from(e.target.files || []))} />
+              <ImagePlus className="h-6 w-6" />
+            </label>
+          </div>
+        </div>
+
+        {/* Groups multi-select */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-foreground">
+            Publier dans ({selectedGroups.length} groupe{selectedGroups.length > 1 ? 's' : ''} sélectionné{selectedGroups.length > 1 ? 's' : ''})
+          </p>
+          {(!myGroups || myGroups.length === 0) ? (
+            <p className="text-sm text-muted-foreground text-center py-4 bg-muted/30 rounded-xl">
+              Vous n'êtes membre d'aucun groupe.
+            </p>
+          ) : (
+            <div className="space-y-1.5 max-h-72 overflow-y-auto rounded-xl border border-border p-2 bg-card">
+              {myGroups.map(g => {
+                const checked = selectedGroups.includes(g.id);
+                return (
+                  <label key={g.id}
+                    className={`w-full flex items-center gap-3 p-2 rounded-lg cursor-pointer transition ${checked ? 'bg-primary/10' : 'hover:bg-muted'}`}>
+                    <Checkbox checked={checked} onCheckedChange={() => toggleGroup(g.id)} />
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+                      {g.image_url ? <img src={g.image_url} className="h-full w-full object-cover" /> : <Users className="h-4 w-4 text-primary" />}
+                    </div>
+                    <span className="text-sm font-medium text-foreground truncate flex-1">{g.name}</span>
+                    {checked && <Check className="h-4 w-4 text-primary" />}
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-muted/40 rounded-xl p-3 text-[11px] text-muted-foreground leading-relaxed">
+          ℹ️ Une seule annonce sera envoyée sur <strong>zwandako.com</strong> (statut « en attente » pour validation), puis copiée dans tous les groupes cochés.
+        </div>
+
+        <Button type="submit" disabled={uploading || createMulti.isPending}
+          className="w-full rounded-full bg-primary text-primary-foreground h-11 text-sm font-semibold">
+          {(uploading || createMulti.isPending) ? (
+            <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
+          ) : (
+            <Send className="h-4 w-4 mr-2" />
+          )}
+          Publier
+        </Button>
+      </form>
+    </div>
+  );
+}

@@ -105,11 +105,10 @@ async function createPropertyWithFallback(
   postBody: Record<string, unknown>,
   wpActor: WpActor,
 ) {
-  // Always try admin first (more reliable), then user, then pending fallback.
+  // All listings arrive as "pending" so an admin can review/edit before publishing.
   const attempts = [
-    { path: "/properties", authHeader: adminAuthHeader(), status: "publish" },
-    { path: "/properties", authHeader: wpActor.authHeader, status: "publish" },
     { path: "/properties", authHeader: adminAuthHeader(), status: "pending" },
+    { path: "/properties", authHeader: wpActor.authHeader, status: "pending" },
   ];
 
   let last: { res: Response; json: any; text: string } | null = null;
@@ -438,7 +437,7 @@ Deno.serve(async (req) => {
       const postBody: Record<string, unknown> = {
         title,
         content: withPublisherInfo(String(content), profile),
-        status: "publish",
+        status: "pending",
       };
 
       if (featured) {
