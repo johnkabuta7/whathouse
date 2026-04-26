@@ -282,8 +282,16 @@ export default function Index() {
           <div className="px-3 pb-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un groupe..."
-                className="w-full pl-9 pr-4 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" autoFocus />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un groupe ou une propriété Zwandako..."
+                className="w-full pl-9 pr-10 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" autoFocus />
+              <button
+                type="button"
+                onClick={() => { setSearch(''); setShowSearch(false); }}
+                aria-label="Fermer la recherche"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground flex items-center justify-center transition"
+              >
+                <Plus className="h-4 w-4 rotate-45" />
+              </button>
             </div>
           </div>
         )}
@@ -438,10 +446,10 @@ export default function Index() {
         </div>
       )}
 
-      {/* Floating Action Button — create group */}
+      {/* Floating Action Button — publier une annonce (multi-groupes) */}
       <Link
-        to="/create-group"
-        title="Créer un groupe"
+        to="/publish"
+        title="Publier une annonce"
         className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
       >
         <Plus className="h-6 w-6" />
