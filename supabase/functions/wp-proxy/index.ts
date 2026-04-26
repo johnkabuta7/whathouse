@@ -32,6 +32,30 @@ type WpActor = {
   mode: "user" | "admin_fallback";
 };
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function profileName(profile: ProfileRow) {
+  return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() ||
+    buildWpUsername(profile.phone);
+}
+
+function withPublisherInfo(content: string, profile: ProfileRow) {
+  const name = escapeHtml(profileName(profile));
+  const phone = escapeHtml(profile.phone || "Non renseigné");
+  return `${content.trim()}\n\n<p><strong>Publié par :</strong> ${name}</p>\n<p><strong>Contact :</strong> ${phone}</p>`;
+}
+
+function wpPublicLink(postJson: any) {
+  return postJson?.link || (postJson?.id ? `https://zwandako.com/?p=${postJson.id}` : null);
+}
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -84,24 +108,18 @@ async function createPropertyWithFallback(
   const attempts = [
     { path: "/properties", authHeader: wpActor.authHeader, status: "publish" },
     { path: "/properties", authHeader: adminAuthHeader(), status: "publish" },
-    { path: "/property", authHeader: adminAuthHeader(), status: "publish" },
-    { path: "/properties", authHeader: adminAuthHeader(), status: "pending" },
-    { path: "/posts", authHeader: adminAuthHeader(), status: "pending" },
   ];
 
   let last: { res: Response; json: any; text: string } | null = null;
 
   for (const attempt of attempts) {
-    const content = attempt.authHeader === adminAuthHeader() && wpActor.mode === "user"
-      ? `${String(postBody.content || "")}\n\n<p><em>Publié via WhatHouse par utilisateur #${wpActor.userId} (${wpActor.username})</em></p>`
-      : postBody.content;
     const result = await fetchWpJson(attempt.path, {
       method: "POST",
       headers: {
         Authorization: attempt.authHeader,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ...postBody, content, status: attempt.status }),
+      body: JSON.stringify({ ...postBody, status: attempt.status }),
     });
     last = result;
     if (result.res.ok && result.json?.id) {
