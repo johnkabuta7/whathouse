@@ -491,6 +491,97 @@ export function useCreateListing() {
   });
 }
 
+// Publishes ONCE on Zwandako, then duplicates the listing locally in every selected group.
+export function useCreateMultiGroupListing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      group_ids: string[];
+      user_id: string;
+      title: string;
+      description: string;
+      images: string[];
+      zwandako_url?: string;
+    }) => {
+      if (!input.description.trim()) throw new Error('La description est obligatoire.');
+      if (!input.images?.length) throw new Error('Ajoutez au moins une image.');
+      if (!input.group_ids.length) throw new Error('Sélectionnez au moins un groupe.');
+
+      // 1) Insert in the FIRST group locally
+      const firstGroup = input.group_ids[0];
+      const { data: firstRow, error: firstErr } = await supabase.from('listings').insert({
+        group_id: firstGroup,
+        user_id: input.user_id,
+        title: input.title,
+        description: input.description,
+        images: input.images,
+        zwandako_url: input.zwandako_url,
+      }).select().single();
+      if (firstErr) throw firstErr;
+
+      // 2) Publish ONCE on Zwandako
+      let zwandakoUrl = firstRow.zwandako_url;
+      let wpPostId: number | null = null;
+      let wpMediaIds: number[] | null = null;
+      try {
+        const { data: publishData } = await supabase.functions.invoke('wp-proxy', {
+          body: {
+            action: 'publish_listing',
+            payload: {
+              listing_id: firstRow.id,
+              title: input.title,
+              content: input.description,
+              image_urls: input.images,
+            },
+          },
+        });
+        if (publishData?.link) zwandakoUrl = publishData.link;
+        wpPostId = publishData?.wp_post_id || null;
+        wpMediaIds = publishData?.media_ids || [];
+      } catch (e) {
+        console.warn('WP publish failed (kept local):', e);
+      }
+
+      if (zwandakoUrl || wpPostId) {
+        await supabase.from('listings').update({
+          zwandako_url: zwandakoUrl || null,
+          wp_post_id: wpPostId,
+          wp_media_ids: wpMediaIds,
+        }).eq('id', firstRow.id);
+      }
+
+      // 3) Duplicate locally in remaining groups (sharing the same WP link/post)
+      const others = input.group_ids.slice(1);
+      if (others.length) {
+        const rows = others.map(gid => ({
+          group_id: gid,
+          user_id: input.user_id,
+          title: input.title,
+          description: input.description,
+          images: input.images,
+          zwandako_url: zwandakoUrl || null,
+          wp_post_id: wpPostId,
+          wp_media_ids: wpMediaIds,
+        }));
+        const { error: dupErr } = await supabase.from('listings').insert(rows);
+        if (dupErr) console.warn('Dup insert error:', dupErr);
+      }
+
+      return {
+        zwandako_url: zwandakoUrl,
+        wp_post_id: wpPostId,
+        groups_count: input.group_ids.length,
+        wp_sync_failed: !wpPostId,
+      };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my_listings'] });
+      qc.invalidateQueries({ queryKey: ['listings'] });
+      qc.invalidateQueries({ queryKey: ['my_groups'] });
+    },
+  });
+}
+
 export function useUpdateListing() {
   const qc = useQueryClient();
   return useMutation({
