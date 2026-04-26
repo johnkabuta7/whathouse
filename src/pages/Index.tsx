@@ -194,6 +194,7 @@ export default function Index() {
   const [showInstall, setShowInstall] = useState(false);
   const { data: myGroups, isLoading } = useMyGroups();
   const { data: searchResults } = useSearchGroups(search);
+  const { data: zwandakoResults } = useSearchProperties(search);
   const { data: contacts } = useOnlineContacts();
   const { data: isAdmin } = useIsAppAdmin();
   const { data: allGroups } = useAllGroups();
