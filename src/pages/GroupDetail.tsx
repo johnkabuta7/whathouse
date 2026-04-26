@@ -150,6 +150,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
 
 function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   const [expanded, setExpanded] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const toggleLike = useToggleLike();
   const toggleFavorite = useToggleFavorite();
   const { data: likeData } = useListingLikes(listing.id);
@@ -169,10 +170,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
 
   const listingLink = `${window.location.origin}/listing/${listing.id}`;
 
-  const handleShare = async () => {
-    if (navigator.share) await navigator.share({ title: listing.title, url: listingLink });
-    else { await navigator.clipboard.writeText(listingLink); toast({ title: 'Lien copié !' }); }
-  };
+  const handleShare = () => setShareOpen(true);
 
   const handleWhatsApp = () => {
     const ownerPhone = ownerProfile?.phone?.replace(/[^0-9]/g, '');
