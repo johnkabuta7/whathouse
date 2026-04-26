@@ -122,6 +122,24 @@ function useFeaturedProperties() {
   });
 }
 
+function useSearchProperties(search: string) {
+  return useQuery({
+    queryKey: ['wp_search_properties', search],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`https://zwandako.com/wp-json/wp/v2/properties?_embed&per_page=20&search=${encodeURIComponent(search)}`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
+    },
+    enabled: search.trim().length >= 2,
+    staleTime: 60 * 1000,
+  });
+}
+
 function FeaturedProperties() {
   const { data: properties, isLoading } = useFeaturedProperties();
 
