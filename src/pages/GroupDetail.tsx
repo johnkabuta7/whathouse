@@ -10,6 +10,7 @@ import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, up
 import { useToast } from '@/hooks/use-toast';
 import { useDraft, deleteDraft, fileToDataUrl, dataUrlToFile } from '@/hooks/use-drafts';
 import { usePlayTestSound } from '@/hooks/use-notifications';
+import { ShareToGroupsModal } from '@/components/ShareToGroupsModal';
 
 function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: string; onDone: () => void }) {
   const { draft, setDraft } = useDraft(groupId);
@@ -149,6 +150,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
 
 function ListingCard({ listing, userId }: { listing: any; userId: string }) {
   const [expanded, setExpanded] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const toggleLike = useToggleLike();
   const toggleFavorite = useToggleFavorite();
   const { data: likeData } = useListingLikes(listing.id);
@@ -168,10 +170,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
 
   const listingLink = `${window.location.origin}/listing/${listing.id}`;
 
-  const handleShare = async () => {
-    if (navigator.share) await navigator.share({ title: listing.title, url: listingLink });
-    else { await navigator.clipboard.writeText(listingLink); toast({ title: 'Lien copié !' }); }
-  };
+  const handleShare = () => setShareOpen(true);
 
   const handleWhatsApp = () => {
     const ownerPhone = ownerProfile?.phone?.replace(/[^0-9]/g, '');
@@ -250,6 +249,17 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           </a>
         </div>
       </div>
+      <ShareToGroupsModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        listing={{
+          id: listing.id,
+          title: listing.title,
+          description: listing.description,
+          images: listing.images,
+          group_id: listing.group_id,
+        }}
+      />
     </div>
   );
 }

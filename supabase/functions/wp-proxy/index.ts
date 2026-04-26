@@ -105,9 +105,11 @@ async function createPropertyWithFallback(
   postBody: Record<string, unknown>,
   wpActor: WpActor,
 ) {
+  // Always try admin first (more reliable), then user, then pending fallback.
   const attempts = [
-    { path: "/properties", authHeader: wpActor.authHeader, status: "publish" },
     { path: "/properties", authHeader: adminAuthHeader(), status: "publish" },
+    { path: "/properties", authHeader: wpActor.authHeader, status: "publish" },
+    { path: "/properties", authHeader: adminAuthHeader(), status: "pending" },
   ];
 
   let last: { res: Response; json: any; text: string } | null = null;

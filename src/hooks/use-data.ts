@@ -465,20 +465,24 @@ export function useCreateListing() {
         });
 
         if (publishError) {
-          throw publishError;
+          console.warn('WP sync error (listing kept locally):', publishError);
+        } else {
+          if (publishData?.link) zwandakoUrl = publishData.link;
+          wpPostId = publishData?.wp_post_id || null;
+          wpMediaIds = publishData?.media_ids || [];
         }
-        if (publishData?.wp_sync_failed || !publishData?.wp_post_id || !publishData?.link) {
-          throw new Error(publishData?.error || 'Publication Zwandako échouée.');
-        }
-        if (publishData?.link) zwandakoUrl = publishData.link;
-        wpPostId = publishData.wp_post_id;
-        wpMediaIds = publishData.media_ids || [];
       } catch (e) {
-        await supabase.from('listings').delete().eq('id', data.id);
-        console.error('WP publish failed, local listing removed:', e);
-        throw e;
+        console.warn('WP publish failed but listing kept locally:', e);
       }
-      return { ...data, zwandako_url: zwandakoUrl, wp_post_id: wpPostId, wp_media_ids: wpMediaIds, wp_sync_failed: false };
+      // Persist whatever WP info we got (best-effort) so the "Voir" button works.
+      if (zwandakoUrl || wpPostId) {
+        await supabase.from('listings').update({
+          zwandako_url: zwandakoUrl || null,
+          wp_post_id: wpPostId,
+          wp_media_ids: wpMediaIds,
+        }).eq('id', data.id);
+      }
+      return { ...data, zwandako_url: zwandakoUrl, wp_post_id: wpPostId, wp_media_ids: wpMediaIds, wp_sync_failed: !wpPostId };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['listings', data.group_id] });
