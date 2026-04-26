@@ -393,21 +393,40 @@ Deno.serve(async (req) => {
       if (!title || !content) {
         return jsonResponse({ error: "title and content required" }, 400);
       }
+      if (!Array.isArray(image_urls) || image_urls.length === 0) {
+        return jsonResponse({ error: "at least one image is required" }, 400);
+      }
 
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name, phone, wp_user_id, wp_user_password")
+        .eq("user_id", uid)
+        .single();
+      if (profileError || !profileData) throw new Error("Profile not found");
+      const profile = profileData as ProfileRow;
       const wpActor = await ensureWpActor(supabase, uid);
       const mediaIds: number[] = [];
       let featured: number | null = null;
 
-      if (Array.isArray(image_urls)) {
-        for (const url of image_urls) {
+      for (const url of image_urls) {
+        try {
+          const media = await uploadMedia(wpActor.authHeader, url);
+          mediaIds.push(media.id);
+          if (featured === null) featured = media.id;
+        } catch (userUploadError) {
+          console.warn("media upload with user failed, retrying admin:", userUploadError);
           try {
-            const media = await uploadMedia(wpActor.authHeader, url);
+            const media = await uploadMedia(adminAuthHeader(), url);
             mediaIds.push(media.id);
             if (featured === null) featured = media.id;
-          } catch (e) {
-            console.error("media upload error:", e);
+          } catch (adminUploadError) {
+            console.error("media upload error:", adminUploadError);
           }
         }
+      }
+
+      if (!featured) {
+        throw new Error("WordPress media upload failed: at least one image is required");
       }
 
       // Build the property payload. We deliberately omit `author` here:
@@ -416,7 +435,7 @@ Deno.serve(async (req) => {
       // We re-assign the author in a follow-up request below (best effort).
       const postBody: Record<string, unknown> = {
         title,
-        content,
+        content: withPublisherInfo(String(content), profile),
         status: "publish",
       };
 
@@ -511,7 +530,7 @@ Deno.serve(async (req) => {
           .update({
             wp_post_id: postJson.id,
             wp_media_ids: mediaIds,
-            zwandako_url: postJson.link,
+            zwandako_url: wpPublicLink(postJson),
           })
           .eq("id", listing_id);
 
@@ -523,7 +542,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         ok: true,
         wp_post_id: postJson.id,
-        link: postJson.link,
+        link: wpPublicLink(postJson),
         media_ids: mediaIds,
         mode: wpActor.mode,
       });
