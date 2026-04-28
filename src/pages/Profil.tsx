@@ -353,9 +353,14 @@ export default function Profil() {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-foreground truncate">{l.title}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <span className="text-[10px] text-muted-foreground">{new Date(l.created_at).toLocaleDateString('fr-FR')}</span>
                             <span className="flex items-center gap-0.5 text-[10px] text-destructive"><Heart className="h-3 w-3 fill-current" />{l.like_count || 0}</span>
+                            {(l as any).shared_in_groups > 1 && (
+                              <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                                {(l as any).shared_in_groups} groupes
+                              </span>
+                            )}
                           </div>
                         </div>
                         <button onClick={() => startEdit(l)} className="p-2 text-primary/60 hover:text-primary transition">
