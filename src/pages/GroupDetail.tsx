@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone, Bookmark, Camera, Edit2, Save, LogOut, Save as SaveIcon, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone, Bookmark, Camera, Edit2, Save, LogOut, Save as SaveIcon, FileText, LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage, useMarkGroupRead, useProfile, useLeaveGroup } from '@/hooks/use-data';
+import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage, useMarkGroupRead, useProfile, useLeaveGroup, normalizeSearch } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 import { useDraft, deleteDraft, fileToDataUrl, dataUrlToFile } from '@/hooks/use-drafts';
 import { usePlayTestSound } from '@/hooks/use-notifications';
