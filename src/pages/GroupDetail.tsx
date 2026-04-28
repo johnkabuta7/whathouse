@@ -405,6 +405,16 @@ export default function GroupDetail() {
               <Edit2 className="h-4 w-4 text-muted-foreground" />
             </button>
           )}
+          <button
+            onClick={() => setView(viewMode === 'list' ? 'grid' : 'list')}
+            className="p-1.5 rounded-full hover:bg-muted transition"
+            title={viewMode === 'list' ? 'Vue grille' : 'Vue liste'}
+            aria-label="Changer la vue"
+          >
+            {viewMode === 'list'
+              ? <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+              : <List className="h-4 w-4 text-muted-foreground" />}
+          </button>
           <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">
             <Search className="h-4 w-4 text-muted-foreground" />
           </button>
@@ -463,18 +473,26 @@ export default function GroupDetail() {
       ) : (
         <>
           {/* Listings - scrollable area */}
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+          <div className="flex-1 overflow-y-auto px-3 py-3">
             {listingsLoading ? (
-              [1, 2].map(i => <Skeleton key={i} className="h-60 rounded-2xl" />)
+              <div className="space-y-3">{[1, 2].map(i => <Skeleton key={i} className="h-60 rounded-2xl" />)}</div>
             ) : (!filteredListings || filteredListings.length === 0) ? (
               <div className="text-center py-12">
                 <p className="text-sm text-muted-foreground">Aucune annonce</p>
                 <p className="text-xs text-muted-foreground mt-1">Publiez la première annonce !</p>
               </div>
+            ) : viewMode === 'grid' ? (
+              <div className="grid grid-cols-2 gap-2">
+                {filteredListings.map(listing => (
+                  <GridListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
             ) : (
-              filteredListings.map(listing => (
-                <ListingCard key={listing.id} listing={listing} userId={user?.id || ''} />
-              ))
+              <div className="space-y-3">
+                {filteredListings.map(listing => (
+                  <ListingCard key={listing.id} listing={listing} userId={user?.id || ''} />
+                ))}
+              </div>
             )}
           </div>
 
