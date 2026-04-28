@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2 } from 'lucide-react';
+import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2, X, PenSquare } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts, useUnreadCounts } from '@/hooks/use-data';
+import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts, useUnreadCounts, normalizeSearch } from '@/hooks/use-data';
 import { useRealtimeListings, useRealtimeJoinRequests } from '@/hooks/use-notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -290,7 +290,7 @@ export default function Index() {
                 aria-label="Fermer la recherche"
                 className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground flex items-center justify-center transition"
               >
-                <Plus className="h-4 w-4 rotate-45" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
