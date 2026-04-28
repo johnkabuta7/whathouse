@@ -426,15 +426,30 @@ export function useMyListings() {
       if (!user) return [];
       const { data, error } = await supabase.from('listings').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
       if (error) throw error;
-      const listingIds = data.map(l => l.id);
-      if (listingIds.length) {
-        const { data: likes } = await supabase.from('listing_likes').select('listing_id').in('listing_id', listingIds);
-        return data.map(l => ({
-          ...l,
-          like_count: likes?.filter(lk => lk.listing_id === l.id).length || 0,
-        }));
+      // Dedupe: when an annonce was published in N groups, keep ONE row (the canonical one)
+      // canonical = wp_post_id if present, else the title+description+created_at(minute) signature
+      const seen = new Map<string, any>();
+      const groupCounts = new Map<string, number>();
+      for (const l of data) {
+        const key = l.wp_post_id ? `wp_${l.wp_post_id}` : `sig_${l.title}_${(l.description || '').slice(0, 80)}_${new Date(l.created_at).toISOString().slice(0, 16)}`;
+        groupCounts.set(key, (groupCounts.get(key) || 0) + 1);
+        if (!seen.has(key)) seen.set(key, l);
       }
-      return data.map(l => ({ ...l, like_count: 0 }));
+      const unique = Array.from(seen.values());
+      const listingIds = unique.map(l => l.id);
+      let likes: any[] = [];
+      if (listingIds.length) {
+        const { data: l2 } = await supabase.from('listing_likes').select('listing_id').in('listing_id', listingIds);
+        likes = l2 || [];
+      }
+      return unique.map(l => {
+        const key = l.wp_post_id ? `wp_${l.wp_post_id}` : `sig_${l.title}_${(l.description || '').slice(0, 80)}_${new Date(l.created_at).toISOString().slice(0, 16)}`;
+        return {
+          ...l,
+          like_count: likes.filter(lk => lk.listing_id === l.id).length || 0,
+          shared_in_groups: groupCounts.get(key) || 1,
+        };
+      });
     },
     enabled: !!user,
   });
