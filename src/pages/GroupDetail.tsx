@@ -317,6 +317,30 @@ function GroupEditHeader({ group, onClose }: { group: any; onClose: () => void }
   );
 }
 
+function GridListingCard({ listing }: { listing: any }) {
+  const img = (listing.images && listing.images[0]) || '';
+  const zwandakoHref = listing.zwandako_url || (listing.wp_post_id ? `https://zwandako.com/?p=${listing.wp_post_id}` : `https://zwandako.com/?s=${encodeURIComponent(listing.title || '')}`);
+  return (
+    <a href={`#listing-${listing.id}`}
+      onClick={(e) => {
+        e.preventDefault();
+        const el = document.getElementById(`listing-${listing.id}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }}
+      className="block bg-card rounded-xl overflow-hidden border border-border shadow-sm hover:shadow-md transition">
+      <div className="aspect-square w-full bg-muted overflow-hidden">
+        {img ? <img src={img} alt={listing.title} className="h-full w-full object-cover" loading="lazy" /> : null}
+      </div>
+      <div className="p-2">
+        <p className="text-xs font-bold text-foreground line-clamp-2 leading-tight">{listing.title}</p>
+        <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5 font-normal">{listing.description}</p>
+        <a href={zwandakoHref} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+          className="text-[10px] text-primary font-bold mt-1 inline-block">Voir →</a>
+      </div>
+    </a>
+  );
+}
+
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
