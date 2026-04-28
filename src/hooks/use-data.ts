@@ -143,14 +143,31 @@ export function useAllGroups() {
   });
 }
 
+// Normalize text for fuzzy search: strip accents, lowercase, remove punctuation
+export function normalizeSearch(s: string): string {
+  return (s || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 export function useSearchGroups(search: string) {
   return useQuery({
     queryKey: ['search_groups', search],
     queryFn: async () => {
       if (!search.trim()) return [];
-      const { data, error } = await supabase.from('groups').select('*').ilike('name', `%${search}%`).limit(20);
+      // Fetch all groups then filter client-side using normalized strings (accent/punct tolerant)
+      const { data, error } = await supabase.from('groups').select('*').limit(500);
       if (error) throw error;
-      return data;
+      const q = normalizeSearch(search);
+      return (data || []).filter(g =>
+        normalizeSearch(g.name).includes(q) ||
+        normalizeSearch(g.description || '').includes(q)
+      ).slice(0, 30);
     },
     enabled: search.trim().length >= 2,
   });
