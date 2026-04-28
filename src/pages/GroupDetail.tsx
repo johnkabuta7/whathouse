@@ -334,6 +334,13 @@ export default function GroupDetail() {
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
+    try { return (localStorage.getItem('group_view_mode') as any) || 'list'; } catch { return 'list'; }
+  });
+  const setView = (m: 'list' | 'grid') => {
+    setViewMode(m);
+    try { localStorage.setItem('group_view_mode', m); } catch {}
+  };
 
   const isCreator = group?.created_by === user?.id;
   const pendingCount = joinRequests?.length || 0;
@@ -362,9 +369,11 @@ export default function GroupDetail() {
     return () => clearTimeout(t);
   }, [listings?.length]);
 
+  const q = normalizeSearch(search);
   const filteredListings = listings?.filter(l =>
-    l.title.toLowerCase().includes(search.toLowerCase()) ||
-    (l.description || '').toLowerCase().includes(search.toLowerCase())
+    !q ||
+    normalizeSearch(l.title).includes(q) ||
+    normalizeSearch(l.description || '').includes(q)
   );
 
   if (groupLoading) return <div className="px-4 py-6 max-w-lg mx-auto"><Skeleton className="h-40 rounded-2xl" /></div>;
