@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone, Bookmark, Camera, Edit2, Save, LogOut, Save as SaveIcon, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone, Bookmark, Camera, Edit2, Save, LogOut, Save as SaveIcon, FileText, LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage, useMarkGroupRead, useProfile, useLeaveGroup } from '@/hooks/use-data';
+import { useGroup, useListings, useIsMember, useToggleLike, useCreateListing, uploadListingImage, useListingLikes, useRequestJoin, useHasPendingRequest, useJoinRequests, useToggleFavorite, useIsFavorite, useUpdateGroup, uploadGroupImage, useMarkGroupRead, useProfile, useLeaveGroup, normalizeSearch } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 import { useDraft, deleteDraft, fileToDataUrl, dataUrlToFile } from '@/hooks/use-drafts';
 import { usePlayTestSound } from '@/hooks/use-notifications';
@@ -16,7 +16,6 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   const { draft, setDraft } = useDraft(groupId);
   const [title, setTitle] = useState(draft?.title || '');
   const [description, setDescription] = useState(draft?.description || '');
-  const [zwandakoUrl, setZwandakoUrl] = useState(draft?.zwandako_url || '');
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>(draft?.image_previews || []);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,14 +36,14 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   // Auto-save draft on every change (debounced via microtask)
   useEffect(() => {
     const t = setTimeout(() => {
-      if (!title.trim() && !description.trim() && !zwandakoUrl.trim() && previews.length === 0) {
+      if (!title.trim() && !description.trim() && previews.length === 0) {
         setDraft(null);
         return;
       }
-      setDraft({ title, description, zwandako_url: zwandakoUrl, image_previews: previews });
+      setDraft({ title, description, zwandako_url: '', image_previews: previews });
     }, 300);
     return () => clearTimeout(t);
-  }, [title, description, zwandakoUrl, previews, setDraft]);
+  }, [title, description, previews, setDraft]);
 
   const addFiles = useCallback(async (newFiles: File[]) => {
     const imgs = newFiles.filter(f => f.type.startsWith('image/'));
@@ -80,10 +79,10 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
       if (actualFiles.length !== previews.length) {
         actualFiles = await Promise.all(previews.map((d, i) => dataUrlToFile(d, `draft-${i}.jpg`)));
       }
-      const urls: string[] = [];
-      for (const f of actualFiles) urls.push(await uploadListingImage(f, userId));
+      // Parallel uploads — much faster than sequential
+      const urls = await Promise.all(actualFiles.map(f => uploadListingImage(f, userId)));
       createListing.mutate(
-        { group_id: groupId, user_id: userId, title: title.trim(), description: description.trim(), images: urls, zwandako_url: zwandakoUrl.trim() || undefined },
+        { group_id: groupId, user_id: userId, title: title.trim(), description: description.trim(), images: urls },
         {
           onSuccess: (result: any) => {
             toast({
@@ -92,7 +91,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
             });
             try { playSuccessSound(); } catch { /* sound is best-effort */ }
             deleteDraft(groupId);
-            setTitle(''); setDescription(''); setZwandakoUrl(''); setFiles([]); setPreviews([]);
+            setTitle(''); setDescription(''); setFiles([]); setPreviews([]);
             setDraft(null);
             onDone();
             setIsLoading(false);
@@ -111,7 +110,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   };
 
   const handleSaveDraft = () => {
-    setDraft({ title, description, zwandako_url: zwandakoUrl, image_previews: previews });
+    setDraft({ title, description, zwandako_url: '', image_previews: previews });
     toast({ title: 'Brouillon enregistré', description: 'Retrouvez-le dans l\'onglet Brouillons.' });
     onDone();
   };
@@ -120,7 +119,6 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
     <form onSubmit={handleSubmit} onPaste={handlePaste} className="p-3 bg-card border-t border-border space-y-2">
       <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de l'annonce *" className="rounded-full text-sm h-9" required />
       <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description complète *" className="rounded-xl text-sm resize-none" rows={2} required />
-      <Input value={zwandakoUrl} onChange={e => setZwandakoUrl(e.target.value)} placeholder="Lien Zwandako (optionnel)" className="rounded-full text-sm h-9" />
       <div className="flex gap-2 items-center">
         <label className="cursor-pointer shrink-0">
           <input type="file" accept="image/*" multiple onChange={e => addFiles(Array.from(e.target.files || []))} className="hidden" />
@@ -319,6 +317,30 @@ function GroupEditHeader({ group, onClose }: { group: any; onClose: () => void }
   );
 }
 
+function GridListingCard({ listing }: { listing: any }) {
+  const img = (listing.images && listing.images[0]) || '';
+  const zwandakoHref = listing.zwandako_url || (listing.wp_post_id ? `https://zwandako.com/?p=${listing.wp_post_id}` : `https://zwandako.com/?s=${encodeURIComponent(listing.title || '')}`);
+  return (
+    <a href={`#listing-${listing.id}`}
+      onClick={(e) => {
+        e.preventDefault();
+        const el = document.getElementById(`listing-${listing.id}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }}
+      className="block bg-card rounded-xl overflow-hidden border border-border shadow-sm hover:shadow-md transition">
+      <div className="aspect-square w-full bg-muted overflow-hidden">
+        {img ? <img src={img} alt={listing.title} className="h-full w-full object-cover" loading="lazy" /> : null}
+      </div>
+      <div className="p-2">
+        <p className="text-xs font-bold text-foreground line-clamp-2 leading-tight">{listing.title}</p>
+        <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5 font-normal">{listing.description}</p>
+        <a href={zwandakoHref} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+          className="text-[10px] text-primary font-bold mt-1 inline-block">Voir →</a>
+      </div>
+    </a>
+  );
+}
+
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -336,6 +358,13 @@ export default function GroupDetail() {
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
+    try { return (localStorage.getItem('group_view_mode') as any) || 'list'; } catch { return 'list'; }
+  });
+  const setView = (m: 'list' | 'grid') => {
+    setViewMode(m);
+    try { localStorage.setItem('group_view_mode', m); } catch {}
+  };
 
   const isCreator = group?.created_by === user?.id;
   const pendingCount = joinRequests?.length || 0;
@@ -364,9 +393,11 @@ export default function GroupDetail() {
     return () => clearTimeout(t);
   }, [listings?.length]);
 
+  const q = normalizeSearch(search);
   const filteredListings = listings?.filter(l =>
-    l.title.toLowerCase().includes(search.toLowerCase()) ||
-    (l.description || '').toLowerCase().includes(search.toLowerCase())
+    !q ||
+    normalizeSearch(l.title).includes(q) ||
+    normalizeSearch(l.description || '').includes(q)
   );
 
   if (groupLoading) return <div className="px-4 py-6 max-w-lg mx-auto"><Skeleton className="h-40 rounded-2xl" /></div>;
@@ -398,6 +429,16 @@ export default function GroupDetail() {
               <Edit2 className="h-4 w-4 text-muted-foreground" />
             </button>
           )}
+          <button
+            onClick={() => setView(viewMode === 'list' ? 'grid' : 'list')}
+            className="p-1.5 rounded-full hover:bg-muted transition"
+            title={viewMode === 'list' ? 'Vue grille' : 'Vue liste'}
+            aria-label="Changer la vue"
+          >
+            {viewMode === 'list'
+              ? <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+              : <List className="h-4 w-4 text-muted-foreground" />}
+          </button>
           <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">
             <Search className="h-4 w-4 text-muted-foreground" />
           </button>
@@ -456,18 +497,26 @@ export default function GroupDetail() {
       ) : (
         <>
           {/* Listings - scrollable area */}
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+          <div className="flex-1 overflow-y-auto px-3 py-3">
             {listingsLoading ? (
-              [1, 2].map(i => <Skeleton key={i} className="h-60 rounded-2xl" />)
+              <div className="space-y-3">{[1, 2].map(i => <Skeleton key={i} className="h-60 rounded-2xl" />)}</div>
             ) : (!filteredListings || filteredListings.length === 0) ? (
               <div className="text-center py-12">
                 <p className="text-sm text-muted-foreground">Aucune annonce</p>
                 <p className="text-xs text-muted-foreground mt-1">Publiez la première annonce !</p>
               </div>
+            ) : viewMode === 'grid' ? (
+              <div className="grid grid-cols-2 gap-2">
+                {filteredListings.map(listing => (
+                  <GridListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
             ) : (
-              filteredListings.map(listing => (
-                <ListingCard key={listing.id} listing={listing} userId={user?.id || ''} />
-              ))
+              <div className="space-y-3">
+                {filteredListings.map(listing => (
+                  <ListingCard key={listing.id} listing={listing} userId={user?.id || ''} />
+                ))}
+              </div>
             )}
           </div>
 

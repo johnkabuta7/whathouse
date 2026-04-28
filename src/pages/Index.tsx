@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2 } from 'lucide-react';
+import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2, X, PenSquare } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts, useUnreadCounts } from '@/hooks/use-data';
+import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts, useUnreadCounts, normalizeSearch } from '@/hooks/use-data';
 import { useRealtimeListings, useRealtimeJoinRequests } from '@/hooks/use-notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -290,7 +290,7 @@ export default function Index() {
                 aria-label="Fermer la recherche"
                 className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground flex items-center justify-center transition"
               >
-                <Plus className="h-4 w-4 rotate-45" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -307,7 +307,7 @@ export default function Index() {
               return (
                 <button key={c.user_id} onClick={() => setSelectedContact(c)} className="flex flex-col items-center gap-1 shrink-0">
                   <div className="relative">
-                    <div className="h-[68px] w-[68px] rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-border">
+                    <div className={`h-[68px] w-[68px] rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ${c.online ? 'ring-[#22C55E]' : 'ring-border'}`}>
                       {c.avatar_url ? <img src={c.avatar_url} alt={name} className="h-full w-full object-cover" /> :
                         <span className="text-sm font-bold text-primary">{initials}</span>}
                     </div>
@@ -450,9 +450,10 @@ export default function Index() {
       <Link
         to="/publish"
         title="Publier une annonce"
+        aria-label="Publier une annonce"
         className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
       >
-        <Plus className="h-6 w-6" />
+        <PenSquare className="h-6 w-6" />
       </Link>
 
       <InstallPrompt open={showInstall} onClose={() => setShowInstall(false)} />

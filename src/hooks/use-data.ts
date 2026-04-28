@@ -143,14 +143,31 @@ export function useAllGroups() {
   });
 }
 
+// Normalize text for fuzzy search: strip accents, lowercase, remove punctuation
+export function normalizeSearch(s: string): string {
+  return (s || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 export function useSearchGroups(search: string) {
   return useQuery({
     queryKey: ['search_groups', search],
     queryFn: async () => {
       if (!search.trim()) return [];
-      const { data, error } = await supabase.from('groups').select('*').ilike('name', `%${search}%`).limit(20);
+      // Fetch all groups then filter client-side using normalized strings (accent/punct tolerant)
+      const { data, error } = await supabase.from('groups').select('*').limit(500);
       if (error) throw error;
-      return data;
+      const q = normalizeSearch(search);
+      return (data || []).filter(g =>
+        normalizeSearch(g.name).includes(q) ||
+        normalizeSearch(g.description || '').includes(q)
+      ).slice(0, 30);
     },
     enabled: search.trim().length >= 2,
   });
@@ -426,15 +443,30 @@ export function useMyListings() {
       if (!user) return [];
       const { data, error } = await supabase.from('listings').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
       if (error) throw error;
-      const listingIds = data.map(l => l.id);
-      if (listingIds.length) {
-        const { data: likes } = await supabase.from('listing_likes').select('listing_id').in('listing_id', listingIds);
-        return data.map(l => ({
-          ...l,
-          like_count: likes?.filter(lk => lk.listing_id === l.id).length || 0,
-        }));
+      // Dedupe: when an annonce was published in N groups, keep ONE row (the canonical one)
+      // canonical = wp_post_id if present, else the title+description+created_at(minute) signature
+      const seen = new Map<string, any>();
+      const groupCounts = new Map<string, number>();
+      for (const l of data) {
+        const key = l.wp_post_id ? `wp_${l.wp_post_id}` : `sig_${l.title}_${(l.description || '').slice(0, 80)}_${new Date(l.created_at).toISOString().slice(0, 16)}`;
+        groupCounts.set(key, (groupCounts.get(key) || 0) + 1);
+        if (!seen.has(key)) seen.set(key, l);
       }
-      return data.map(l => ({ ...l, like_count: 0 }));
+      const unique = Array.from(seen.values());
+      const listingIds = unique.map(l => l.id);
+      let likes: any[] = [];
+      if (listingIds.length) {
+        const { data: l2 } = await supabase.from('listing_likes').select('listing_id').in('listing_id', listingIds);
+        likes = l2 || [];
+      }
+      return unique.map(l => {
+        const key = l.wp_post_id ? `wp_${l.wp_post_id}` : `sig_${l.title}_${(l.description || '').slice(0, 80)}_${new Date(l.created_at).toISOString().slice(0, 16)}`;
+        return {
+          ...l,
+          like_count: likes.filter(lk => lk.listing_id === l.id).length || 0,
+          shared_in_groups: groupCounts.get(key) || 1,
+        };
+      });
     },
     enabled: !!user,
   });
@@ -519,38 +551,7 @@ export function useCreateMultiGroupListing() {
       }).select().single();
       if (firstErr) throw firstErr;
 
-      // 2) Publish ONCE on Zwandako
-      let zwandakoUrl = firstRow.zwandako_url;
-      let wpPostId: number | null = null;
-      let wpMediaIds: number[] | null = null;
-      try {
-        const { data: publishData } = await supabase.functions.invoke('wp-proxy', {
-          body: {
-            action: 'publish_listing',
-            payload: {
-              listing_id: firstRow.id,
-              title: input.title,
-              content: input.description,
-              image_urls: input.images,
-            },
-          },
-        });
-        if (publishData?.link) zwandakoUrl = publishData.link;
-        wpPostId = publishData?.wp_post_id || null;
-        wpMediaIds = publishData?.media_ids || [];
-      } catch (e) {
-        console.warn('WP publish failed (kept local):', e);
-      }
-
-      if (zwandakoUrl || wpPostId) {
-        await supabase.from('listings').update({
-          zwandako_url: zwandakoUrl || null,
-          wp_post_id: wpPostId,
-          wp_media_ids: wpMediaIds,
-        }).eq('id', firstRow.id);
-      }
-
-      // 3) Duplicate locally in remaining groups (sharing the same WP link/post)
+      // 2) Duplicate locally in remaining groups IMMEDIATELY (so user sees fast result)
       const others = input.group_ids.slice(1);
       if (others.length) {
         const rows = others.map(gid => ({
@@ -559,19 +560,46 @@ export function useCreateMultiGroupListing() {
           title: input.title,
           description: input.description,
           images: input.images,
-          zwandako_url: zwandakoUrl || null,
-          wp_post_id: wpPostId,
-          wp_media_ids: wpMediaIds,
         }));
         const { error: dupErr } = await supabase.from('listings').insert(rows);
         if (dupErr) console.warn('Dup insert error:', dupErr);
       }
 
+      // 3) Fire WP publish in background (don't block UI)
+      (async () => {
+        try {
+          const { data: publishData } = await supabase.functions.invoke('wp-proxy', {
+            body: {
+              action: 'publish_listing',
+              payload: {
+                listing_id: firstRow.id,
+                title: input.title,
+                content: input.description,
+                image_urls: input.images,
+              },
+            },
+          });
+          const wpPostId = publishData?.wp_post_id || null;
+          const wpMediaIds = publishData?.media_ids || [];
+          const zwandakoUrl = publishData?.link || null;
+          if (wpPostId || zwandakoUrl) {
+            // Update ALL rows that share this title+description (the multi-group siblings)
+            await supabase.from('listings').update({
+              zwandako_url: zwandakoUrl,
+              wp_post_id: wpPostId,
+              wp_media_ids: wpMediaIds,
+            }).eq('user_id', input.user_id).eq('title', input.title).is('wp_post_id', null);
+          }
+        } catch (e) {
+          console.warn('WP publish background failed:', e);
+        }
+      })();
+
       return {
-        zwandako_url: zwandakoUrl,
-        wp_post_id: wpPostId,
+        zwandako_url: null as string | null,
+        wp_post_id: null as number | null,
         groups_count: input.group_ids.length,
-        wp_sync_failed: !wpPostId,
+        wp_sync_failed: false,
       };
     },
     onSuccess: () => {
