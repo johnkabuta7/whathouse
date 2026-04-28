@@ -79,10 +79,10 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
       if (actualFiles.length !== previews.length) {
         actualFiles = await Promise.all(previews.map((d, i) => dataUrlToFile(d, `draft-${i}.jpg`)));
       }
-      const urls: string[] = [];
-      for (const f of actualFiles) urls.push(await uploadListingImage(f, userId));
+      // Parallel uploads — much faster than sequential
+      const urls = await Promise.all(actualFiles.map(f => uploadListingImage(f, userId)));
       createListing.mutate(
-        { group_id: groupId, user_id: userId, title: title.trim(), description: description.trim(), images: urls, zwandako_url: zwandakoUrl.trim() || undefined },
+        { group_id: groupId, user_id: userId, title: title.trim(), description: description.trim(), images: urls },
         {
           onSuccess: (result: any) => {
             toast({
@@ -91,7 +91,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
             });
             try { playSuccessSound(); } catch { /* sound is best-effort */ }
             deleteDraft(groupId);
-            setTitle(''); setDescription(''); setZwandakoUrl(''); setFiles([]); setPreviews([]);
+            setTitle(''); setDescription(''); setFiles([]); setPreviews([]);
             setDraft(null);
             onDone();
             setIsLoading(false);
@@ -110,7 +110,7 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   };
 
   const handleSaveDraft = () => {
-    setDraft({ title, description, zwandako_url: zwandakoUrl, image_previews: previews });
+    setDraft({ title, description, zwandako_url: '', image_previews: previews });
     toast({ title: 'Brouillon enregistré', description: 'Retrouvez-le dans l\'onglet Brouillons.' });
     onDone();
   };
@@ -119,7 +119,6 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
     <form onSubmit={handleSubmit} onPaste={handlePaste} className="p-3 bg-card border-t border-border space-y-2">
       <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de l'annonce *" className="rounded-full text-sm h-9" required />
       <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description complète *" className="rounded-xl text-sm resize-none" rows={2} required />
-      <Input value={zwandakoUrl} onChange={e => setZwandakoUrl(e.target.value)} placeholder="Lien Zwandako (optionnel)" className="rounded-full text-sm h-9" />
       <div className="flex gap-2 items-center">
         <label className="cursor-pointer shrink-0">
           <input type="file" accept="image/*" multiple onChange={e => addFiles(Array.from(e.target.files || []))} className="hidden" />
