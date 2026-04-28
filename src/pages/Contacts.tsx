@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, MoreVertical, Settings, Users, Clock, History, Plus } from 'lucide-react';
+import { Search, UserPlus, MoreVertical, Settings, Users, Clock, History, Plus, UsersRound } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { SelectGroupModal } from '@/components/SelectGroupModal';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { normalizeSearch } from '@/hooks/use-data';
 
 function useAllProfiles() {
   const { user } = useAuth();
@@ -56,9 +57,11 @@ export default function Contacts() {
   const baseList = recentMode
     ? [...(others || [])].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     : [...(others || [])].sort((a: any, b: any) => Number(b.online) - Number(a.online));
+  const q = normalizeSearch(search);
   const filtered = baseList?.filter(p =>
-    `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
-    (p.phone || '').includes(search)
+    !q ||
+    normalizeSearch(`${p.first_name} ${p.last_name}`).includes(q) ||
+    normalizeSearch(p.phone || '').includes(q)
   );
 
   const startLongPress = (userId: string) => {
@@ -203,14 +206,17 @@ export default function Contacts() {
       <SelectGroupModal open={showGroupModal} onClose={() => { setShowGroupModal(false); setSelecting(false); setSelected([]); }} userIds={selected} />
       <InstallPrompt open={showInstall} onClose={() => setShowInstall(false)} />
 
-      {/* FAB — créer un groupe */}
+      {/* FAB — créer un groupe (icône contacts/groupe) */}
       <button
         onClick={() => navigate('/create-group')}
         title="Créer un groupe"
         aria-label="Créer un groupe"
         className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
       >
-        <Plus className="h-6 w-6" />
+        <UsersRound className="h-6 w-6" />
+        <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-card text-primary border-2 border-primary flex items-center justify-center">
+          <Plus className="h-3 w-3" />
+        </span>
       </button>
     </div>
   );
