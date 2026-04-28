@@ -144,10 +144,15 @@
   * {
     @apply border-border;
   }
-  body {
+  html, body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* iOS Safari: keep bottom nav anchored, prevent address bar pushing it */
+    overscroll-behavior-y: none;
+  }
+  body {
+    min-height: 100dvh;
   }
 }
 
@@ -167,3 +172,6 @@
 /* Hide scrollbar */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* iOS safe area for fixed bottom nav */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
