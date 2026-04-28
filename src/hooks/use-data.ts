@@ -551,38 +551,7 @@ export function useCreateMultiGroupListing() {
       }).select().single();
       if (firstErr) throw firstErr;
 
-      // 2) Publish ONCE on Zwandako
-      let zwandakoUrl = firstRow.zwandako_url;
-      let wpPostId: number | null = null;
-      let wpMediaIds: number[] | null = null;
-      try {
-        const { data: publishData } = await supabase.functions.invoke('wp-proxy', {
-          body: {
-            action: 'publish_listing',
-            payload: {
-              listing_id: firstRow.id,
-              title: input.title,
-              content: input.description,
-              image_urls: input.images,
-            },
-          },
-        });
-        if (publishData?.link) zwandakoUrl = publishData.link;
-        wpPostId = publishData?.wp_post_id || null;
-        wpMediaIds = publishData?.media_ids || [];
-      } catch (e) {
-        console.warn('WP publish failed (kept local):', e);
-      }
-
-      if (zwandakoUrl || wpPostId) {
-        await supabase.from('listings').update({
-          zwandako_url: zwandakoUrl || null,
-          wp_post_id: wpPostId,
-          wp_media_ids: wpMediaIds,
-        }).eq('id', firstRow.id);
-      }
-
-      // 3) Duplicate locally in remaining groups (sharing the same WP link/post)
+      // 2) Duplicate locally in remaining groups IMMEDIATELY (so user sees fast result)
       const others = input.group_ids.slice(1);
       if (others.length) {
         const rows = others.map(gid => ({
@@ -591,19 +560,46 @@ export function useCreateMultiGroupListing() {
           title: input.title,
           description: input.description,
           images: input.images,
-          zwandako_url: zwandakoUrl || null,
-          wp_post_id: wpPostId,
-          wp_media_ids: wpMediaIds,
         }));
         const { error: dupErr } = await supabase.from('listings').insert(rows);
         if (dupErr) console.warn('Dup insert error:', dupErr);
       }
 
+      // 3) Fire WP publish in background (don't block UI)
+      (async () => {
+        try {
+          const { data: publishData } = await supabase.functions.invoke('wp-proxy', {
+            body: {
+              action: 'publish_listing',
+              payload: {
+                listing_id: firstRow.id,
+                title: input.title,
+                content: input.description,
+                image_urls: input.images,
+              },
+            },
+          });
+          const wpPostId = publishData?.wp_post_id || null;
+          const wpMediaIds = publishData?.media_ids || [];
+          const zwandakoUrl = publishData?.link || null;
+          if (wpPostId || zwandakoUrl) {
+            // Update ALL rows that share this title+description (the multi-group siblings)
+            await supabase.from('listings').update({
+              zwandako_url: zwandakoUrl,
+              wp_post_id: wpPostId,
+              wp_media_ids: wpMediaIds,
+            }).eq('user_id', input.user_id).eq('title', input.title).is('wp_post_id', null);
+          }
+        } catch (e) {
+          console.warn('WP publish background failed:', e);
+        }
+      })();
+
       return {
-        zwandako_url: zwandakoUrl,
-        wp_post_id: wpPostId,
+        zwandako_url: null as string | null,
+        wp_post_id: null as number | null,
         groups_count: input.group_ids.length,
-        wp_sync_failed: !wpPostId,
+        wp_sync_failed: false,
       };
     },
     onSuccess: () => {
