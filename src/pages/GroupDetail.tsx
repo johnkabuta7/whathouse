@@ -16,7 +16,6 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   const { draft, setDraft } = useDraft(groupId);
   const [title, setTitle] = useState(draft?.title || '');
   const [description, setDescription] = useState(draft?.description || '');
-  const [zwandakoUrl, setZwandakoUrl] = useState(draft?.zwandako_url || '');
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>(draft?.image_previews || []);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,14 +36,14 @@ function PublishForm({ groupId, userId, onDone }: { groupId: string; userId: str
   // Auto-save draft on every change (debounced via microtask)
   useEffect(() => {
     const t = setTimeout(() => {
-      if (!title.trim() && !description.trim() && !zwandakoUrl.trim() && previews.length === 0) {
+      if (!title.trim() && !description.trim() && previews.length === 0) {
         setDraft(null);
         return;
       }
-      setDraft({ title, description, zwandako_url: zwandakoUrl, image_previews: previews });
+      setDraft({ title, description, zwandako_url: '', image_previews: previews });
     }, 300);
     return () => clearTimeout(t);
-  }, [title, description, zwandakoUrl, previews, setDraft]);
+  }, [title, description, previews, setDraft]);
 
   const addFiles = useCallback(async (newFiles: File[]) => {
     const imgs = newFiles.filter(f => f.type.startsWith('image/'));
