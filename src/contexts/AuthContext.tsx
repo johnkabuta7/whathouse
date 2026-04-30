@@ -24,7 +24,7 @@ interface AuthContextType {
   loading: boolean;
   loginWithPhone: (phone: string) => Promise<boolean>;
   verifyOtp: (phone: string, otp: string) => Promise<boolean>;
-  signup: (phone: string, firstName: string, lastName: string) => Promise<SignupResult>;
+  signup: (phone: string, firstName: string, lastName: string, email?: string, password?: string) => Promise<SignupResult>;
   updateEmail: (newEmail: string) => Promise<boolean>;
   updatePassword: (newPassword: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return loginWithPhone(phone);
   };
 
-  const signup = async (phone: string, firstName: string, lastName: string): Promise<SignupResult> => {
+  const signup = async (phone: string, firstName: string, lastName: string, userEmail?: string, userPassword?: string): Promise<SignupResult> => {
     // Pre-check: does a profile already exist for this normalized phone?
     const normalized = normalizePhone(phone);
     if (!normalized) return { ok: false, reason: 'unknown' };
@@ -179,9 +179,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     if (existing) return { ok: false, reason: 'duplicate' };
 
-    const email = phoneToEmail(normalized);
+    const internalEmail = phoneToEmail(normalized);
     const { error } = await supabase.auth.signUp({
-      email,
+      email: internalEmail,
       password: DEFAULT_PASSWORD,
       options: {
         data: { first_name: firstName, last_name: lastName, phone: normalized },
@@ -196,9 +196,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: false, reason: 'unknown' };
     }
     await new Promise(r => setTimeout(r, 500));
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password: DEFAULT_PASSWORD });
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email: internalEmail, password: DEFAULT_PASSWORD });
     if (loginError || !data.user) return { ok: false, reason: 'unknown' };
     myTokenRef.current = await claimActiveSession(data.user.id);
+
+    // Optional: persist user's real email + password
+    try {
+      if (userEmail && userEmail.trim()) {
+        await supabase.auth.updateUser({ email: userEmail.trim() });
+      }
+      if (userPassword && userPassword.trim().length >= 6) {
+        await supabase.auth.updateUser({ password: userPassword.trim() });
+      }
+    } catch (e) {
+      console.warn('updateUser email/password failed', e);
+    }
+
+    // Auto-create the WordPress / zwandako user in background.
+    try {
+      supabase.functions.invoke('wp-proxy', { body: { action: 'ensure_user', userId: data.user.id } }).then(({ error }) => {
+        if (error) console.warn('ensure_user failed', error);
+      });
+    } catch (e) {
+      console.warn('ensure_user invoke threw', e);
+    }
+
     return { ok: true };
   };
 
