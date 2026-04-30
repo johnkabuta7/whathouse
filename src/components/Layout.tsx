@@ -104,7 +104,7 @@ export function Layout() {
 
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col overflow-x-hidden">
-      <main className={`flex-1 ${padBottom}`} style={transformStyle}>
+      <main className={`flex-1 bg-background ${padBottom}`} style={transformStyle}>
         <Outlet />
       </main>
       <BottomNav />
