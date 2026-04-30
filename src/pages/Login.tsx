@@ -12,6 +12,8 @@ export default function Login() {
   const [phone, setPhone] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { loginWithPhone, signup } = useAuth();
   const navigate = useNavigate();
@@ -40,7 +42,7 @@ export default function Login() {
         setIsLoading(false);
         return;
       }
-      const result = await signup(phone, firstName, lastName);
+      const result = await signup(phone, firstName, lastName, email, password);
       if (result.ok) {
         toast({ title: 'Compte créé !', description: 'Bienvenue sur WhatHouse' });
         navigate('/', { replace: true });
