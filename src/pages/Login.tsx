@@ -118,16 +118,27 @@ export default function Login() {
                 <p className="text-[11px] text-muted-foreground mt-1">⚠️ Commencez par le <span className="font-semibold text-primary">préfixe de votre pays</span> (ex: +243, +33, +1, +32...)</p>
               </div>
               {mode === 'signup' && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs font-semibold text-foreground mb-1 block">Prénom *</label>
-                    <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Jean" className="rounded-xl" required />
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-semibold text-foreground mb-1 block">Prénom *</label>
+                      <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Jean" className="rounded-xl" required />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-foreground mb-1 block">Nom *</label>
+                      <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Dupont" className="rounded-xl" required />
+                    </div>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-foreground mb-1 block">Nom *</label>
-                    <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Dupont" className="rounded-xl" required />
+                    <label className="text-xs font-semibold text-foreground mb-1 block">Adresse e-mail (optionnel)</label>
+                    <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vous@exemple.com" className="rounded-xl" autoComplete="email" />
                   </div>
-                </div>
+                  <div>
+                    <label className="text-xs font-semibold text-foreground mb-1 block">Mot de passe (optionnel)</label>
+                    <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="6 caractères minimum" className="rounded-xl" autoComplete="new-password" />
+                    <p className="text-[10px] text-muted-foreground mt-1">Sert à récupérer votre compte. Votre compte zwandako.com est créé automatiquement.</p>
+                  </div>
+                </>
               )}
               <Button type="submit" className="w-full rounded-xl font-semibold" disabled={isLoading}>
                 {mode === 'login' ? <LogIn className="h-4 w-4 mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
