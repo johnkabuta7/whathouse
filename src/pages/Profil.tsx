@@ -249,19 +249,36 @@ export default function Profil() {
         </div>
       </div>
 
-      <div className="px-4 mt-3">
-        <div className="flex gap-4">
-          <div className="flex-1 text-center bg-primary/10 rounded-xl py-2">
-            <p className="text-lg font-bold text-primary">{myListings?.length || 0}</p>
-            <p className="text-[10px] text-muted-foreground">Annonces</p>
-          </div>
-          <div className="flex-1 text-center bg-primary/10 rounded-xl py-2">
-            <p className="text-lg font-bold text-primary">{groups?.length || 0}</p>
-            <p className="text-[10px] text-muted-foreground">Groupes</p>
-          </div>
-          <div className="flex-1 text-center bg-primary/10 rounded-xl py-2">
-            <p className="text-lg font-bold text-primary">{myListings?.reduce((s, l) => s + (l.like_count || 0), 0) || 0}</p>
-            <p className="text-[10px] text-muted-foreground">Likes</p>
+      <div className="px-4 mt-4">
+        <div className="grid grid-cols-3 gap-3">
+          {/* Annonces — primary gradient */}
+          <button
+            onClick={() => setActiveTab('annonces')}
+            className="relative overflow-hidden rounded-2xl p-3 text-left bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-md active:scale-[0.97] transition"
+          >
+            <MessageSquare className="absolute -right-2 -bottom-2 h-14 w-14 opacity-20" />
+            <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">Annonces</p>
+            <p className="text-2xl font-extrabold leading-none mt-1">{myListings?.length || 0}</p>
+            <p className="text-[10px] opacity-80 mt-0.5">publications</p>
+          </button>
+          {/* Groupes — soft surface */}
+          <Link
+            to="/"
+            className="relative overflow-hidden rounded-2xl p-3 bg-card border border-border shadow-sm active:scale-[0.97] transition"
+          >
+            <Users className="absolute -right-2 -bottom-2 h-14 w-14 text-primary/15" />
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Groupes</p>
+            <p className="text-2xl font-extrabold leading-none mt-1 text-foreground">{groups?.length || 0}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">communautés</p>
+          </Link>
+          {/* Likes — destructive accent */}
+          <div className="relative overflow-hidden rounded-2xl p-3 bg-card border border-border shadow-sm">
+            <Heart className="absolute -right-2 -bottom-2 h-14 w-14 text-destructive/15 fill-destructive/10" />
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Likes</p>
+            <p className="text-2xl font-extrabold leading-none mt-1 text-destructive">
+              {myListings?.reduce((s, l) => s + (l.like_count || 0), 0) || 0}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">reçus</p>
           </div>
         </div>
       </div>
