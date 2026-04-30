@@ -2,8 +2,12 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { BottomNav } from './BottomNav';
 import { useTheme } from '@/contexts/ThemeContext';
+import Index from '@/pages/Index';
+import Contacts from '@/pages/Contacts';
+import Profil from '@/pages/Profil';
 
 const SWIPE_ROUTES = ['/', '/contacts', '/profil'];
+const PAGES = [Index, Contacts, Profil];
 
 export function Layout() {
   const { pathname } = useLocation();
@@ -71,7 +75,6 @@ export function Layout() {
       const threshold = w * 0.25;
       setAnimating(true);
       if (dragX < -threshold && swipeIdx < SWIPE_ROUTES.length - 1) {
-        // animate out to -w then navigate
         setDragX(-w);
         setTimeout(() => navigate(SWIPE_ROUTES[swipeIdx + 1]), 220);
       } else if (dragX > threshold && swipeIdx > 0) {
@@ -94,17 +97,41 @@ export function Layout() {
     };
   }, [isSwipeRoute, swipeIdx, dragX, navigate]);
 
-  const transformStyle = isSwipeRoute
-    ? {
-        transform: `translate3d(${dragX}px,0,0)`,
-        transition: animating ? 'transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none',
-        willChange: 'transform',
-      }
-    : undefined;
+  // Carousel: always-mounted side-by-side panels for the 3 main routes.
+  // Translates by (-swipeIdx * 100%) + dragX.
+  if (isSwipeRoute) {
+    const translateX = `calc(${-swipeIdx * 100}% + ${dragX}px)`;
+    return (
+      <div className="min-h-[100dvh] bg-background flex flex-col overflow-hidden">
+        <div className={`flex-1 ${padBottom} relative overflow-hidden`}>
+          <div
+            className="flex h-full w-full"
+            style={{
+              transform: `translate3d(${translateX}, 0, 0)`,
+              transition: animating ? 'transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none',
+              willChange: 'transform',
+            }}
+          >
+            {PAGES.map((Page, i) => (
+              <div
+                key={i}
+                className="shrink-0 w-full h-full overflow-y-auto bg-background"
+                style={{ width: '100%' }}
+              >
+                <Page />
+              </div>
+            ))}
+          </div>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
 
+  // Non-swipe routes: render the matched route as usual via Outlet.
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col overflow-x-hidden">
-      <main className={`flex-1 bg-background ${padBottom}`} style={transformStyle}>
+      <main className={`flex-1 bg-background ${padBottom}`}>
         <Outlet />
       </main>
       <BottomNav />
