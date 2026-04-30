@@ -249,36 +249,36 @@ export default function Profil() {
         </div>
       </div>
 
-      <div className="px-4 mt-4">
-        <div className="grid grid-cols-3 gap-3">
-          {/* Annonces — primary gradient */}
+      <div className="px-4 mt-3">
+        <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => setActiveTab('annonces')}
-            className="relative overflow-hidden rounded-2xl p-3 text-left bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-md active:scale-[0.97] transition"
+            className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-card border border-border active:scale-[0.97] transition"
           >
-            <MessageSquare className="absolute -right-2 -bottom-2 h-14 w-14 opacity-20" />
-            <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">Annonces</p>
-            <p className="text-2xl font-extrabold leading-none mt-1">{myListings?.length || 0}</p>
-            <p className="text-[10px] opacity-80 mt-0.5">publications</p>
+            <MessageSquare className="h-3.5 w-3.5 text-primary shrink-0" />
+            <div className="min-w-0 text-left">
+              <p className="text-sm font-bold leading-none text-foreground">{myListings?.length || 0}</p>
+              <p className="text-[9px] text-muted-foreground leading-tight">Annonces</p>
+            </div>
           </button>
-          {/* Groupes — soft surface */}
           <Link
             to="/"
-            className="relative overflow-hidden rounded-2xl p-3 bg-card border border-border shadow-sm active:scale-[0.97] transition"
+            className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-card border border-border active:scale-[0.97] transition"
           >
-            <Users className="absolute -right-2 -bottom-2 h-14 w-14 text-primary/15" />
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Groupes</p>
-            <p className="text-2xl font-extrabold leading-none mt-1 text-foreground">{groups?.length || 0}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">communautés</p>
+            <Users className="h-3.5 w-3.5 text-primary shrink-0" />
+            <div className="min-w-0 text-left">
+              <p className="text-sm font-bold leading-none text-foreground">{groups?.length || 0}</p>
+              <p className="text-[9px] text-muted-foreground leading-tight">Groupes</p>
+            </div>
           </Link>
-          {/* Likes — destructive accent */}
-          <div className="relative overflow-hidden rounded-2xl p-3 bg-card border border-border shadow-sm">
-            <Heart className="absolute -right-2 -bottom-2 h-14 w-14 text-destructive/15 fill-destructive/10" />
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Likes</p>
-            <p className="text-2xl font-extrabold leading-none mt-1 text-destructive">
-              {myListings?.reduce((s, l) => s + (l.like_count || 0), 0) || 0}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">reçus</p>
+          <div className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-card border border-border">
+            <Heart className="h-3.5 w-3.5 text-destructive shrink-0" />
+            <div className="min-w-0 text-left">
+              <p className="text-sm font-bold leading-none text-foreground">
+                {myListings?.reduce((s, l) => s + (l.like_count || 0), 0) || 0}
+              </p>
+              <p className="text-[9px] text-muted-foreground leading-tight">Likes</p>
+            </div>
           </div>
         </div>
       </div>
@@ -523,17 +523,16 @@ export default function Profil() {
                 <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${showStylePicker ? 'rotate-90' : ''}`} />
               </button>
               {showStylePicker && (
-                <div className="grid grid-cols-3 gap-2 pl-12 mt-3 animate-fade-in">
+                <div className="grid grid-cols-3 gap-1.5 pl-12 mt-2 animate-fade-in">
                   {THEME_STYLES.map(s => (
                     <button
                       key={s.id}
                       type="button"
                       onClick={() => setThemeStyle(s.id)}
-                      className={`rounded-xl p-2 border-2 transition text-left ${themeStyle === s.id ? 'border-primary' : 'border-border'}`}
+                      className={`rounded-lg p-1.5 border transition text-left ${themeStyle === s.id ? 'border-primary ring-1 ring-primary' : 'border-border'}`}
                     >
-                      <div className="h-10 w-full rounded-lg mb-1" style={{ background: s.preview }} />
-                      <p className="text-[11px] font-semibold text-foreground">{s.name}</p>
-                      <p className="text-[9px] text-muted-foreground leading-tight">{s.description}</p>
+                      <div className="h-5 w-full rounded mb-1" style={{ background: s.preview }} />
+                      <p className="text-[10px] font-semibold text-foreground leading-tight">{s.name}</p>
                     </button>
                   ))}
                 </div>
