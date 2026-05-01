@@ -81,10 +81,9 @@ export default function Onboarding() {
 
   return (
     <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
-      <div className="flex justify-end p-4 shrink-0">
+      <div className="flex justify-end p-4 pt-6 shrink-0">
         <button
           onClick={goToLogin}
-          onTouchStart={goToLogin}
           type="button"
           disabled={skipping}
           className="text-sm text-muted-foreground font-medium px-3 py-1.5 rounded-full hover:bg-muted active:bg-muted/70 transition disabled:opacity-60"
@@ -117,21 +116,25 @@ export default function Onboarding() {
         </ul>
       </div>
 
-      <div className="shrink-0 p-6 max-w-md mx-auto w-full bg-background border-t border-border/50">
-        <div className="flex justify-center gap-2 mb-4">
+      <div className="shrink-0 px-6 pt-6 pb-8 max-w-md mx-auto w-full bg-background border-t border-border/50 safe-bottom">
+        <div className="flex justify-center gap-2 mb-5">
           {SLIDES.map((_, i) => (
             <div key={i} className={`h-1.5 rounded-full transition-all ${i === step ? 'w-6 bg-primary' : 'w-1.5 bg-muted'}`} />
           ))}
         </div>
-        <Button onClick={next} type="button" className="w-full rounded-full font-semibold bg-primary text-primary-foreground">
-          {isLast ? "Commencer" : 'Suivant'} <ChevronRight className="h-4 w-4 ml-1" />
+        <Button
+          onClick={next}
+          type="button"
+          disabled={skipping}
+          className="w-full rounded-full font-semibold bg-primary text-primary-foreground h-12 disabled:opacity-60"
+        >
+          {isLast ? (skipping ? 'Chargement...' : 'Commencer') : 'Suivant'} <ChevronRight className="h-4 w-4 ml-1" />
         </Button>
         <button
           onClick={goToLogin}
-          onTouchStart={goToLogin}
           type="button"
           disabled={skipping}
-          className="w-full text-center text-xs text-muted-foreground mt-3 py-2 disabled:opacity-60"
+          className="w-full text-center text-xs text-muted-foreground mt-4 mb-2 py-2 disabled:opacity-60"
         >
           {skipping ? 'Chargement...' : 'Aller à la connexion'}
         </button>
