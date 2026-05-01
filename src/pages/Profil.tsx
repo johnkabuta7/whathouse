@@ -523,19 +523,19 @@ export default function Profil() {
                 <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${showStylePicker ? 'rotate-90' : ''}`} />
               </button>
               {showStylePicker && (
-                <div className="flex flex-col mt-2 pl-12 animate-fade-in">
+                <div className="grid grid-cols-3 gap-2 mt-3 pl-12 pr-1 animate-fade-in">
                   {THEME_STYLES.map(s => (
                     <button
                       key={s.id}
                       type="button"
                       onClick={() => setThemeStyle(s.id)}
-                      className={`flex items-center gap-3 py-2 px-1 rounded-md transition text-left ${themeStyle === s.id ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
+                      className={`flex flex-col items-center gap-1.5 py-2 px-1 rounded-lg transition ${themeStyle === s.id ? 'bg-primary/10 ring-1 ring-primary' : 'hover:bg-muted/50 border border-border'}`}
                     >
                       <div
-                        className={`h-5 w-5 rounded-sm shrink-0 border ${themeStyle === s.id ? 'border-primary ring-1 ring-primary' : 'border-border'}`}
+                        className="h-6 w-6 rounded-sm shrink-0 border border-border"
                         style={{ background: s.preview }}
                       />
-                      <span className="text-xs font-medium text-foreground">{s.name}</span>
+                      <span className="text-[11px] font-medium text-foreground capitalize">{s.name}</span>
                     </button>
                   ))}
                 </div>
