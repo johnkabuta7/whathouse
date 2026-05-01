@@ -41,7 +41,20 @@ export function Layout() {
   useEffect(() => {
     if (!isSwipeRoute) return;
 
+    const isInNoSwipe = (target: EventTarget | null) => {
+      let el = target as HTMLElement | null;
+      while (el) {
+        if (el.dataset && el.dataset.noSwipe !== undefined) return true;
+        el = el.parentElement;
+      }
+      return false;
+    };
+
     const onStart = (e: TouchEvent) => {
+      if (isInNoSwipe(e.target)) {
+        startRef.current = null;
+        return;
+      }
       const t = e.touches[0];
       startRef.current = { x: t.clientX, y: t.clientY, t: Date.now(), locked: null };
       setAnimating(false);
@@ -52,14 +65,21 @@ export function Layout() {
       const dx = t.clientX - startRef.current.x;
       const dy = t.clientY - startRef.current.y;
 
+      // Stricter lock: require clear horizontal intent and a meaningful distance
       if (!startRef.current.locked) {
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-        startRef.current.locked = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'h' : 'v';
+        if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+        // Only lock horizontal if dx is dominant by 2x AND clearly large
+        if (Math.abs(dx) > Math.abs(dy) * 2 && Math.abs(dx) > 18) {
+          startRef.current.locked = 'h';
+        } else {
+          startRef.current.locked = 'v';
+        }
       }
       if (startRef.current.locked !== 'h') return;
 
-      // clamp at edges (no rubber-band beyond first/last)
-      let next = dx;
+      // Subtract the activation distance so the page doesn't "peek" at edges on quick swipes
+      const sign = dx >= 0 ? 1 : -1;
+      let next = dx - sign * 18;
       if (swipeIdx === 0 && next > 0) next = next * 0.25;
       if (swipeIdx === SWIPE_ROUTES.length - 1 && next < 0) next = next * 0.25;
       setDragX(next);
