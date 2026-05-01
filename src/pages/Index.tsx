@@ -82,6 +82,7 @@ function SliderBanner() {
 
   return (
     <div
+      data-no-swipe
       className="relative w-full h-[100px] overflow-hidden touch-pan-y"
       onTouchStart={e => setTouchStart(e.touches[0].clientX)}
       onTouchEnd={e => handleTouchEnd(e.changedTouches[0].clientX)}
@@ -156,12 +157,12 @@ function FeaturedProperties() {
   if (!properties || properties.length === 0) return null;
 
   return (
-    <div className="py-3">
+    <div className="py-3" data-no-swipe>
       <div className="px-4 flex items-center justify-between mb-2">
         <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">À la une sur Zwandako</h2>
         <a href="https://zwandako.com" target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold text-primary">Voir tout →</a>
       </div>
-      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1 touch-pan-x">
         {properties.map((p: any) => {
           const img = p._embedded?.['wp:featuredmedia']?.[0]?.source_url
             || p.jetpack_featured_media_url
@@ -182,6 +183,36 @@ function FeaturedProperties() {
         })}
       </div>
     </div>
+  );
+}
+
+function SpecialFab() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {open && <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />}
+      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-2">
+        {open && (
+          <div className="flex flex-col items-end gap-2 animate-fade-in">
+            <Link to="/publish" onClick={() => setOpen(false)}
+              className="flex items-center gap-2 bg-card text-foreground border border-border shadow-lg pl-3 pr-4 py-2 rounded-full">
+              <PenSquare className="h-4 w-4 text-primary" />
+              <span className="text-xs font-semibold">Publier une annonce</span>
+            </Link>
+            <Link to="/create-group" onClick={() => setOpen(false)}
+              className="flex items-center gap-2 bg-card text-foreground border border-border shadow-lg pl-3 pr-4 py-2 rounded-full">
+              <Users className="h-4 w-4 text-primary" />
+              <span className="text-xs font-semibold">Créer un groupe</span>
+            </Link>
+          </div>
+        )}
+        <button onClick={() => setOpen(o => !o)}
+          aria-label="Bouton spécial"
+          className={`h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition ${open ? 'rotate-45' : ''}`}>
+          <Plus className="h-7 w-7" />
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -299,8 +330,8 @@ export default function Index() {
 
       {/* Contact carousel — Messenger style online indicator */}
       {contacts && contacts.length > 0 && !isSearching && (
-        <div className="px-3 pt-[5mm] pb-3">
-          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1">
+        <div className="px-3 pt-[5mm] pb-3" data-no-swipe>
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1 touch-pan-x">
             {contacts.slice(0, 30).map(c => {
               const name = `${c.first_name} ${c.last_name}`.trim() || '?';
               const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
@@ -446,15 +477,9 @@ export default function Index() {
         </div>
       )}
 
-      {/* Floating Action Button — publier une annonce (multi-groupes) */}
-      <Link
-        to="/publish"
-        title="Publier une annonce"
-        aria-label="Publier une annonce"
-        className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
-      >
-        <PenSquare className="h-6 w-6" />
-      </Link>
+      {/* Floating Action Button — bouton spécial: Publier annonce OU créer groupe */}
+      <SpecialFab />
+
 
       <InstallPrompt open={showInstall} onClose={() => setShowInstall(false)} />
     </div>
