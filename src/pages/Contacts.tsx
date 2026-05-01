@@ -21,16 +21,39 @@ function useAllProfiles() {
         .from('active_sessions' as any)
         .select('user_id, updated_at');
       const cutoff = Date.now() - 2 * 60 * 1000;
+      const sessionMap = new Map<string, string>();
+      ((sessions as any[]) || []).forEach((s: any) => sessionMap.set(s.user_id, s.updated_at));
       const onlineSet = new Set(
         (sessions as any[] | null)
           ?.filter((s: any) => new Date(s.updated_at).getTime() > cutoff)
           .map((s: any) => s.user_id) || []
       );
-      return (data || []).map(p => ({ ...p, online: onlineSet.has(p.user_id) }));
+      return (data || []).map(p => ({
+        ...p,
+        online: onlineSet.has(p.user_id),
+        last_seen: sessionMap.get(p.user_id) || null,
+      }));
     },
     enabled: !!user,
     refetchInterval: 30_000,
   });
+}
+
+function formatLastSeen(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'à l\'instant';
+  if (mins < 60) return `il y a ${mins} min`;
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) {
+    return `hier ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  return d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 export default function Contacts() {
