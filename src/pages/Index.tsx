@@ -300,8 +300,8 @@ export default function Index() {
 
       {/* Contact carousel — Messenger style online indicator */}
       {contacts && contacts.length > 0 && !isSearching && (
-        <div className="px-3 pt-[5mm] pb-3">
-          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1">
+        <div className="px-3 pt-[5mm] pb-3" data-no-swipe>
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1 touch-pan-x">
             {contacts.slice(0, 30).map(c => {
               const name = `${c.first_name} ${c.last_name}`.trim() || '?';
               const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
