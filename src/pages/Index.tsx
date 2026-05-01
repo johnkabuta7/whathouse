@@ -447,15 +447,9 @@ export default function Index() {
         </div>
       )}
 
-      {/* Floating Action Button — publier une annonce (multi-groupes) */}
-      <Link
-        to="/publish"
-        title="Publier une annonce"
-        aria-label="Publier une annonce"
-        className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
-      >
-        <PenSquare className="h-6 w-6" />
-      </Link>
+      {/* Floating Action Button — bouton spécial: Publier annonce OU créer groupe */}
+      <SpecialFab />
+
 
       <InstallPrompt open={showInstall} onClose={() => setShowInstall(false)} />
     </div>
