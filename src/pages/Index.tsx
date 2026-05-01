@@ -186,6 +186,36 @@ function FeaturedProperties() {
   );
 }
 
+function SpecialFab() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {open && <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />}
+      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-2">
+        {open && (
+          <div className="flex flex-col items-end gap-2 animate-fade-in">
+            <Link to="/publish" onClick={() => setOpen(false)}
+              className="flex items-center gap-2 bg-card text-foreground border border-border shadow-lg pl-3 pr-4 py-2 rounded-full">
+              <PenSquare className="h-4 w-4 text-primary" />
+              <span className="text-xs font-semibold">Publier une annonce</span>
+            </Link>
+            <Link to="/create-group" onClick={() => setOpen(false)}
+              className="flex items-center gap-2 bg-card text-foreground border border-border shadow-lg pl-3 pr-4 py-2 rounded-full">
+              <Users className="h-4 w-4 text-primary" />
+              <span className="text-xs font-semibold">Créer un groupe</span>
+            </Link>
+          </div>
+        )}
+        <button onClick={() => setOpen(o => !o)}
+          aria-label="Bouton spécial"
+          className={`h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition ${open ? 'rotate-45' : ''}`}>
+          <Plus className="h-7 w-7" />
+        </button>
+      </div>
+    </>
+  );
+}
+
 export default function Index() {
   const { user } = useAuth();
   const navigate = useNavigate();
