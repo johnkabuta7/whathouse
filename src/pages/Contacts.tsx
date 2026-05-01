@@ -216,9 +216,14 @@ export default function Contacts() {
                 </div>
                 {(p as any).online && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-success border-2 border-card" />}
                 </div>
-                <div className="flex-1 min-w-0 border-b border-border pb-3">
-                  <p className="text-sm font-medium text-foreground truncate">{name}</p>
-                  <p className="text-xs text-muted-foreground">{(p as any).online ? 'En ligne' : (p.phone || 'Hors ligne')}</p>
+                <div className="flex-1 min-w-0 border-b border-border pb-3 flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{(p as any).online ? 'En ligne' : (p.phone || 'Hors ligne')}</p>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground shrink-0 text-right whitespace-nowrap">
+                    {(p as any).online ? <span className="text-success font-semibold">● en ligne</span> : formatLastSeen((p as any).last_seen)}
+                  </p>
                 </div>
               </div>
             );
