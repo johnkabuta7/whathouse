@@ -80,7 +80,7 @@ export function BottomNav() {
 
   // ---- Default (classic) — barre fixe sobre ----
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 5mm)' }}>
       <div className="max-w-lg mx-auto flex items-center justify-around h-14">
         {navItems.map(item => {
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
