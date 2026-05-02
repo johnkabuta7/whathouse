@@ -297,7 +297,7 @@ export default function Index() {
           <div className="px-3 pb-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un groupe ou une propriété Zwandako..."
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ex: appartement à louer à Kintambo, Parcelle à vendre à Lungwala..."
                 className="w-full pl-9 pr-10 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" autoFocus />
               <button
                 type="button"
