@@ -399,30 +399,33 @@ Deno.serve(async (req) => {
       throw new Error("Backend credentials not configured");
     }
 
-    const authHeader = req.headers.get("Authorization") || "";
-    if (!authHeader.startsWith("Bearer ")) {
-      return jsonResponse({ error: "unauthorized" }, 401);
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: userData, error: userError } = await userClient.auth
-      .getUser();
-    const uid = userData?.user?.id;
-
-    if (userError || !uid) {
-      return jsonResponse({ error: "unauthorized" }, 401);
-    }
-
     const body = await req.json().catch(() => null);
     const action = body?.action;
     const payload = body?.payload || {};
 
     if (!action) {
       return jsonResponse({ error: "action required" }, 400);
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Public actions: no Supabase auth required (used during login flow).
+    const PUBLIC_ACTIONS = new Set(["wp_login_check"]);
+
+    let uid = "";
+    if (!PUBLIC_ACTIONS.has(action)) {
+      const authHeader = req.headers.get("Authorization") || "";
+      if (!authHeader.startsWith("Bearer ")) {
+        return jsonResponse({ error: "unauthorized" }, 401);
+      }
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData, error: userError } = await userClient.auth.getUser();
+      uid = userData?.user?.id || "";
+      if (userError || !uid) {
+        return jsonResponse({ error: "unauthorized" }, 401);
+      }
     }
 
     if (action === "ensure_user") {
