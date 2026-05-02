@@ -154,6 +154,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  // Login by real email + password. Used by:
+  //   1. Existing zwandako.com users — we validate their creds against WP via
+  //      the wp-proxy edge function, then sign them into Supabase (creating a
+  //      mirror account silently if it doesn't exist yet).
+  //   2. WhatHouse users who set an email + password during signup.
+  const loginWithEmail = async (email: string, password: string) => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !password) return false;
+
+    // 1. Try direct Supabase login first (works for users created with real email).
+    const { data, error } = await supabase.auth.signInWithPassword({ email: trimmed, password });
+    if (!error && data.user) {
+      myTokenRef.current = await claimActiveSession(data.user.id);
+      return true;
+    }
+
+    // 2. Fallback: validate against WordPress and migrate the account.
+    try {
+      const { data: wpData, error: wpError } = await supabase.functions.invoke('wp-proxy', {
+        body: { action: 'wp_login_check', payload: { email: trimmed, password } },
+      });
+      if (wpError || !wpData?.ok || !wpData?.wp_user) return false;
+      const wp = wpData.wp_user;
+      // Try to sign up a Supabase user with these creds. If the email already
+      // exists in Supabase but with a different password, we cannot recover
+      // automatically and the user has to use phone-based login.
+      const { data: signupData, error: signupError } = await supabase.auth.signUp({
+        email: trimmed,
+        password,
+        options: {
+          data: {
+            first_name: wp.first_name || '',
+            last_name: wp.last_name || '',
+            phone: wp.phone || '',
+          },
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      if (signupError || !signupData.user) return false;
+      // Login with the freshly-created session.
+      const { data: loginData } = await supabase.auth.signInWithPassword({ email: trimmed, password });
+      if (!loginData?.user) return false;
+      myTokenRef.current = await claimActiveSession(loginData.user.id);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const verifyOtp = async (phone: string, _otp: string) => {
     return loginWithPhone(phone);
   };
