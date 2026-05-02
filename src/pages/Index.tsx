@@ -244,7 +244,7 @@ export default function Index() {
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 7mm)' }}>
+      <header className="sticky top-0 z-50 bg-card border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 7mm)', position: 'sticky' as any }}>
         <div className="px-4 py-3 flex items-center gap-3">
           <h1 className="text-lg font-bold leading-tight flex-1 text-foreground">WhatHouse <span className="block text-[10px] font-medium text-muted-foreground">Pro Immobilier</span></h1>
           <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">
@@ -297,7 +297,7 @@ export default function Index() {
           <div className="px-3 pb-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un groupe ou une propriété Zwandako..."
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ex: appartement à louer à Kintambo, Parcelle à vendre à Lungwala..."
                 className="w-full pl-9 pr-10 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" autoFocus />
               <button
                 type="button"
@@ -383,82 +383,129 @@ export default function Index() {
       )}
       {isSearching && <p className="px-4 py-2 text-xs font-semibold text-muted-foreground">Résultats de recherche</p>}
 
-      {/* Group list */}
-      {(!displayGroups || displayGroups.length === 0) ? (
-        <div className="text-center py-16 px-4">
-          <MessageSquare className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-          <p className="text-sm font-medium text-muted-foreground">{isSearching ? 'Aucun groupe trouvé' : 'Aucun groupe'}</p>
-          <p className="text-xs text-muted-foreground mt-1">{isSearching ? 'Essayez un autre nom' : 'Créez votre premier groupe immobilier'}</p>
-          {!isSearching && (
-            <Link to="/create-group" className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold shadow-md hover:opacity-90 transition">
-              <Plus className="h-4 w-4" />Créer un groupe
-            </Link>
-          )}
-        </div>
-      ) : (
-        <div>
-          {displayGroups.map(group => {
-            const reqCount = requestCounts?.byGroup[group.id] || 0;
-            const unread = unreadCounts?.[group.id] || 0;
-            return (
-              <Link key={group.id} to={`/group/${group.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 active:bg-muted transition-colors">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                  {group.image_url ? (
-                    <img src={group.image_url} alt={group.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <Users className="h-5 w-5 text-primary" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 border-b border-border pb-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-foreground truncate">{group.name}</p>
-                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      {reqCount > 0 && (
-                        <span title="Demandes d'adhésion" className="h-5 min-w-[20px] rounded-full bg-success text-[10px] font-bold text-success-foreground flex items-center justify-center px-1.5">
-                          {reqCount > 999 ? '999+' : reqCount}
-                        </span>
-                      )}
-                      {unread > 0 && (
-                        <span title="Nouvelles annonces" className="h-5 min-w-[20px] rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center px-1.5">
-                          {unread > 999 ? '999+' : unread}
-                        </span>
-                      )}
-                      <p className="text-[10px] text-muted-foreground">
-                        {new Date(group.updated_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                      </p>
+      {/* Merged search results: groups + Zwandako properties, sorted by most recent */}
+      {isSearching ? (() => {
+        const groupItems = (searchResults || []).map((g: any) => ({
+          kind: 'group' as const,
+          id: `g-${g.id}`,
+          date: new Date(g.updated_at || g.created_at || 0).getTime(),
+          data: g,
+        }));
+        const wpItems = (zwandakoResults || []).map((p: any) => ({
+          kind: 'wp' as const,
+          id: `w-${p.id}`,
+          date: new Date(p.date || p.modified || 0).getTime(),
+          data: p,
+        }));
+        const merged = [...groupItems, ...wpItems].sort((a, b) => b.date - a.date);
+        if (merged.length === 0) {
+          return (
+            <div className="text-center py-16 px-4">
+              <MessageSquare className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-sm font-medium text-muted-foreground">Aucun résultat</p>
+              <p className="text-xs text-muted-foreground mt-1">Essayez d'autres mots-clés</p>
+            </div>
+          );
+        }
+        return (
+          <div className="px-4 space-y-2 pb-4">
+            {merged.map(item => {
+              if (item.kind === 'group') {
+                const g = item.data;
+                const dateStr = new Date(item.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                return (
+                  <a key={item.id} href={`/group/${g.id}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-2 rounded-xl bg-card border border-border hover:bg-muted/50 transition">
+                    <div className="h-14 w-14 rounded-lg overflow-hidden bg-primary/10 shrink-0 flex items-center justify-center">
+                      {g.image_url ? <img src={g.image_url} alt={g.name} className="h-full w-full object-cover" /> : <Users className="h-5 w-5 text-primary" />}
                     </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{group.description || 'Groupe immobilier'}</p>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Zwandako property search results */}
-      {isSearching && zwandakoResults && zwandakoResults.length > 0 && (
-        <div className="px-4 pt-4 pb-2">
-          <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Propriétés sur Zwandako</h2>
-          <div className="space-y-2">
-            {zwandakoResults.map((p: any) => {
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground line-clamp-2 leading-tight">{g.name}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-[10px] text-primary font-bold">Groupe →</p>
+                        <p className="text-[10px] text-muted-foreground">{dateStr}</p>
+                      </div>
+                    </div>
+                  </a>
+                );
+              }
+              const p = item.data;
               const img = p._embedded?.['wp:featuredmedia']?.[0]?.source_url || p.jetpack_featured_media_url;
               const title = p.title?.rendered?.replace(/<[^>]+>/g, '') || 'Propriété';
+              const dateStr = new Date(item.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
               return (
-                <a key={p.id} href={p.link} target="_blank" rel="noopener noreferrer"
+                <a key={item.id} href={p.link} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-3 p-2 rounded-xl bg-card border border-border hover:bg-muted/50 transition">
                   <div className="h-14 w-14 rounded-lg overflow-hidden bg-muted shrink-0">
                     {img && <img src={img} alt={title} className="h-full w-full object-cover" loading="lazy" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground line-clamp-2 leading-tight">{title}</p>
-                    <p className="text-[10px] text-primary font-bold mt-1">Voir sur Zwandako →</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-[10px] text-primary font-bold">Zwandako →</p>
+                      <p className="text-[10px] text-muted-foreground">{dateStr}</p>
+                    </div>
                   </div>
                 </a>
               );
             })}
           </div>
-        </div>
+        );
+      })() : (
+        <>
+          {/* Group list */}
+          {(!displayGroups || displayGroups.length === 0) ? (
+            <div className="text-center py-16 px-4">
+              <MessageSquare className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-sm font-medium text-muted-foreground">Aucun groupe</p>
+              <p className="text-xs text-muted-foreground mt-1">Créez votre premier groupe immobilier</p>
+              <Link to="/create-group" className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold shadow-md hover:opacity-90 transition">
+                <Plus className="h-4 w-4" />Créer un groupe
+              </Link>
+            </div>
+          ) : (
+            <div>
+              {displayGroups.map(group => {
+                const reqCount = requestCounts?.byGroup[group.id] || 0;
+                const unread = unreadCounts?.[group.id] || 0;
+                return (
+                  <Link key={group.id} to={`/group/${group.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 active:bg-muted transition-colors">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                      {group.image_url ? (
+                        <img src={group.image_url} alt={group.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <Users className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 border-b border-border pb-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-foreground truncate">{group.name}</p>
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          {reqCount > 0 && (
+                            <span title="Demandes d'adhésion" className="h-5 min-w-[20px] rounded-full bg-success text-[10px] font-bold text-success-foreground flex items-center justify-center px-1.5">
+                              {reqCount > 999 ? '999+' : reqCount}
+                            </span>
+                          )}
+                          {unread > 0 && (
+                            <span title="Nouvelles annonces" className="h-5 min-w-[20px] rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center px-1.5">
+                              {unread > 999 ? '999+' : unread}
+                            </span>
+                          )}
+                          <p className="text-[10px] text-muted-foreground">
+                            {new Date(group.updated_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{group.description || 'Groupe immobilier'}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+              {/* 2cm spacing under the groups list */}
+              <div style={{ height: '2cm' }} />
+            </div>
+          )}
+        </>
       )}
 
       {/* Floating Action Button — bouton spécial: Publier annonce OU créer groupe */}

@@ -108,21 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.removeChannel(sessionChannelRef.current);
       sessionChannelRef.current = null;
     }
-    const ch = supabase
-      .channel(`active_session_${user.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'active_sessions', filter: `user_id=eq.${user.id}` },
-        async (payload: any) => {
-          const newToken = payload.new?.session_token;
-          if (newToken && newToken !== myTokenRef.current) {
-            await supabase.auth.signOut();
-            window.location.href = '/login';
-          }
-        }
-      )
-      .subscribe();
-    sessionChannelRef.current = ch;
+    // Note: Auto-logout on session takeover disabled — only the user can log out
+    // explicitly via the Profil/Paramètres "Se déconnecter" button.
+    sessionChannelRef.current = null;
 
     // Ensure we own the session token (in case session was restored from storage)
     if (!myTokenRef.current) {
