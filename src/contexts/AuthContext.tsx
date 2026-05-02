@@ -23,6 +23,7 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   loginWithPhone: (phone: string) => Promise<boolean>;
+  loginWithEmail: (email: string, password: string) => Promise<boolean>;
   verifyOtp: (phone: string, otp: string) => Promise<boolean>;
   signup: (phone: string, firstName: string, lastName: string, email?: string, password?: string) => Promise<SignupResult>;
   updateEmail: (newEmail: string) => Promise<boolean>;
@@ -34,6 +35,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   loginWithPhone: async () => false,
+  loginWithEmail: async () => false,
   verifyOtp: async () => false,
   signup: async () => ({ ok: false }),
   updateEmail: async () => false,
