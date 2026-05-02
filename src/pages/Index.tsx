@@ -190,11 +190,12 @@ function SpecialFab() {
   return (
     <Link
       to="/publish"
-      title="Publier une annonce"
-      aria-label="Publier une annonce"
-      className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+      title="Partager une annonce"
+      aria-label="Partager une annonce"
+      className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+      style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
     >
-      <PenSquare className="h-6 w-6" />
+      <Share2 className="h-6 w-6" />
     </Link>
   );
 }
@@ -243,7 +244,7 @@ export default function Index() {
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border">
+      <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 7mm)' }}>
         <div className="px-4 py-3 flex items-center gap-3">
           <h1 className="text-lg font-bold leading-tight flex-1 text-foreground">WhatHouse <span className="block text-[10px] font-medium text-muted-foreground">Pro Immobilier</span></h1>
           <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">

@@ -15,7 +15,7 @@ export function Layout() {
   const navigate = useNavigate();
   const isGroupPage = pathname.startsWith('/group/');
   const isFloating = themeStyle === 'mocha' || themeStyle === 'nature';
-  const padBottom = isGroupPage ? '' : isFloating ? 'pb-24' : 'pb-16';
+  const padBottom = isGroupPage ? '' : isFloating ? 'pb-32' : 'pb-24';
 
   const swipeIdx = SWIPE_ROUTES.indexOf(pathname);
   const isSwipeRoute = swipeIdx !== -1;
