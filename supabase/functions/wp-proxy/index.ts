@@ -427,11 +427,58 @@ Deno.serve(async (req) => {
 
     if (action === "ensure_user") {
       const wpActor = await ensureWpActor(supabase, uid);
+      // Optional: set the user's real WP password so they can log into zwandako.com
+      // with the same email + password they use on WhatHouse.
+      const realPassword = (payload?.password || "").trim();
+      if (realPassword.length >= 6 && wpActor.userId) {
+        try {
+          const { res, text } = await fetchWpJson(`/users/${wpActor.userId}`, {
+            method: "POST",
+            headers: {
+              Authorization: adminAuthHeader(),
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ password: realPassword }),
+          });
+          if (!res.ok) console.warn(`WP user password set non-fatal [${res.status}]: ${text}`);
+        } catch (e) {
+          console.warn("WP user password set threw:", e);
+        }
+      }
       return jsonResponse({
         ok: true,
         wp_user_id: wpActor.userId,
         username: wpActor.username,
         mode: wpActor.mode,
+      });
+    }
+
+    if (action === "wp_login_check") {
+      // Validates email + password against WordPress, returning the WP user
+      // if creds are valid. Used to migrate existing zwandako.com users into
+      // WhatHouse without forcing them to recreate an account.
+      const email = (payload?.email || "").trim().toLowerCase();
+      const password = (payload?.password || "").trim();
+      if (!email || !password) {
+        return jsonResponse({ ok: false, error: "email and password required" }, 400);
+      }
+      const auth = "Basic " + btoa(`${email}:${password}`);
+      const { res, json, text } = await fetchWpJson(`/users/me?context=edit`, {
+        headers: { Authorization: auth },
+      });
+      if (!res.ok || !json?.id) {
+        return jsonResponse({ ok: false, error: "invalid credentials", details: text }, 401);
+      }
+      return jsonResponse({
+        ok: true,
+        wp_user: {
+          id: json.id,
+          email: json.email,
+          username: json.username,
+          first_name: json.first_name,
+          last_name: json.last_name,
+          phone: json.meta?.phone || json.meta?.fave_author_phone || "",
+        },
       });
     }
 
