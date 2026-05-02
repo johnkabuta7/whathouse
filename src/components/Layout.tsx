@@ -1,5 +1,6 @@
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+import { Share2, UsersRound, Plus } from 'lucide-react';
 import { BottomNav } from './BottomNav';
 import { useTheme } from '@/contexts/ThemeContext';
 import Index from '@/pages/Index';
