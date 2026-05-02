@@ -190,11 +190,12 @@ function SpecialFab() {
   return (
     <Link
       to="/publish"
-      title="Publier une annonce"
-      aria-label="Publier une annonce"
-      className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+      title="Partager une annonce"
+      aria-label="Partager une annonce"
+      className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+      style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
     >
-      <PenSquare className="h-6 w-6" />
+      <Share2 className="h-6 w-6" />
     </Link>
   );
 }
