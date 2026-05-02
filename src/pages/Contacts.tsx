@@ -239,7 +239,8 @@ export default function Contacts() {
         onClick={() => navigate('/create-group')}
         title="Créer un groupe"
         aria-label="Créer un groupe"
-        className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+        className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+        style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
       >
         <UsersRound className="h-6 w-6" />
         <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-card text-primary border-2 border-primary flex items-center justify-center">
