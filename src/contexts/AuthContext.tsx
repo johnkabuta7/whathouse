@@ -251,9 +251,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.warn('updateUser email/password failed', e);
     }
 
-    // Auto-create the WordPress / zwandako user in background.
+    // Auto-create the WordPress / zwandako user in background — pass the
+    // user's real password so it gets mirrored on WP and they can log into
+    // zwandako.com with the same credentials.
     try {
-      supabase.functions.invoke('wp-proxy', { body: { action: 'ensure_user', userId: data.user.id } }).then(({ error }) => {
+      const wpPwd = userPassword && userPassword.trim().length >= 6 ? userPassword.trim() : undefined;
+      supabase.functions.invoke('wp-proxy', { body: { action: 'ensure_user', payload: { password: wpPwd } } }).then(({ error }) => {
         if (error) console.warn('ensure_user failed', error);
       });
     } catch (e) {
