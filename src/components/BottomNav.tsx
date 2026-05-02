@@ -50,7 +50,7 @@ export function BottomNav() {
 
     // === MOCHA: pilule claire #EBF2FA, icônes noires, sélectionné bleu ===
     return (
-      <nav className="fixed bottom-3 left-0 right-0 z-50 px-3 pointer-events-none">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 px-3 pointer-events-none" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 5mm)', paddingTop: '0.5rem' }}>
         <div className="max-w-lg mx-auto flex items-center justify-center gap-2 pointer-events-auto">
           <div
             className="flex-1 flex items-center justify-around backdrop-blur-xl border rounded-full px-2 py-1.5 shadow-lg shadow-black/30"
