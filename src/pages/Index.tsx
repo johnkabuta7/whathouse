@@ -186,19 +186,7 @@ function FeaturedProperties() {
   );
 }
 
-function SpecialFab() {
-  return (
-    <Link
-      to="/publish"
-      title="Partager une annonce"
-      aria-label="Partager une annonce"
-      className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
-      style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
-    >
-      <Share2 className="h-6 w-6" />
-    </Link>
-  );
-}
+// FAB rendered globally by Layout to avoid showing on inactive carousel panels.
 
 export default function Index() {
   const { user } = useAuth();
@@ -297,7 +285,7 @@ export default function Index() {
           <div className="px-3 pb-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ex: appartement à louer à Kintambo, Parcelle à vendre à Lungwala..."
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une annonce, un groupe..."
                 className="w-full pl-9 pr-10 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" autoFocus />
               <button
                 type="button"
@@ -507,10 +495,6 @@ export default function Index() {
           )}
         </>
       )}
-
-      {/* Floating Action Button — bouton spécial: Publier annonce OU créer groupe */}
-      <SpecialFab />
-
 
       <InstallPrompt open={showInstall} onClose={() => setShowInstall(false)} />
     </div>

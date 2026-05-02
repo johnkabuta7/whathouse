@@ -1,5 +1,6 @@
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+import { Share2, UsersRound, Plus } from 'lucide-react';
 import { BottomNav } from './BottomNav';
 import { useTheme } from '@/contexts/ThemeContext';
 import Index from '@/pages/Index';
@@ -136,13 +137,40 @@ export function Layout() {
               <div
                 key={i}
                 className="shrink-0 w-full h-full overflow-y-auto bg-background"
-                style={{ width: '100%' }}
+                style={{ width: '100%', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' as any }}
               >
                 <Page />
               </div>
             ))}
           </div>
         </div>
+        {/* FAB rendu globalement, conditionnel selon la route active.
+            Évite que le FAB d'une page apparaisse sur les autres pages du carousel. */}
+        {pathname === '/' && (
+          <Link
+            to="/publish"
+            title="Partager une annonce"
+            aria-label="Partager une annonce"
+            className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+            style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
+          >
+            <Share2 className="h-6 w-6" />
+          </Link>
+        )}
+        {pathname === '/contacts' && (
+          <button
+            onClick={() => navigate('/create-group')}
+            title="Créer un groupe"
+            aria-label="Créer un groupe"
+            className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+            style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
+          >
+            <UsersRound className="h-6 w-6" />
+            <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-card text-primary border-2 border-primary flex items-center justify-center">
+              <Plus className="h-3 w-3" />
+            </span>
+          </button>
+        )}
         <BottomNav />
       </div>
     );

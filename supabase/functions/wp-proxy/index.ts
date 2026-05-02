@@ -227,6 +227,7 @@ async function promoteWpUserToEditor(wpUserId: number) {
 }
 
 async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
+  // Pull profile + auth email so we can mirror the *real* email/password on WP.
   const { data, error } = await supabase
     .from("profiles")
     .select(
@@ -236,13 +237,19 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
     .single();
 
   const profile = data as ProfileRow | null;
-
   if (error || !profile) throw new Error("Profile not found");
+
+  // Resolve the user's real auth email (may be the synthetic phone_xxx@whathouse.app).
+  const { data: authUser } = await supabase.auth.admin.getUserById(userId);
+  const authEmail = (authUser?.user?.email || "").trim();
+  const isSynthetic = !authEmail || authEmail.startsWith("phone_") ||
+    authEmail.endsWith("@whathouse.app");
 
   if (profile.wp_user_id && profile.wp_user_password) {
     const username = buildWpUsername(profile.phone);
-    // Best-effort: ensure existing WP user has editor role for property CPT.
     await promoteWpUserToEditor(profile.wp_user_id);
+    // Best-effort: keep the WP user's email + phone meta in sync.
+    await syncWpUserMeta(profile.wp_user_id, profile, authEmail, isSynthetic);
     return {
       userId: profile.wp_user_id,
       username,
@@ -253,7 +260,9 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
 
   const username = buildWpUsername(profile.phone);
   const phoneDigits = normalizePhoneDigits(profile.phone);
-  const email = `${phoneDigits}@zwandako.com`;
+  // Prefer the user's real email over the synthetic phone-based one so they
+  // can log into zwandako.com directly with the same credentials.
+  const wpEmail = !isSynthetic ? authEmail : `${phoneDigits}@zwandako.com`;
   const fullName =
     `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || username;
   const accountPassword = crypto.randomUUID() + crypto.randomUUID();
@@ -267,12 +276,17 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
       },
       body: JSON.stringify({
         username,
-        email,
+        email: wpEmail,
         password: accountPassword,
         name: fullName,
         first_name: profile.first_name || "",
         last_name: profile.last_name || "",
         roles: ["author"],
+        meta: {
+          phone: profile.phone || "",
+          fave_author_phone: profile.phone || "",
+          fave_author_whatsapp: profile.phone || "",
+        },
       }),
     });
 
@@ -296,6 +310,9 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
     );
   }
 
+  // Make sure phone meta + email are saved (fave_author_phone / whatsapp).
+  await syncWpUserMeta(wpUserId, profile, authEmail, isSynthetic);
+
   const appPassword = await createWpApplicationPassword(wpUserId);
 
   const { error: updateError } = await supabase
@@ -313,6 +330,35 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
     authHeader: userAuthHeader(username, appPassword),
     mode: "user",
   };
+}
+
+async function syncWpUserMeta(
+  wpUserId: number,
+  profile: ProfileRow,
+  authEmail: string,
+  isSynthetic: boolean,
+) {
+  try {
+    const body: Record<string, unknown> = {
+      meta: {
+        phone: profile.phone || "",
+        fave_author_phone: profile.phone || "",
+        fave_author_whatsapp: profile.phone || "",
+      },
+    };
+    if (!isSynthetic && authEmail) body.email = authEmail;
+    const { res, text } = await fetchWpJson(`/users/${wpUserId}`, {
+      method: "POST",
+      headers: {
+        Authorization: adminAuthHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) console.warn(`WP user meta sync non-fatal [${res.status}]: ${text}`);
+  } catch (e) {
+    console.warn("WP user meta sync threw:", e);
+  }
 }
 
 async function uploadMedia(authHeader: string, fileUrl: string) {
@@ -381,11 +427,58 @@ Deno.serve(async (req) => {
 
     if (action === "ensure_user") {
       const wpActor = await ensureWpActor(supabase, uid);
+      // Optional: set the user's real WP password so they can log into zwandako.com
+      // with the same email + password they use on WhatHouse.
+      const realPassword = (payload?.password || "").trim();
+      if (realPassword.length >= 6 && wpActor.userId) {
+        try {
+          const { res, text } = await fetchWpJson(`/users/${wpActor.userId}`, {
+            method: "POST",
+            headers: {
+              Authorization: adminAuthHeader(),
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ password: realPassword }),
+          });
+          if (!res.ok) console.warn(`WP user password set non-fatal [${res.status}]: ${text}`);
+        } catch (e) {
+          console.warn("WP user password set threw:", e);
+        }
+      }
       return jsonResponse({
         ok: true,
         wp_user_id: wpActor.userId,
         username: wpActor.username,
         mode: wpActor.mode,
+      });
+    }
+
+    if (action === "wp_login_check") {
+      // Validates email + password against WordPress, returning the WP user
+      // if creds are valid. Used to migrate existing zwandako.com users into
+      // WhatHouse without forcing them to recreate an account.
+      const email = (payload?.email || "").trim().toLowerCase();
+      const password = (payload?.password || "").trim();
+      if (!email || !password) {
+        return jsonResponse({ ok: false, error: "email and password required" }, 400);
+      }
+      const auth = "Basic " + btoa(`${email}:${password}`);
+      const { res, json, text } = await fetchWpJson(`/users/me?context=edit`, {
+        headers: { Authorization: auth },
+      });
+      if (!res.ok || !json?.id) {
+        return jsonResponse({ ok: false, error: "invalid credentials", details: text }, 401);
+      }
+      return jsonResponse({
+        ok: true,
+        wp_user: {
+          id: json.id,
+          email: json.email,
+          username: json.username,
+          first_name: json.first_name,
+          last_name: json.last_name,
+          phone: json.meta?.phone || json.meta?.fave_author_phone || "",
+        },
       });
     }
 
