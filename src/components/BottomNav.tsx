@@ -23,7 +23,7 @@ export function BottomNav() {
     // === NATURE: 3 cercles séparés (style Tinder/Bumble) ===
     if (isNature) {
       return (
-        <nav className="fixed bottom-4 left-0 right-0 z-50 px-4 pointer-events-none">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pointer-events-none" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 5mm)', paddingTop: '0.5rem' }}>
           <div className="max-w-lg mx-auto flex items-center justify-center gap-3 pointer-events-auto">
             {navItems.map(item => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
