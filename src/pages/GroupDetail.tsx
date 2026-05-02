@@ -414,7 +414,7 @@ export default function GroupDetail() {
   return (
     <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-[100dvh]">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border">
+      <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)' }}>
         <div className="px-3 py-2.5 flex items-center gap-3">
           <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
           <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">

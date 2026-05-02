@@ -77,7 +77,11 @@ export default function Onboarding() {
     setTimeout(() => navigate('/login', { replace: true }), 0);
   };
 
-  const next = () => { if (isLast) goToLogin(); else setStep(s => s + 1); };
+  const next = () => {
+    if (skipping) return;
+    if (isLast || step >= SLIDES.length - 1) { goToLogin(); return; }
+    setStep(s => Math.min(s + 1, SLIDES.length - 1));
+  };
 
   return (
     <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
