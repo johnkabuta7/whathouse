@@ -69,6 +69,7 @@ export default function Profil() {
   const [editUploading, setEditUploading] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
 
   // Use live profile data for avatar/background
   const avatarUrl = profile?.avatar_url || user?.profile?.avatar_url;
@@ -195,14 +196,43 @@ export default function Profil() {
   const fullName = `${user.profile?.first_name || ''} ${user.profile?.last_name || ''}`.trim() || 'Utilisateur';
 
   return (
-    <div className="max-w-lg mx-auto animate-fade-in">
+    <div className="max-w-lg mx-auto animate-fade-in pb-32">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 7mm)' }}>
-        <div className="px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-50 bg-card border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)' }}>
+        <div className="px-4 py-3 flex items-center gap-3 relative">
           <h1 className="text-lg font-bold flex-1 text-foreground">Profil</h1>
-          <button className="p-1.5 rounded-full hover:bg-muted transition">
+          <button
+            onClick={() => setShowHeaderMenu(s => !s)}
+            className="p-1.5 rounded-full hover:bg-muted transition"
+            aria-label="Menu"
+          >
             <MoreVertical className="h-5 w-5 text-muted-foreground" />
           </button>
+          {showHeaderMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} />
+              <div className="absolute right-3 top-full mt-1 z-50 min-w-[180px] bg-card border border-border rounded-xl shadow-lg overflow-hidden animate-fade-in">
+                <button
+                  onClick={() => { setShowHeaderMenu(false); setEditing(true); }}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition text-left"
+                >
+                  <Edit2 className="h-4 w-4 text-muted-foreground" /> Modifier le profil
+                </button>
+                <button
+                  onClick={() => { setShowHeaderMenu(false); setActiveTab('infos'); }}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition text-left border-t border-border"
+                >
+                  <Sparkles className="h-4 w-4 text-muted-foreground" /> Paramètres
+                </button>
+                <button
+                  onClick={() => { setShowHeaderMenu(false); logout(); }}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition text-left border-t border-border"
+                >
+                  <LogOut className="h-4 w-4" /> Se déconnecter
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </header>
 
