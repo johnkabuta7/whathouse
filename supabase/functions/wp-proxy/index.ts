@@ -457,30 +457,78 @@ Deno.serve(async (req) => {
     }
 
     if (action === "wp_login_check") {
-      // Validates email + password against WordPress, returning the WP user
-      // if creds are valid. Used to migrate existing zwandako.com users into
-      // WhatHouse without forcing them to recreate an account.
+      // Validates email + password against WordPress. The WP REST API Basic
+      // Auth only accepts Application Passwords, NOT regular login passwords,
+      // so we validate the real password by POSTing to wp-login.php (the
+      // standard WP login form) and detecting a successful redirect. We then
+      // use the admin credentials to look up the user details.
       const email = (payload?.email || "").trim().toLowerCase();
       const password = (payload?.password || "").trim();
       if (!email || !password) {
         return jsonResponse({ ok: false, error: "email and password required" }, 400);
       }
-      const auth = "Basic " + btoa(`${email}:${password}`);
-      const { res, json, text } = await fetchWpJson(`/users/me?context=edit`, {
-        headers: { Authorization: auth },
-      });
-      if (!res.ok || !json?.id) {
-        return jsonResponse({ ok: false, error: "invalid credentials", details: text }, 401);
+
+      // 1. Look up the user by email via admin creds to get the username
+      //    (wp-login.php needs the username/login, not necessarily the email).
+      const lookupUrl = `https://zwandako.com/wp-json/wp/v2/users?search=${encodeURIComponent(email)}&context=edit&per_page=20`;
+      const lookupRes = await fetch(lookupUrl, { headers: { Authorization: adminAuthHeader() } });
+      const lookupText = await lookupRes.text();
+      let lookupJson: any = null;
+      try { lookupJson = JSON.parse(lookupText); } catch { /* ignore */ }
+      if (!lookupRes.ok || !Array.isArray(lookupJson)) {
+        return jsonResponse({ ok: false, error: "user lookup failed", details: lookupText }, 401);
       }
+      const wpUser = lookupJson.find((u: any) =>
+        (u?.email || "").toLowerCase() === email
+      ) || lookupJson[0];
+      if (!wpUser?.id) {
+        return jsonResponse({ ok: false, error: "no account with this email" }, 401);
+      }
+      const wpUsername: string = wpUser.username || wpUser.slug || email;
+
+      // 2. Validate the password by POSTing to wp-login.php. WP returns a
+      //    302 redirect to wp-admin on success, or a 200 with the login form
+      //    (and a "login_error" cookie/body) on failure.
+      const formBody = new URLSearchParams({
+        log: wpUsername,
+        pwd: password,
+        "wp-submit": "Log In",
+        redirect_to: "https://zwandako.com/wp-admin/",
+        testcookie: "1",
+      });
+      const loginRes = await fetch("https://zwandako.com/wp-login.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          // Send the testcookie WP expects to be set by the form page.
+          Cookie: "wordpress_test_cookie=WP%20Cookie%20check",
+        },
+        body: formBody.toString(),
+        redirect: "manual",
+      });
+      // Drain body to free the connection
+      await loginRes.text().catch(() => "");
+
+      const setCookie = loginRes.headers.get("set-cookie") || "";
+      const isAuthCookie = /wordpress_logged_in_/i.test(setCookie);
+      const isRedirect = loginRes.status >= 300 && loginRes.status < 400;
+      if (!isRedirect || !isAuthCookie) {
+        return jsonResponse({
+          ok: false,
+          error: "invalid credentials",
+          details: `wp-login.php status=${loginRes.status}`,
+        }, 401);
+      }
+
       return jsonResponse({
         ok: true,
         wp_user: {
-          id: json.id,
-          email: json.email,
-          username: json.username,
-          first_name: json.first_name,
-          last_name: json.last_name,
-          phone: json.meta?.phone || json.meta?.fave_author_phone || "",
+          id: wpUser.id,
+          email: wpUser.email,
+          username: wpUsername,
+          first_name: wpUser.first_name || "",
+          last_name: wpUser.last_name || "",
+          phone: wpUser.meta?.phone || wpUser.meta?.fave_author_phone || "",
         },
       });
     }
