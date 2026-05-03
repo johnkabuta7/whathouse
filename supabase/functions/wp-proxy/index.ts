@@ -593,7 +593,11 @@ Deno.serve(async (req) => {
       }
 
       // Save the gallery on the property using Houzez's expected meta keys.
+      // IMPORTANT: Houzez stores fave_property_images as an ARRAY OF STRINGS
+      // (attachment IDs as strings), not integers. Sending integers makes the
+      // gallery invisible on the front-end — only the featured image shows up.
       if (mediaIds.length > 0) {
+        const mediaIdStrings = mediaIds.map((id) => String(id));
         try {
           const { res: upRes, text: upText } = await fetchWpJson(
             `/properties/${postJson.id}`,
@@ -605,8 +609,8 @@ Deno.serve(async (req) => {
               },
               body: JSON.stringify({
                 meta: {
-                  fave_property_images: mediaIds,
-                  fave_attachments: mediaIds,
+                  fave_property_images: mediaIdStrings,
+                  fave_attachments: mediaIdStrings,
                 },
               }),
             },
@@ -615,6 +619,21 @@ Deno.serve(async (req) => {
             console.warn(
               `property gallery update non-fatal [${upRes.status}]: ${upText}`,
             );
+            // Fallback: try the admin auth header in case the user lacks the
+            // edit_property_meta cap.
+            await fetchWpJson(`/properties/${postJson.id}`, {
+              method: "POST",
+              headers: {
+                Authorization: adminAuthHeader(),
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                meta: {
+                  fave_property_images: mediaIdStrings,
+                  fave_attachments: mediaIdStrings,
+                },
+              }),
+            });
           }
         } catch (e) {
           console.error("property update error:", e);

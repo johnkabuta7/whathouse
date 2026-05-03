@@ -73,13 +73,18 @@ export default function Onboarding() {
     if (skipping) return;
     setSkipping(true);
     try { localStorage.setItem('onboarded', '1'); } catch {}
-    // Force a clean nav even if React hasn't re-rendered yet
-    setTimeout(() => navigate('/login', { replace: true }), 0);
+    // Navigation immédiate + fallback hard redirect si React n'a pas re-render.
+    try { navigate('/login', { replace: true }); } catch {}
+    setTimeout(() => {
+      if (window.location.pathname !== '/login') {
+        window.location.replace('/login');
+      }
+    }, 150);
   };
 
   const next = () => {
     if (skipping) return;
-    if (isLast || step >= SLIDES.length - 1) { goToLogin(); return; }
+    if (isLast) { goToLogin(); return; }
     setStep(s => Math.min(s + 1, SLIDES.length - 1));
   };
 
