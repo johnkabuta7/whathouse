@@ -116,7 +116,10 @@ export default function Publish() {
 
   return (
     <div className="max-w-lg mx-auto min-h-screen pb-24 animate-fade-in">
-      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
+      <header
+        className="sticky top-0 z-50 bg-card border-b border-border"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)' }}
+      >
         <div className="px-4 py-3 flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-1.5 rounded-full hover:bg-muted" aria-label="Retour">
             <ArrowLeft className="h-5 w-5 text-foreground" />
