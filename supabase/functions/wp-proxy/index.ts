@@ -673,6 +673,8 @@ Deno.serve(async (req) => {
       if (!check.ok) {
         return jsonResponse({ ok: false, error: "invalid credentials", details: `jwt-auth status=${check.status}` }, 401);
       }
+      const wpUser = profile.wp_user_id ? { id: profile.wp_user_id } : await lookupExistingWpUserByEmail(email).catch(() => null);
+      if (!wpUser?.id) return jsonResponse({ ok: false, error: "wp account not found" }, 401);
 
       await mirrorAuthUserFromWp(supabase, {
         email,
@@ -680,7 +682,7 @@ Deno.serve(async (req) => {
         firstName: profile.first_name || "",
         lastName: profile.last_name || "",
         phone,
-        wpUserId: profile.wp_user_id || 0,
+        wpUserId: wpUser.id,
         wpAppPassword: profile.wp_user_password || null,
       });
 
