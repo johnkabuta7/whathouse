@@ -582,7 +582,7 @@ Deno.serve(async (req) => {
 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, first_name, last_name, phone, wp_user_id, wp_user_password")
+        .select("user_id, first_name, last_name, phone, email, wp_user_id, wp_user_password")
         .eq("user_id", uid)
         .single();
       if (profileError || !profileData) throw new Error("Profile not found");
