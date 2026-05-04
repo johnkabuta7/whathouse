@@ -239,7 +239,7 @@ async function promoteWpUserToEditor(wpUserId: number) {
   }
 }
 
-async function validateWpPassword(login: string, password: string): Promise<{ ok: boolean; status: number; details?: string }> {
+async function validateWpPassword(login: string, password: string): Promise<{ ok: boolean; status: number; details?: string; json?: any }> {
   // wp-login.php is hidden/blocked on zwandako.com (returns 404). Use the
   // JWT Auth plugin endpoint instead, which accepts username OR email.
   try {
@@ -249,10 +249,80 @@ async function validateWpPassword(login: string, password: string): Promise<{ ok
       body: JSON.stringify({ username: login, password }),
     });
     const text = await res.text().catch(() => "");
-    return { ok: res.ok, status: res.status, details: res.ok ? undefined : text.slice(0, 200) };
+    let json: any = null;
+    try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+    return { ok: res.ok, status: res.status, details: res.ok ? undefined : text.slice(0, 200), json };
   } catch (e) {
     return { ok: false, status: 0, details: String(e) };
   }
+}
+
+function normalizePhone(phone: string | null | undefined) {
+  const digits = normalizePhoneDigits(phone);
+  return digits ? `+${digits}` : "";
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function findAuthUserByEmail(supabase: any, email: string) {
+  const target = email.trim().toLowerCase();
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw new Error(`Auth user lookup failed: ${error.message}`);
+    const found = data?.users?.find((u: any) => (u.email || "").toLowerCase() === target);
+    if (found) return found;
+    if (!data?.users || data.users.length < 1000) break;
+  }
+  return null;
+}
+
+async function mirrorAuthUserFromWp(
+  supabase: any,
+  input: { email: string; password: string; firstName?: string; lastName?: string; phone?: string; wpUserId: number; wpAppPassword?: string | null },
+) {
+  const email = input.email.trim().toLowerCase();
+  const phone = normalizePhone(input.phone || "");
+  const userMetadata = {
+    first_name: input.firstName || "",
+    last_name: input.lastName || "",
+    phone,
+    wp_user_id: input.wpUserId,
+  };
+
+  const existing = await findAuthUserByEmail(supabase, email);
+  let authUser = existing;
+  if (existing?.id) {
+    const { data, error } = await supabase.auth.admin.updateUserById(existing.id, {
+      password: input.password,
+      user_metadata: { ...(existing.user_metadata || {}), ...userMetadata },
+    });
+    if (error) throw new Error(`Auth mirror update failed: ${error.message}`);
+    authUser = data.user;
+  } else {
+    const { data, error } = await supabase.auth.admin.createUser({
+      email,
+      password: input.password,
+      email_confirm: true,
+      user_metadata: userMetadata,
+    });
+    if (error || !data?.user) throw new Error(`Auth mirror create failed: ${error?.message || "unknown"}`);
+    authUser = data.user;
+  }
+
+  const { error: profileError } = await supabase.from("profiles").upsert({
+    user_id: authUser.id,
+    first_name: input.firstName || "",
+    last_name: input.lastName || "",
+    phone: phone || null,
+    email,
+    wp_user_id: input.wpUserId,
+    ...(input.wpAppPassword ? { wp_user_password: input.wpAppPassword } : {}),
+  }, { onConflict: "user_id" });
+  if (profileError) throw new Error(`Profile mirror failed: ${profileError.message}`);
+
+  return authUser;
 }
 
 async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
