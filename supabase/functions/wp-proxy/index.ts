@@ -239,7 +239,7 @@ async function promoteWpUserToEditor(wpUserId: number) {
   }
 }
 
-async function validateWpPassword(login: string, password: string): Promise<{ ok: boolean; status: number; details?: string }> {
+async function validateWpPassword(login: string, password: string): Promise<{ ok: boolean; status: number; details?: string; json?: any }> {
   // wp-login.php is hidden/blocked on zwandako.com (returns 404). Use the
   // JWT Auth plugin endpoint instead, which accepts username OR email.
   try {
@@ -249,10 +249,80 @@ async function validateWpPassword(login: string, password: string): Promise<{ ok
       body: JSON.stringify({ username: login, password }),
     });
     const text = await res.text().catch(() => "");
-    return { ok: res.ok, status: res.status, details: res.ok ? undefined : text.slice(0, 200) };
+    let json: any = null;
+    try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+    return { ok: res.ok, status: res.status, details: res.ok ? undefined : text.slice(0, 200), json };
   } catch (e) {
     return { ok: false, status: 0, details: String(e) };
   }
+}
+
+function normalizePhone(phone: string | null | undefined) {
+  const digits = normalizePhoneDigits(phone);
+  return digits ? `+${digits}` : "";
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function findAuthUserByEmail(supabase: any, email: string) {
+  const target = email.trim().toLowerCase();
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw new Error(`Auth user lookup failed: ${error.message}`);
+    const found = data?.users?.find((u: any) => (u.email || "").toLowerCase() === target);
+    if (found) return found;
+    if (!data?.users || data.users.length < 1000) break;
+  }
+  return null;
+}
+
+async function mirrorAuthUserFromWp(
+  supabase: any,
+  input: { email: string; password: string; firstName?: string; lastName?: string; phone?: string; wpUserId: number; wpAppPassword?: string | null },
+) {
+  const email = input.email.trim().toLowerCase();
+  const phone = normalizePhone(input.phone || "");
+  const userMetadata = {
+    first_name: input.firstName || "",
+    last_name: input.lastName || "",
+    phone,
+    wp_user_id: input.wpUserId,
+  };
+
+  const existing = await findAuthUserByEmail(supabase, email);
+  let authUser = existing;
+  if (existing?.id) {
+    const { data, error } = await supabase.auth.admin.updateUserById(existing.id, {
+      password: input.password,
+      user_metadata: { ...(existing.user_metadata || {}), ...userMetadata },
+    });
+    if (error) throw new Error(`Auth mirror update failed: ${error.message}`);
+    authUser = data.user;
+  } else {
+    const { data, error } = await supabase.auth.admin.createUser({
+      email,
+      password: input.password,
+      email_confirm: true,
+      user_metadata: userMetadata,
+    });
+    if (error || !data?.user) throw new Error(`Auth mirror create failed: ${error?.message || "unknown"}`);
+    authUser = data.user;
+  }
+
+  const { error: profileError } = await supabase.from("profiles").upsert({
+    user_id: authUser.id,
+    first_name: input.firstName || "",
+    last_name: input.lastName || "",
+    phone: phone || null,
+    email,
+    wp_user_id: input.wpUserId,
+    ...(input.wpAppPassword ? { wp_user_password: input.wpAppPassword } : {}),
+  }, { onConflict: "user_id" });
+  if (profileError) throw new Error(`Profile mirror failed: ${profileError.message}`);
+
+  return authUser;
 }
 
 async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
@@ -274,14 +344,24 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
   const isSynthetic = !authEmail || authEmail.startsWith("phone_") ||
     authEmail.endsWith("@whathouse.app");
 
-  if (profile.wp_user_id && profile.wp_user_password) {
+  if (profile.wp_user_id) {
     const existingById = await fetchWpJson(`/users/${profile.wp_user_id}?context=edit`, {
       headers: { Authorization: adminAuthHeader() },
     }).catch(() => null);
-    const username = existingById?.json?.username || existingById?.json?.slug || buildWpUsername(profile.phone);
+    const username = existingById?.json?.username || existingById?.json?.slug || (!isSynthetic ? authEmail : buildWpUsername(profile.phone));
     await promoteWpUserToEditor(profile.wp_user_id);
     // Best-effort: keep the WP user's email + phone meta in sync.
     await syncWpUserMeta(profile.wp_user_id, profile, authEmail, isSynthetic);
+    if (!profile.wp_user_password) {
+      try {
+        const appPassword = await createWpApplicationPassword(profile.wp_user_id);
+        await supabase.from("profiles").update({ wp_user_password: appPassword }).eq("user_id", userId);
+        profile.wp_user_password = appPassword;
+      } catch (e) {
+        console.warn("WP app-password create for existing actor failed, using admin auth:", e);
+        return { userId: profile.wp_user_id, username, authHeader: adminAuthHeader(), mode: "admin_fallback" };
+      }
+    }
     return {
       userId: profile.wp_user_id,
       username,
@@ -463,8 +543,8 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Public actions: no Supabase auth required (used during login flow).
-    const PUBLIC_ACTIONS = new Set(["wp_login_check"]);
+    // Public actions: no Supabase auth required (used during login/signup flow).
+    const PUBLIC_ACTIONS = new Set(["wp_login_check", "phone_login_check", "signup_mirror"]);
 
     let uid = "";
     if (!PUBLIC_ACTIONS.has(action)) {
@@ -510,20 +590,121 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "signup_mirror") {
+      const email = (payload?.email || "").trim().toLowerCase();
+      const password = (payload?.password || "").trim();
+      const firstName = (payload?.first_name || "").trim();
+      const lastName = (payload?.last_name || "").trim();
+      const phone = normalizePhone(payload?.phone || "");
+      if (!isValidEmail(email) || password.length < 6 || !firstName || !lastName || !phone) {
+        return jsonResponse({ ok: false, error: "invalid signup payload" }, 400);
+      }
+
+      const existingByEmail = await lookupExistingWpUserByEmail(email).catch(() => null);
+      if (existingByEmail?.id) {
+        return jsonResponse({ ok: false, error: "duplicate", reason: "duplicate" }, 409);
+      }
+
+      const username = buildWpUsername(phone);
+      const existingByUsername = await lookupExistingWpUser(username).catch(() => null);
+      if (existingByUsername?.id) {
+        return jsonResponse({ ok: false, error: "duplicate", reason: "duplicate" }, 409);
+      }
+
+      const fullName = `${firstName} ${lastName}`.trim();
+      const { res, json, text } = await fetchWpJson(`/users`, {
+        method: "POST",
+        headers: {
+          Authorization: adminAuthHeader(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          name: fullName,
+          first_name: firstName,
+          last_name: lastName,
+          roles: ["author"],
+          meta: {
+            phone,
+            fave_author_phone: phone,
+            fave_author_whatsapp: phone,
+          },
+        }),
+      });
+      if (!res.ok || !json?.id) {
+        const code = wpErrorCode(text);
+        const isDuplicate = res.status === 400 && /existing_user|exists|already/i.test(`${code} ${text}`);
+        return jsonResponse({ ok: false, error: isDuplicate ? "duplicate" : "wp_user_create_failed", reason: isDuplicate ? "duplicate" : "unknown", details: text }, isDuplicate ? 409 : 500);
+      }
+
+      let appPassword: string | null = null;
+      try { appPassword = await createWpApplicationPassword(json.id); } catch (e) { console.warn("WP app-password after signup failed:", e); }
+      const authUser = await mirrorAuthUserFromWp(supabase, {
+        email,
+        password,
+        firstName,
+        lastName,
+        phone,
+        wpUserId: json.id,
+        wpAppPassword: appPassword,
+      });
+
+      return jsonResponse({ ok: true, auth_user_id: authUser.id, wp_user_id: json.id, username });
+    }
+
+    if (action === "phone_login_check") {
+      const phone = normalizePhone(payload?.phone || "");
+      const password = (payload?.password || "").trim();
+      if (!phone || !password) return jsonResponse({ ok: false, error: "phone and password required" }, 400);
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name, phone, email, wp_user_id, wp_user_password")
+        .eq("phone", phone)
+        .maybeSingle();
+      if (profileError || !profile?.email) {
+        return jsonResponse({ ok: false, error: "no account with this phone" }, 401);
+      }
+
+      const email = String(profile.email).trim().toLowerCase();
+      const check = await validateWpPassword(email, password);
+      if (!check.ok) {
+        return jsonResponse({ ok: false, error: "invalid credentials", details: `jwt-auth status=${check.status}` }, 401);
+      }
+      const wpUser = profile.wp_user_id ? { id: profile.wp_user_id } : await lookupExistingWpUserByEmail(email).catch(() => null);
+      if (!wpUser?.id) return jsonResponse({ ok: false, error: "wp account not found" }, 401);
+
+      await mirrorAuthUserFromWp(supabase, {
+        email,
+        password,
+        firstName: profile.first_name || "",
+        lastName: profile.last_name || "",
+        phone,
+        wpUserId: wpUser.id,
+        wpAppPassword: profile.wp_user_password || null,
+      });
+
+      return jsonResponse({ ok: true, email });
+    }
+
     if (action === "wp_login_check") {
-      // Validates email + password against WordPress. The WP REST API Basic
-      // Auth only accepts Application Passwords, NOT regular login passwords,
-      // so we validate the real password by POSTing to wp-login.php (the
-      // standard WP login form) and detecting a successful redirect. We then
-      // use the admin credentials to look up the user details.
       const email = (payload?.email || "").trim().toLowerCase();
       const password = (payload?.password || "").trim();
       if (!email || !password) {
         return jsonResponse({ ok: false, error: "email and password required" }, 400);
       }
 
-      // 1. Look up the user by email via admin creds to get the username
-      //    (wp-login.php needs the username/login, not necessarily the email).
+      const directCheck = await validateWpPassword(email, password);
+      if (!directCheck.ok) {
+        return jsonResponse({
+          ok: false,
+          error: "invalid credentials",
+          details: `jwt-auth status=${directCheck.status}`,
+        }, 401);
+      }
+
       const lookupUrl = `https://zwandako.com/wp-json/wp/v2/users?search=${encodeURIComponent(email)}&context=edit&per_page=20`;
       const lookupRes = await fetch(lookupUrl, { headers: { Authorization: adminAuthHeader() } });
       const lookupText = await lookupRes.text();
@@ -539,30 +720,23 @@ Deno.serve(async (req) => {
         return jsonResponse({ ok: false, error: "no account with this email" }, 401);
       }
       const wpUsername: string = wpUser.username || wpUser.slug || email;
-
-      // 2. Validate the password via the JWT Auth plugin (wp-login.php is
-      //    blocked on zwandako.com and returns 404). Accepts username or email.
-      let check = await validateWpPassword(wpUsername || email, password);
-      if (!check.ok && wpUsername && wpUsername !== email) {
-        check = await validateWpPassword(email, password);
-      }
-      if (!check.ok) {
-        return jsonResponse({
-          ok: false,
-          error: "invalid credentials",
-          details: `jwt-auth status=${check.status}`,
-        }, 401);
-      }
+      let wpAppPassword: string | null = null;
+      try { wpAppPassword = await createWpApplicationPassword(wpUser.id); } catch (e) { console.warn("WP app-password for mirror failed:", e); }
+      const firstName = wpUser.first_name || directCheck.json?.user_firstname || "";
+      const lastName = wpUser.last_name || directCheck.json?.user_lastname || "";
+      const phone = wpUser.meta?.phone || wpUser.meta?.fave_author_phone || wpUser.meta?.fave_author_whatsapp || "";
+      const authUser = await mirrorAuthUserFromWp(supabase, { email, password, firstName, lastName, phone, wpUserId: wpUser.id, wpAppPassword });
 
       return jsonResponse({
         ok: true,
+        auth_user_id: authUser.id,
         wp_user: {
           id: wpUser.id,
           email: wpUser.email,
           username: wpUsername,
-          first_name: wpUser.first_name || "",
-          last_name: wpUser.last_name || "",
-          phone: wpUser.meta?.phone || wpUser.meta?.fave_author_phone || "",
+          first_name: firstName,
+          last_name: lastName,
+          phone,
         },
       });
     }
