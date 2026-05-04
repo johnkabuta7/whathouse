@@ -533,8 +533,8 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Public actions: no Supabase auth required (used during login flow).
-    const PUBLIC_ACTIONS = new Set(["wp_login_check"]);
+    // Public actions: no Supabase auth required (used during login/signup flow).
+    const PUBLIC_ACTIONS = new Set(["wp_login_check", "signup_mirror"]);
 
     let uid = "";
     if (!PUBLIC_ACTIONS.has(action)) {
@@ -578,6 +578,70 @@ Deno.serve(async (req) => {
         username: wpActor.username,
         mode: wpActor.mode,
       });
+    }
+
+    if (action === "signup_mirror") {
+      const email = (payload?.email || "").trim().toLowerCase();
+      const password = (payload?.password || "").trim();
+      const firstName = (payload?.first_name || "").trim();
+      const lastName = (payload?.last_name || "").trim();
+      const phone = normalizePhone(payload?.phone || "");
+      if (!isValidEmail(email) || password.length < 6 || !firstName || !lastName || !phone) {
+        return jsonResponse({ ok: false, error: "invalid signup payload" }, 400);
+      }
+
+      const existingByEmail = await lookupExistingWpUserByEmail(email).catch(() => null);
+      if (existingByEmail?.id) {
+        return jsonResponse({ ok: false, error: "duplicate", reason: "duplicate" }, 409);
+      }
+
+      const username = buildWpUsername(phone);
+      const existingByUsername = await lookupExistingWpUser(username).catch(() => null);
+      if (existingByUsername?.id) {
+        return jsonResponse({ ok: false, error: "duplicate", reason: "duplicate" }, 409);
+      }
+
+      const fullName = `${firstName} ${lastName}`.trim();
+      const { res, json, text } = await fetchWpJson(`/users`, {
+        method: "POST",
+        headers: {
+          Authorization: adminAuthHeader(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          name: fullName,
+          first_name: firstName,
+          last_name: lastName,
+          roles: ["author"],
+          meta: {
+            phone,
+            fave_author_phone: phone,
+            fave_author_whatsapp: phone,
+          },
+        }),
+      });
+      if (!res.ok || !json?.id) {
+        const code = wpErrorCode(text);
+        const isDuplicate = res.status === 400 && /existing_user|exists|already/i.test(`${code} ${text}`);
+        return jsonResponse({ ok: false, error: isDuplicate ? "duplicate" : "wp_user_create_failed", reason: isDuplicate ? "duplicate" : "unknown", details: text }, isDuplicate ? 409 : 500);
+      }
+
+      let appPassword: string | null = null;
+      try { appPassword = await createWpApplicationPassword(json.id); } catch (e) { console.warn("WP app-password after signup failed:", e); }
+      const authUser = await mirrorAuthUserFromWp(supabase, {
+        email,
+        password,
+        firstName,
+        lastName,
+        phone,
+        wpUserId: json.id,
+        wpAppPassword: appPassword,
+      });
+
+      return jsonResponse({ ok: true, auth_user_id: authUser.id, wp_user_id: json.id, username });
     }
 
     if (action === "wp_login_check") {
