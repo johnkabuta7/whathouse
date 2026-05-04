@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import { Share2, UsersRound, Plus } from 'lucide-react';
+import { Share2, UserPlus } from 'lucide-react';
 import { BottomNav } from './BottomNav';
 import { useTheme } from '@/contexts/ThemeContext';
 import Index from '@/pages/Index';
@@ -123,8 +123,8 @@ export function Layout() {
   if (isSwipeRoute) {
     const translateX = `calc(${-swipeIdx * 100}% + ${dragX}px)`;
     return (
-      <div className="min-h-[100dvh] bg-background flex flex-col overflow-hidden">
-        <div className={`flex-1 ${padBottom} relative overflow-hidden`}>
+      <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
+        <div className={`flex-1 min-h-0 ${padBottom} relative overflow-hidden`}>
           <div
             className="flex h-full w-full"
             style={{
@@ -136,8 +136,8 @@ export function Layout() {
             {PAGES.map((Page, i) => (
               <div
                 key={i}
-                className="shrink-0 w-full h-full overflow-y-auto bg-background"
-                style={{ width: '100%', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' as any, touchAction: 'pan-y' }}
+                className="shrink-0 w-full h-full min-h-0 overflow-y-auto bg-background"
+                style={{ width: '100%', overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch' as any, touchAction: 'pan-y' }}
               >
                 <Page />
               </div>
@@ -165,10 +165,7 @@ export function Layout() {
             className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
             style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
           >
-            <UsersRound className="h-6 w-6" />
-            <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-card text-primary border-2 border-primary flex items-center justify-center">
-              <Plus className="h-3 w-3" />
-            </span>
+            <UserPlus className="h-6 w-6" />
           </button>
         )}
         <BottomNav />
