@@ -8,6 +8,7 @@ interface Profile {
   first_name: string;
   last_name: string;
   phone: string | null;
+  email?: string | null;
   avatar_url: string | null;
 }
 
@@ -22,7 +23,7 @@ type SignupResult = { ok: boolean; reason?: 'duplicate' | 'unknown' };
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  loginWithPhone: (phone: string) => Promise<boolean>;
+  loginWithPhone: (phone: string, password?: string) => Promise<boolean>;
   loginWithEmail: (email: string, password: string) => Promise<boolean>;
   verifyOtp: (phone: string, otp: string) => Promise<boolean>;
   signup: (phone: string, firstName: string, lastName: string, email?: string, password?: string) => Promise<SignupResult>;
@@ -51,16 +52,24 @@ export function normalizePhone(phone: string): string {
   return digits ? `+${digits}` : '';
 }
 
-function phoneToEmail(phone: string): string {
-  const digits = (phone || '').replace(/[^0-9]/g, '');
-  return `phone_${digits}@whathouse.app`;
+function isSyntheticEmail(email: string) {
+  return !email || email.startsWith('phone_') || email.endsWith('@whathouse.app');
 }
-
-const DEFAULT_PASSWORD = 'WhatHouse2026!SecureDefault';
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
   return data as Profile | null;
+}
+
+async function upsertProfile(input: { userId: string; firstName?: string; lastName?: string; phone?: string; email?: string; wpUserId?: number }) {
+  await supabase.from('profiles').upsert({
+    user_id: input.userId,
+    first_name: input.firstName || '',
+    last_name: input.lastName || '',
+    phone: input.phone || null,
+    email: input.email || null,
+    wp_user_id: input.wpUserId || null,
+  } as any, { onConflict: 'user_id' });
 }
 
 // Generates a unique token for this device session
@@ -82,6 +91,18 @@ async function claimActiveSession(userId: string) {
   return token;
 }
 
+async function ensureWpUser(password?: string) {
+  try {
+    const { data, error } = await supabase.functions.invoke('wp-proxy', {
+      body: { action: 'ensure_user', payload: { password } },
+    });
+    return !error && data?.ok !== false;
+  } catch (e) {
+    console.warn('ensure_user invoke threw', e);
+    return false;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,9 +116,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const profile = await fetchProfile(session.user.id);
-    setUser({
+      setUser({
       id: session.user.id,
-      email: session.user.email || '',
+        email: isSyntheticEmail(session.user.email || '') ? '' : (session.user.email || ''),
       profile,
     });
     setLoading(false);
@@ -144,11 +165,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loginWithPhone = async (phone: string) => {
+  const loginWithPhone = async (phone: string, password?: string) => {
     const normalized = normalizePhone(phone);
     if (!normalized) return false;
-    const email = phoneToEmail(normalized);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: DEFAULT_PASSWORD });
+    const { data: profile } = await supabase.from('profiles').select('email').eq('phone', normalized).maybeSingle();
+    const loginEmail = ((profile as any)?.email || '').trim().toLowerCase();
+    if (!loginEmail || !password) return false;
+    const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
     if (error || !data.user) return false;
     myTokenRef.current = await claimActiveSession(data.user.id);
     return true;
@@ -180,6 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Try to sign up a Supabase user with these creds. If the email already
       // exists in Supabase but with a different password, we cannot recover
       // automatically and the user has to use phone-based login.
+      const phone = wp.phone ? normalizePhone(wp.phone) : '';
       const { data: signupData, error: signupError } = await supabase.auth.signUp({
         email: trimmed,
         password,
@@ -187,7 +211,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data: {
             first_name: wp.first_name || '',
             last_name: wp.last_name || '',
-            phone: wp.phone || '',
+            phone,
+            wp_user_id: wp.id,
           },
           emailRedirectTo: window.location.origin,
         },
@@ -197,6 +222,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: loginData } = await supabase.auth.signInWithPassword({ email: trimmed, password });
       if (!loginData?.user) return false;
       myTokenRef.current = await claimActiveSession(loginData.user.id);
+      await upsertProfile({
+        userId: loginData.user.id,
+        firstName: wp.first_name || '',
+        lastName: wp.last_name || '',
+        phone,
+        email: trimmed,
+        wpUserId: wp.id,
+      });
+      await ensureWpUser(password);
       return true;
     } catch {
       return false;
@@ -204,7 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const verifyOtp = async (phone: string, _otp: string) => {
-    return loginWithPhone(phone);
+    return loginWithPhone(phone, _otp);
   };
 
   const signup = async (phone: string, firstName: string, lastName: string, userEmail?: string, userPassword?: string): Promise<SignupResult> => {
@@ -218,10 +252,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     if (existing) return { ok: false, reason: 'duplicate' };
 
-    const internalEmail = phoneToEmail(normalized);
+    const realEmail = userEmail?.trim().toLowerCase() || '';
+    const realPassword = userPassword?.trim() || '';
+    if (!realEmail) return { ok: false, reason: 'unknown' };
+    if (realPassword.length < 6) return { ok: false, reason: 'unknown' };
     const { error } = await supabase.auth.signUp({
-      email: internalEmail,
-      password: DEFAULT_PASSWORD,
+      email: realEmail,
+      password: realPassword,
       options: {
         data: { first_name: firstName, last_name: lastName, phone: normalized },
         emailRedirectTo: window.location.origin,
@@ -235,45 +272,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: false, reason: 'unknown' };
     }
     await new Promise(r => setTimeout(r, 500));
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email: internalEmail, password: DEFAULT_PASSWORD });
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email: realEmail, password: realPassword });
     if (loginError || !data.user) return { ok: false, reason: 'unknown' };
     myTokenRef.current = await claimActiveSession(data.user.id);
-
-    // Optional: persist user's real email + password
-    try {
-      if (userEmail && userEmail.trim()) {
-        await supabase.auth.updateUser({ email: userEmail.trim() });
-      }
-      if (userPassword && userPassword.trim().length >= 6) {
-        await supabase.auth.updateUser({ password: userPassword.trim() });
-      }
-    } catch (e) {
-      console.warn('updateUser email/password failed', e);
-    }
+    await upsertProfile({ userId: data.user.id, firstName, lastName, phone: normalized, email: realEmail });
 
     // Auto-create the WordPress / zwandako user in background — pass the
     // user's real password so it gets mirrored on WP and they can log into
     // zwandako.com with the same credentials.
-    try {
-      const wpPwd = userPassword && userPassword.trim().length >= 6 ? userPassword.trim() : undefined;
-      supabase.functions.invoke('wp-proxy', { body: { action: 'ensure_user', payload: { password: wpPwd } } }).then(({ error }) => {
-        if (error) console.warn('ensure_user failed', error);
-      });
-    } catch (e) {
-      console.warn('ensure_user invoke threw', e);
-    }
+    await ensureWpUser(realPassword);
 
     return { ok: true };
   };
 
   const updateEmail = async (newEmail: string) => {
-    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    const clean = newEmail.trim().toLowerCase();
+    const { error } = await supabase.auth.updateUser({ email: clean });
+    if (!error && user?.id) await supabase.from('profiles').update({ email: clean } as any).eq('user_id', user.id);
     return !error;
   };
 
   const updatePassword = async (newPassword: string) => {
     if (!newPassword || newPassword.length < 6) return false;
     const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (!error) await ensureWpUser(newPassword);
     return !error;
   };
 

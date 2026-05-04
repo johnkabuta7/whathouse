@@ -21,6 +21,7 @@ type ProfileRow = {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  email?: string | null;
   wp_user_id: number | null;
   wp_user_password: string | null;
 };
@@ -188,6 +189,18 @@ async function lookupExistingWpUser(username: string) {
   ) || null;
 }
 
+async function lookupExistingWpUserByEmail(email: string) {
+  if (!email) return null;
+  const { res, json, text } = await fetchWpJson(
+    `/users?search=${encodeURIComponent(email)}&context=edit&per_page=20`,
+    { headers: { Authorization: adminAuthHeader() } },
+  );
+  if (!res.ok || !Array.isArray(json)) {
+    throw new Error(`WP user email lookup failed [${res.status}]: ${text}`);
+  }
+  return json.find((u: any) => (u?.email || "").toLowerCase() === email.toLowerCase()) || null;
+}
+
 async function createWpApplicationPassword(wpUserId: number) {
   const { res, json, text } = await fetchWpJson(
     `/users/${wpUserId}/application-passwords`,
@@ -226,12 +239,34 @@ async function promoteWpUserToEditor(wpUserId: number) {
   }
 }
 
+async function validateWpPassword(login: string, password: string) {
+  const formBody = new URLSearchParams({
+    log: login,
+    pwd: password,
+    "wp-submit": "Log In",
+    redirect_to: "https://zwandako.com/wp-admin/",
+    testcookie: "1",
+  });
+  const loginRes = await fetch("https://zwandako.com/wp-login.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: "wordpress_test_cookie=WP%20Cookie%20check",
+    },
+    body: formBody.toString(),
+    redirect: "manual",
+  });
+  await loginRes.text().catch(() => "");
+  const setCookie = loginRes.headers.get("set-cookie") || "";
+  return loginRes.status >= 300 && loginRes.status < 400 && /wordpress_logged_in_/i.test(setCookie);
+}
+
 async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
   // Pull profile + auth email so we can mirror the *real* email/password on WP.
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "user_id, first_name, last_name, phone, wp_user_id, wp_user_password",
+      "user_id, first_name, last_name, phone, email, wp_user_id, wp_user_password",
     )
     .eq("user_id", userId)
     .single();
@@ -241,12 +276,15 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
 
   // Resolve the user's real auth email (may be the synthetic phone_xxx@whathouse.app).
   const { data: authUser } = await supabase.auth.admin.getUserById(userId);
-  const authEmail = (authUser?.user?.email || "").trim();
+  const authEmail = ((authUser?.user?.email || profile.email || "") as string).trim().toLowerCase();
   const isSynthetic = !authEmail || authEmail.startsWith("phone_") ||
     authEmail.endsWith("@whathouse.app");
 
   if (profile.wp_user_id && profile.wp_user_password) {
-    const username = buildWpUsername(profile.phone);
+    const existingById = await fetchWpJson(`/users/${profile.wp_user_id}?context=edit`, {
+      headers: { Authorization: adminAuthHeader() },
+    }).catch(() => null);
+    const username = existingById?.json?.username || existingById?.json?.slug || buildWpUsername(profile.phone);
     await promoteWpUserToEditor(profile.wp_user_id);
     // Best-effort: keep the WP user's email + phone meta in sync.
     await syncWpUserMeta(profile.wp_user_id, profile, authEmail, isSynthetic);
@@ -267,7 +305,17 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
     `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || username;
   const accountPassword = crypto.randomUUID() + crypto.randomUUID();
 
-  const { res: createRes, text: createText, json: createJson } =
+  const existingByEmail = !isSynthetic ? await lookupExistingWpUserByEmail(wpEmail).catch(() => null) : null;
+  let createRes: Response;
+  let createText = "";
+  let createJson: any = null;
+
+  if (existingByEmail?.id) {
+    createRes = new Response("{}", { status: 400 });
+    createText = "exists_by_email";
+    createJson = null;
+  } else {
+    const created =
     await fetchWpJson(`/users`, {
       method: "POST",
       headers: {
@@ -289,14 +337,26 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
         },
       }),
     });
+    createRes = created.res;
+    createText = created.text;
+    createJson = created.json;
+  }
 
   let wpUserId: number | null = null;
+  let actorUsername = username;
 
-  if (createRes.ok && createJson?.id) {
+  if (existingByEmail?.id) {
+    wpUserId = existingByEmail.id;
+    actorUsername = existingByEmail.username || existingByEmail.slug || existingByEmail.email || username;
+  } else if (createRes.ok && createJson?.id) {
     wpUserId = createJson.id;
+    actorUsername = createJson.username || createJson.slug || username;
   } else if (createRes.status === 400 && /exists/i.test(createText)) {
     const existing = await lookupExistingWpUser(username);
-    if (existing?.id) wpUserId = existing.id;
+    if (existing?.id) {
+      wpUserId = existing.id;
+      actorUsername = existing.username || existing.slug || username;
+    }
   } else if (isWpUserCreationBlocked(createRes.status, createText)) {
     console.warn(
       "WP user creation blocked, falling back to admin publisher account",
@@ -326,8 +386,8 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
 
   return {
     userId: wpUserId,
-    username,
-    authHeader: userAuthHeader(username, appPassword),
+    username: actorUsername,
+    authHeader: userAuthHeader(actorUsername, appPassword),
     mode: "user",
   };
 }
@@ -544,7 +604,7 @@ Deno.serve(async (req) => {
 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, first_name, last_name, phone, wp_user_id, wp_user_password")
+        .select("user_id, first_name, last_name, phone, email, wp_user_id, wp_user_password")
         .eq("user_id", uid)
         .single();
       if (profileError || !profileData) throw new Error("Profile not found");
