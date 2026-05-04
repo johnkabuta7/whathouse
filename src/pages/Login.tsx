@@ -32,7 +32,12 @@ export default function Login() {
         setIsLoading(false);
         return;
       }
-      const ok = await loginWithPhone(phone);
+      if (!password) {
+        toast({ title: 'Mot de passe requis', description: 'Entrez le mot de passe de votre compte', variant: 'destructive' });
+        setIsLoading(false);
+        return;
+      }
+      const ok = await loginWithPhone(phone, password);
       if (ok) { navigate('/', { replace: true }); return; }
       toast({ title: 'Erreur', description: 'Numéro non reconnu ou compte inexistant', variant: 'destructive' });
     } else if (mode === 'login_email') {
@@ -158,6 +163,12 @@ export default function Login() {
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-1">⚠️ Commencez par le <span className="font-semibold text-primary">préfixe pays</span> (ex: +243, +33, +1, +32...)</p>
                   </div>
+                  {mode === 'login_phone' && (
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mot de passe" className="rounded-xl pl-10" autoComplete="current-password" required />
+                    </div>
+                  )}
                   {mode === 'signup' && (
                     <>
                       <div className="grid grid-cols-2 gap-2">
