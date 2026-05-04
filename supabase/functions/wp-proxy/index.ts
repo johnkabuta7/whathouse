@@ -544,7 +544,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Public actions: no Supabase auth required (used during login/signup flow).
-    const PUBLIC_ACTIONS = new Set(["wp_login_check", "signup_mirror"]);
+    const PUBLIC_ACTIONS = new Set(["wp_login_check", "phone_login_check", "signup_mirror"]);
 
     let uid = "";
     if (!PUBLIC_ACTIONS.has(action)) {
@@ -652,6 +652,39 @@ Deno.serve(async (req) => {
       });
 
       return jsonResponse({ ok: true, auth_user_id: authUser.id, wp_user_id: json.id, username });
+    }
+
+    if (action === "phone_login_check") {
+      const phone = normalizePhone(payload?.phone || "");
+      const password = (payload?.password || "").trim();
+      if (!phone || !password) return jsonResponse({ ok: false, error: "phone and password required" }, 400);
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name, phone, email, wp_user_id, wp_user_password")
+        .eq("phone", phone)
+        .maybeSingle();
+      if (profileError || !profile?.email) {
+        return jsonResponse({ ok: false, error: "no account with this phone" }, 401);
+      }
+
+      const email = String(profile.email).trim().toLowerCase();
+      const check = await validateWpPassword(email, password);
+      if (!check.ok) {
+        return jsonResponse({ ok: false, error: "invalid credentials", details: `jwt-auth status=${check.status}` }, 401);
+      }
+
+      await mirrorAuthUserFromWp(supabase, {
+        email,
+        password,
+        firstName: profile.first_name || "",
+        lastName: profile.last_name || "",
+        phone,
+        wpUserId: profile.wp_user_id || 0,
+        wpAppPassword: profile.wp_user_password || null,
+      });
+
+      return jsonResponse({ ok: true, email });
     }
 
     if (action === "wp_login_check") {
