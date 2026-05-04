@@ -58,6 +58,10 @@ function phoneToEmail(phone: string): string {
 
 const DEFAULT_PASSWORD = 'WhatHouse2026!SecureDefault';
 
+function isSyntheticEmail(email: string) {
+  return !email || email.startsWith('phone_') || email.endsWith('@whathouse.app');
+}
+
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
   return data as Profile | null;
@@ -82,6 +86,18 @@ async function claimActiveSession(userId: string) {
   return token;
 }
 
+async function ensureWpUser(password?: string) {
+  try {
+    const { data, error } = await supabase.functions.invoke('wp-proxy', {
+      body: { action: 'ensure_user', payload: { password } },
+    });
+    return !error && data?.ok !== false;
+  } catch (e) {
+    console.warn('ensure_user invoke threw', e);
+    return false;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,9 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const profile = await fetchProfile(session.user.id);
-    setUser({
+      setUser({
       id: session.user.id,
-      email: session.user.email || '',
+        email: isSyntheticEmail(session.user.email || '') ? '' : (session.user.email || ''),
       profile,
     });
     setLoading(false);
@@ -180,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Try to sign up a Supabase user with these creds. If the email already
       // exists in Supabase but with a different password, we cannot recover
       // automatically and the user has to use phone-based login.
+      const phone = wp.phone ? normalizePhone(wp.phone) : '';
       const { data: signupData, error: signupError } = await supabase.auth.signUp({
         email: trimmed,
         password,
@@ -187,7 +204,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data: {
             first_name: wp.first_name || '',
             last_name: wp.last_name || '',
-            phone: wp.phone || '',
+            phone,
+            wp_user_id: wp.id,
           },
           emailRedirectTo: window.location.origin,
         },
@@ -197,6 +215,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: loginData } = await supabase.auth.signInWithPassword({ email: trimmed, password });
       if (!loginData?.user) return false;
       myTokenRef.current = await claimActiveSession(loginData.user.id);
+      await supabase.from('profiles').update({ wp_user_id: wp.id, phone }).eq('user_id', loginData.user.id);
+      await ensureWpUser(password);
       return true;
     } catch {
       return false;
@@ -218,10 +238,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     if (existing) return { ok: false, reason: 'duplicate' };
 
-    const internalEmail = phoneToEmail(normalized);
+    const realEmail = userEmail?.trim().toLowerCase() || '';
+    const realPassword = userPassword?.trim() || '';
+    if (!realEmail) return { ok: false, reason: 'unknown' };
+    if (realPassword.length < 6) return { ok: false, reason: 'unknown' };
     const { error } = await supabase.auth.signUp({
-      email: internalEmail,
-      password: DEFAULT_PASSWORD,
+      email: realEmail,
+      password: realPassword,
       options: {
         data: { first_name: firstName, last_name: lastName, phone: normalized },
         emailRedirectTo: window.location.origin,
@@ -235,33 +258,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: false, reason: 'unknown' };
     }
     await new Promise(r => setTimeout(r, 500));
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email: internalEmail, password: DEFAULT_PASSWORD });
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email: realEmail, password: realPassword });
     if (loginError || !data.user) return { ok: false, reason: 'unknown' };
     myTokenRef.current = await claimActiveSession(data.user.id);
-
-    // Optional: persist user's real email + password
-    try {
-      if (userEmail && userEmail.trim()) {
-        await supabase.auth.updateUser({ email: userEmail.trim() });
-      }
-      if (userPassword && userPassword.trim().length >= 6) {
-        await supabase.auth.updateUser({ password: userPassword.trim() });
-      }
-    } catch (e) {
-      console.warn('updateUser email/password failed', e);
-    }
 
     // Auto-create the WordPress / zwandako user in background — pass the
     // user's real password so it gets mirrored on WP and they can log into
     // zwandako.com with the same credentials.
-    try {
-      const wpPwd = userPassword && userPassword.trim().length >= 6 ? userPassword.trim() : undefined;
-      supabase.functions.invoke('wp-proxy', { body: { action: 'ensure_user', payload: { password: wpPwd } } }).then(({ error }) => {
-        if (error) console.warn('ensure_user failed', error);
-      });
-    } catch (e) {
-      console.warn('ensure_user invoke threw', e);
-    }
+    await ensureWpUser(realPassword);
 
     return { ok: true };
   };
