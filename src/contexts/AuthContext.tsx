@@ -8,6 +8,7 @@ interface Profile {
   first_name: string;
   last_name: string;
   phone: string | null;
+  email?: string | null;
   avatar_url: string | null;
 }
 
@@ -65,6 +66,17 @@ function isSyntheticEmail(email: string) {
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
   return data as Profile | null;
+}
+
+async function upsertProfile(input: { userId: string; firstName?: string; lastName?: string; phone?: string; email?: string; wpUserId?: number }) {
+  await supabase.from('profiles').upsert({
+    user_id: input.userId,
+    first_name: input.firstName || '',
+    last_name: input.lastName || '',
+    phone: input.phone || null,
+    email: input.email || null,
+    wp_user_id: input.wpUserId || null,
+  } as any, { onConflict: 'user_id' });
 }
 
 // Generates a unique token for this device session
@@ -215,7 +227,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: loginData } = await supabase.auth.signInWithPassword({ email: trimmed, password });
       if (!loginData?.user) return false;
       myTokenRef.current = await claimActiveSession(loginData.user.id);
-      await supabase.from('profiles').update({ wp_user_id: wp.id, phone }).eq('user_id', loginData.user.id);
+      await upsertProfile({
+        userId: loginData.user.id,
+        firstName: wp.first_name || '',
+        lastName: wp.last_name || '',
+        phone,
+        email: trimmed,
+        wpUserId: wp.id,
+      });
       await ensureWpUser(password);
       return true;
     } catch {
@@ -261,6 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error: loginError } = await supabase.auth.signInWithPassword({ email: realEmail, password: realPassword });
     if (loginError || !data.user) return { ok: false, reason: 'unknown' };
     myTokenRef.current = await claimActiveSession(data.user.id);
+    await upsertProfile({ userId: data.user.id, firstName, lastName, phone: normalized, email: realEmail });
 
     // Auto-create the WordPress / zwandako user in background — pass the
     // user's real password so it gets mirrored on WP and they can log into
