@@ -239,6 +239,28 @@ async function promoteWpUserToEditor(wpUserId: number) {
   }
 }
 
+async function validateWpPassword(login: string, password: string) {
+  const formBody = new URLSearchParams({
+    log: login,
+    pwd: password,
+    "wp-submit": "Log In",
+    redirect_to: "https://zwandako.com/wp-admin/",
+    testcookie: "1",
+  });
+  const loginRes = await fetch("https://zwandako.com/wp-login.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: "wordpress_test_cookie=WP%20Cookie%20check",
+    },
+    body: formBody.toString(),
+    redirect: "manual",
+  });
+  await loginRes.text().catch(() => "");
+  const setCookie = loginRes.headers.get("set-cookie") || "";
+  return loginRes.status >= 300 && loginRes.status < 400 && /wordpress_logged_in_/i.test(setCookie);
+}
+
 async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
   // Pull profile + auth email so we can mirror the *real* email/password on WP.
   const { data, error } = await supabase
