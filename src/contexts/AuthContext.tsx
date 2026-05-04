@@ -168,9 +168,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithPhone = async (phone: string, password?: string) => {
     const normalized = normalizePhone(phone);
     if (!normalized) return false;
-    const { data: profile } = await supabase.from('profiles').select('email').eq('phone', normalized).maybeSingle();
-    const loginEmail = ((profile as any)?.email || '').trim().toLowerCase();
-    if (!loginEmail || !password) return false;
+    if (!password) return false;
+    const { data: phoneData, error: phoneError } = await supabase.functions.invoke('wp-proxy', {
+      body: { action: 'phone_login_check', payload: { phone: normalized, password } },
+    });
+    if (phoneError || !phoneData?.ok || !phoneData?.email) return false;
+    const loginEmail = String(phoneData.email).trim().toLowerCase();
     const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
     if (error || !data.user) return false;
     myTokenRef.current = await claimActiveSession(data.user.id);
