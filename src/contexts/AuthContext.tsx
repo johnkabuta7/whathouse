@@ -23,7 +23,7 @@ type SignupResult = { ok: boolean; reason?: 'duplicate' | 'unknown' };
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  loginWithPhone: (phone: string) => Promise<boolean>;
+  loginWithPhone: (phone: string, password?: string) => Promise<boolean>;
   loginWithEmail: (email: string, password: string) => Promise<boolean>;
   verifyOtp: (phone: string, otp: string) => Promise<boolean>;
   signup: (phone: string, firstName: string, lastName: string, email?: string, password?: string) => Promise<SignupResult>;
@@ -172,11 +172,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loginWithPhone = async (phone: string) => {
+  const loginWithPhone = async (phone: string, password?: string) => {
     const normalized = normalizePhone(phone);
     if (!normalized) return false;
-    const email = phoneToEmail(normalized);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: DEFAULT_PASSWORD });
+    const { data: profile } = await supabase.from('profiles').select('email').eq('phone', normalized).maybeSingle();
+    const loginEmail = ((profile as any)?.email || '').trim().toLowerCase();
+    if (!loginEmail || !password) return false;
+    const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
     if (error || !data.user) return false;
     myTokenRef.current = await claimActiveSession(data.user.id);
     return true;
@@ -243,7 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const verifyOtp = async (phone: string, _otp: string) => {
-    return loginWithPhone(phone);
+    return loginWithPhone(phone, _otp);
   };
 
   const signup = async (phone: string, firstName: string, lastName: string, userEmail?: string, userPassword?: string): Promise<SignupResult> => {
