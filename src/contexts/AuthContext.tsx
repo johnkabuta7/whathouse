@@ -52,13 +52,6 @@ export function normalizePhone(phone: string): string {
   return digits ? `+${digits}` : '';
 }
 
-function phoneToEmail(phone: string): string {
-  const digits = (phone || '').replace(/[^0-9]/g, '');
-  return `phone_${digits}@whathouse.app`;
-}
-
-const DEFAULT_PASSWORD = 'WhatHouse2026!SecureDefault';
-
 function isSyntheticEmail(email: string) {
   return !email || email.startsWith('phone_') || email.endsWith('@whathouse.app');
 }
@@ -293,13 +286,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateEmail = async (newEmail: string) => {
-    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    const clean = newEmail.trim().toLowerCase();
+    const { error } = await supabase.auth.updateUser({ email: clean });
+    if (!error && user?.id) await supabase.from('profiles').update({ email: clean } as any).eq('user_id', user.id);
     return !error;
   };
 
   const updatePassword = async (newPassword: string) => {
     if (!newPassword || newPassword.length < 6) return false;
     const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (!error) await ensureWpUser(newPassword);
     return !error;
   };
 
