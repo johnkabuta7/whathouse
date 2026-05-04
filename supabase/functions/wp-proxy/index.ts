@@ -321,14 +321,20 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
   }
 
   let wpUserId: number | null = null;
+  let actorUsername = username;
 
   if (existingByEmail?.id) {
     wpUserId = existingByEmail.id;
+    actorUsername = existingByEmail.username || existingByEmail.slug || existingByEmail.email || username;
   } else if (createRes.ok && createJson?.id) {
     wpUserId = createJson.id;
+    actorUsername = createJson.username || createJson.slug || username;
   } else if (createRes.status === 400 && /exists/i.test(createText)) {
     const existing = await lookupExistingWpUser(username);
-    if (existing?.id) wpUserId = existing.id;
+    if (existing?.id) {
+      wpUserId = existing.id;
+      actorUsername = existing.username || existing.slug || username;
+    }
   } else if (isWpUserCreationBlocked(createRes.status, createText)) {
     console.warn(
       "WP user creation blocked, falling back to admin publisher account",
@@ -358,8 +364,8 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
 
   return {
     userId: wpUserId,
-    username,
-    authHeader: userAuthHeader(username, appPassword),
+    username: actorUsername,
+    authHeader: userAuthHeader(actorUsername, appPassword),
     mode: "user",
   };
 }
