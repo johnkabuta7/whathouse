@@ -93,7 +93,7 @@
     --sidebar-border: 0 0% 14%;
   }
 
-  /* === THEME STYLE: NATURE — clair, accent bleu profond #12769E === */
+  /* === THEME STYLE: NATURE — turquoise #00A0B0 === */
   :root[data-style="nature"] {
     --background: 30 20% 98%;
     --foreground: 15 25% 12%;
@@ -101,20 +101,20 @@
     --card-foreground: 15 25% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 15 25% 12%;
-    --primary: 198 79% 35%;
+    --primary: 185 100% 35%;
     --primary-foreground: 0 0% 100%;
     --secondary: 30 25% 92%;
     --secondary-foreground: 15 25% 12%;
     --muted: 30 20% 94%;
     --muted-foreground: 15 12% 42%;
-    --accent: 198 79% 35%;
+    --accent: 185 100% 35%;
     --accent-foreground: 0 0% 100%;
     --border: 30 15% 88%;
     --input: 30 15% 88%;
-    --ring: 198 79% 35%;
+    --ring: 185 100% 35%;
     --sidebar-background: 30 20% 98%;
     --sidebar-foreground: 15 25% 12%;
-    --sidebar-primary: 198 79% 35%;
+    --sidebar-primary: 185 100% 35%;
     --sidebar-border: 30 15% 88%;
   }
   :root[data-style="nature"].dark {
@@ -128,14 +128,14 @@
     --muted-foreground: 30 12% 62%;
     --border: 0 0% 14%;
     --input: 0 0% 14%;
-    --primary: 198 79% 45%;
+    --primary: 185 100% 40%;
     --primary-foreground: 0 0% 100%;
-    --accent: 198 79% 45%;
+    --accent: 185 100% 40%;
     --accent-foreground: 0 0% 100%;
-    --ring: 198 79% 45%;
+    --ring: 185 100% 40%;
     --sidebar-background: 0 0% 0%;
     --sidebar-foreground: 30 15% 94%;
-    --sidebar-primary: 198 79% 45%;
+    --sidebar-primary: 185 100% 40%;
     --sidebar-border: 0 0% 14%;
   }
 }
