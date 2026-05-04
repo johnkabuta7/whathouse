@@ -239,26 +239,20 @@ async function promoteWpUserToEditor(wpUserId: number) {
   }
 }
 
-async function validateWpPassword(login: string, password: string) {
-  const formBody = new URLSearchParams({
-    log: login,
-    pwd: password,
-    "wp-submit": "Log In",
-    redirect_to: "https://zwandako.com/wp-admin/",
-    testcookie: "1",
-  });
-  const loginRes = await fetch("https://zwandako.com/wp-login.php", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: "wordpress_test_cookie=WP%20Cookie%20check",
-    },
-    body: formBody.toString(),
-    redirect: "manual",
-  });
-  await loginRes.text().catch(() => "");
-  const setCookie = loginRes.headers.get("set-cookie") || "";
-  return loginRes.status >= 300 && loginRes.status < 400 && /wordpress_logged_in_/i.test(setCookie);
+async function validateWpPassword(login: string, password: string): Promise<{ ok: boolean; status: number; details?: string }> {
+  // wp-login.php is hidden/blocked on zwandako.com (returns 404). Use the
+  // JWT Auth plugin endpoint instead, which accepts username OR email.
+  try {
+    const res = await fetch("https://zwandako.com/wp-json/jwt-auth/v1/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: login, password }),
+    });
+    const text = await res.text().catch(() => "");
+    return { ok: res.ok, status: res.status, details: res.ok ? undefined : text.slice(0, 200) };
+  } catch (e) {
+    return { ok: false, status: 0, details: String(e) };
+  }
 }
 
 async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
