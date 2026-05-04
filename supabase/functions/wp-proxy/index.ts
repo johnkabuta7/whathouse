@@ -344,14 +344,24 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
   const isSynthetic = !authEmail || authEmail.startsWith("phone_") ||
     authEmail.endsWith("@whathouse.app");
 
-  if (profile.wp_user_id && profile.wp_user_password) {
+  if (profile.wp_user_id) {
     const existingById = await fetchWpJson(`/users/${profile.wp_user_id}?context=edit`, {
       headers: { Authorization: adminAuthHeader() },
     }).catch(() => null);
-    const username = existingById?.json?.username || existingById?.json?.slug || buildWpUsername(profile.phone);
+    const username = existingById?.json?.username || existingById?.json?.slug || (!isSynthetic ? authEmail : buildWpUsername(profile.phone));
     await promoteWpUserToEditor(profile.wp_user_id);
     // Best-effort: keep the WP user's email + phone meta in sync.
     await syncWpUserMeta(profile.wp_user_id, profile, authEmail, isSynthetic);
+    if (!profile.wp_user_password) {
+      try {
+        const appPassword = await createWpApplicationPassword(profile.wp_user_id);
+        await supabase.from("profiles").update({ wp_user_password: appPassword }).eq("user_id", userId);
+        profile.wp_user_password = appPassword;
+      } catch (e) {
+        console.warn("WP app-password create for existing actor failed, using admin auth:", e);
+        return { userId: profile.wp_user_id, username, authHeader: adminAuthHeader(), mode: "admin_fallback" };
+      }
+    }
     return {
       userId: profile.wp_user_id,
       username,
