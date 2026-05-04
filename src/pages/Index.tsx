@@ -168,6 +168,7 @@ function FeaturedProperties() {
             || p.jetpack_featured_media_url
             || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop';
           const title = p.title?.rendered?.replace(/<[^>]+>/g, '') || 'Propriété';
+          const author = p._embedded?.author?.[0]?.name || p.author_name || 'Auteur Zwandako';
           return (
             <a key={p.id} href={p.link} target="_blank" rel="noopener noreferrer"
               className="shrink-0 w-44 rounded-2xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition">
@@ -176,6 +177,7 @@ function FeaturedProperties() {
               </div>
               <div className="p-2">
                 <p className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">{title}</p>
+                <p className="text-[10px] text-muted-foreground font-medium mt-1 truncate">Par {author}</p>
                 <p className="text-[10px] text-primary font-bold mt-1">Voir l'annonce →</p>
               </div>
             </a>
@@ -230,9 +232,9 @@ export default function Index() {
   }
 
   return (
-    <div className="max-w-lg mx-auto animate-fade-in">
+    <div className="max-w-lg mx-auto min-h-full animate-fade-in">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 7mm)', position: 'sticky' as any }}>
+      <header className="sticky top-0 z-50 bg-card border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)', position: 'sticky' as any }}>
         <div className="px-4 py-3 flex items-center gap-3">
           <h1 className="text-lg font-bold leading-tight flex-1 text-foreground">WhatHouse <span className="block text-[10px] font-medium text-muted-foreground">Pro Immobilier</span></h1>
           <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">
