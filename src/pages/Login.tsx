@@ -56,8 +56,8 @@ export default function Login() {
         setIsLoading(false);
         return;
       }
-      if (!firstName.trim() || !lastName.trim()) {
-        toast({ title: 'Erreur', description: 'Tous les champs sont obligatoires', variant: 'destructive' });
+      if (!firstName.trim() || !lastName.trim() || !email.trim() || password.trim().length < 6) {
+        toast({ title: 'Erreur', description: 'Nom, email réel et mot de passe de 6 caractères minimum sont obligatoires', variant: 'destructive' });
         setIsLoading(false);
         return;
       }
@@ -125,7 +125,7 @@ export default function Login() {
 
             {mode === 'login_email' && (
               <p className="text-[11px] text-muted-foreground mb-3 leading-tight">
-                Connectez-vous avec votre email et mot de passe <span className="font-semibold text-primary">zwandako.com</span> ou WhatHouse — vos publications iront dans votre compte existant.
+                Connectez-vous avec votre email et mot de passe <span className="font-semibold text-primary">zwandako.com</span> à WhatHouse — vos publications iront dans votre compte zwandako existant.
               </p>
             )}
 
@@ -171,13 +171,13 @@ export default function Login() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-foreground mb-1 block">Adresse e-mail (optionnel)</label>
-                        <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vous@exemple.com" className="rounded-xl" autoComplete="email" />
+                        <label className="text-xs font-semibold text-foreground mb-1 block">Adresse e-mail *</label>
+                        <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vous@exemple.com" className="rounded-xl" autoComplete="email" required />
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-foreground mb-1 block">Mot de passe (optionnel)</label>
-                        <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="6 caractères minimum" className="rounded-xl" autoComplete="new-password" />
-                        <p className="text-[10px] text-muted-foreground mt-1">Sert à se connecter avec email/mot de passe et créer votre compte zwandako.com automatiquement.</p>
+                        <label className="text-xs font-semibold text-foreground mb-1 block">Mot de passe *</label>
+                        <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="6 caractères minimum" className="rounded-xl" autoComplete="new-password" required minLength={6} />
+                        <p className="text-[10px] text-muted-foreground mt-1">Ce même email et mot de passe créent votre compte zwandako.com automatiquement.</p>
                       </div>
                     </>
                   )}
