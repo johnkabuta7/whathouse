@@ -581,19 +581,21 @@ Deno.serve(async (req) => {
     }
 
     if (action === "wp_login_check") {
-      // Validates email + password against WordPress. The WP REST API Basic
-      // Auth only accepts Application Passwords, NOT regular login passwords,
-      // so we validate the real password by POSTing to wp-login.php (the
-      // standard WP login form) and detecting a successful redirect. We then
-      // use the admin credentials to look up the user details.
       const email = (payload?.email || "").trim().toLowerCase();
       const password = (payload?.password || "").trim();
       if (!email || !password) {
         return jsonResponse({ ok: false, error: "email and password required" }, 400);
       }
 
-      // 1. Look up the user by email via admin creds to get the username
-      //    (wp-login.php needs the username/login, not necessarily the email).
+      const directCheck = await validateWpPassword(email, password);
+      if (!directCheck.ok) {
+        return jsonResponse({
+          ok: false,
+          error: "invalid credentials",
+          details: `jwt-auth status=${directCheck.status}`,
+        }, 401);
+      }
+
       const lookupUrl = `https://zwandako.com/wp-json/wp/v2/users?search=${encodeURIComponent(email)}&context=edit&per_page=20`;
       const lookupRes = await fetch(lookupUrl, { headers: { Authorization: adminAuthHeader() } });
       const lookupText = await lookupRes.text();
@@ -609,30 +611,23 @@ Deno.serve(async (req) => {
         return jsonResponse({ ok: false, error: "no account with this email" }, 401);
       }
       const wpUsername: string = wpUser.username || wpUser.slug || email;
-
-      // 2. Validate the password via the JWT Auth plugin (wp-login.php is
-      //    blocked on zwandako.com and returns 404). Accepts username or email.
-      let check = await validateWpPassword(wpUsername || email, password);
-      if (!check.ok && wpUsername && wpUsername !== email) {
-        check = await validateWpPassword(email, password);
-      }
-      if (!check.ok) {
-        return jsonResponse({
-          ok: false,
-          error: "invalid credentials",
-          details: `jwt-auth status=${check.status}`,
-        }, 401);
-      }
+      let wpAppPassword: string | null = null;
+      try { wpAppPassword = await createWpApplicationPassword(wpUser.id); } catch (e) { console.warn("WP app-password for mirror failed:", e); }
+      const firstName = wpUser.first_name || directCheck.json?.user_firstname || "";
+      const lastName = wpUser.last_name || directCheck.json?.user_lastname || "";
+      const phone = wpUser.meta?.phone || wpUser.meta?.fave_author_phone || wpUser.meta?.fave_author_whatsapp || "";
+      const authUser = await mirrorAuthUserFromWp(supabase, { email, password, firstName, lastName, phone, wpUserId: wpUser.id, wpAppPassword });
 
       return jsonResponse({
         ok: true,
+        auth_user_id: authUser.id,
         wp_user: {
           id: wpUser.id,
           email: wpUser.email,
           username: wpUsername,
-          first_name: wpUser.first_name || "",
-          last_name: wpUser.last_name || "",
-          phone: wpUser.meta?.phone || wpUser.meta?.fave_author_phone || "",
+          first_name: firstName,
+          last_name: lastName,
+          phone,
         },
       });
     }
