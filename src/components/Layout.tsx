@@ -137,7 +137,7 @@ export function Layout() {
               <div
                 key={i}
                 className="shrink-0 w-full h-full overflow-y-auto bg-background"
-                style={{ width: '100%', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' as any }}
+                style={{ width: '100%', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' as any, touchAction: 'pan-y' }}
               >
                 <Page />
               </div>

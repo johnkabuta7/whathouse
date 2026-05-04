@@ -7,7 +7,7 @@ export type ThemeStyle = 'classic' | 'mocha' | 'nature';
 export const STYLE_COLORS: Record<ThemeStyle, string> = {
   classic: '#EC3C4C', // Rouge vif
   mocha:   '#0084FA', // Bleu (couleur 2) — fond noir
-  nature:  '#12769E', // Bleu profond
+  nature:  '#00A0B0', // Bleu turquoise
 };
 
 // Kept for backward-compat (some components may still import it). Do NOT extend.

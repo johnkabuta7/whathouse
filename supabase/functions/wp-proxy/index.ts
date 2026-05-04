@@ -584,6 +584,12 @@ Deno.serve(async (req) => {
         status: "pending",
       };
 
+      // Assign author so the listing appears under the user's name in
+      // "À la une" / featured sections on Zwandako, not under "admin".
+      if (wpActor.userId) {
+        postBody.author = wpActor.userId;
+      }
+
       if (featured) {
         postBody.featured_media = featured;
       }
@@ -593,6 +599,22 @@ Deno.serve(async (req) => {
       const postRes = createResult.res;
       const postJson = createResult.json;
       const postText = createResult.text;
+
+      // Best-effort: re-assign author if the create call dropped it.
+      if (postRes.ok && postJson?.id && wpActor.userId && postJson.author !== wpActor.userId) {
+        try {
+          await fetchWpJson(`/properties/${postJson.id}`, {
+            method: "POST",
+            headers: {
+              Authorization: adminAuthHeader(),
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ author: wpActor.userId }),
+          });
+        } catch (e) {
+          console.warn("author reassign failed:", e);
+        }
+      }
 
       if (!postRes.ok && isWpPermissionError(postRes.status, postText)) {
         const admin = await getAdminCapabilities();
