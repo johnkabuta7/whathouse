@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, LogIn, UserPlus, Phone, ArrowLeft, Mail, Lock } from 'lucide-react';
+import { Building2, LogIn, UserPlus, Phone, ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,10 +16,23 @@ export default function Login() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { loginWithPhone, loginWithEmail, signup } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const passwordType = showPassword ? 'text' : 'password';
+  const passwordToggle = (
+    <button
+      type="button"
+      onClick={() => setShowPassword(v => !v)}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+    >
+      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+    </button>
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,7 +156,8 @@ export default function Login() {
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mot de passe" className="rounded-xl pl-10" autoComplete="current-password" required />
+                    <Input type={passwordType} value={password} onChange={e => setPassword(e.target.value)} placeholder="Mot de passe" className="rounded-xl pl-10 pr-10" autoComplete="current-password" required />
+                    {passwordToggle}
                   </div>
                 </>
               ) : (
@@ -166,7 +180,8 @@ export default function Login() {
                   {mode === 'login_phone' && (
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mot de passe" className="rounded-xl pl-10" autoComplete="current-password" required />
+                      <Input type={passwordType} value={password} onChange={e => setPassword(e.target.value)} placeholder="Mot de passe" className="rounded-xl pl-10 pr-10" autoComplete="current-password" required />
+                      {passwordToggle}
                     </div>
                   )}
                   {mode === 'signup' && (
@@ -187,7 +202,10 @@ export default function Login() {
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-foreground mb-1 block">Mot de passe *</label>
-                        <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="6 caractères minimum" className="rounded-xl" autoComplete="new-password" required minLength={6} />
+                        <div className="relative">
+                          <Input type={passwordType} value={password} onChange={e => setPassword(e.target.value)} placeholder="6 caractères minimum" className="rounded-xl pr-10" autoComplete="new-password" required minLength={6} />
+                          {passwordToggle}
+                        </div>
                         <p className="text-[10px] text-muted-foreground mt-1">Ce même email et mot de passe créent votre compte zwandako.com automatiquement.</p>
                       </div>
                     </>

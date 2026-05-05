@@ -5,7 +5,7 @@ export type ThemeStyle = 'classic' | 'mocha' | 'nature';
 
 // Each theme style has its own fixed brand color — no per-user color picker.
 export const STYLE_COLORS: Record<ThemeStyle, string> = {
-  classic: '#00A0B0', // Bleu turquoise WhatHouse
+  classic: '#FC4E00', // Orange classique WhatHouse
   mocha:   '#0084FA', // Bleu (couleur 2) — fond noir
   nature:  '#00A0B0', // Bleu turquoise
 };
@@ -65,7 +65,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
   const [themeStyle, setThemeStyleState] = useState<ThemeStyle>(() => {
     const s = localStorage.getItem('themeStyle') as ThemeStyle | null;
-    return s === 'mocha' ? 'mocha' : 'nature';
+    return s === 'mocha' || s === 'nature' ? s : 'classic';
   });
   const colorHex = STYLE_COLORS[themeStyle];
 

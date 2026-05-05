@@ -84,7 +84,8 @@ export default function Contacts() {
   const filtered = baseList?.filter(p =>
     !q ||
     normalizeSearch(`${p.first_name} ${p.last_name}`).includes(q) ||
-    normalizeSearch(p.phone || '').includes(q)
+    normalizeSearch(p.phone || '').includes(q) ||
+    normalizeSearch((p as any).email || '').includes(q)
   );
 
   const startLongPress = (userId: string) => {
@@ -219,7 +220,8 @@ export default function Contacts() {
                 <div className="flex-1 min-w-0 border-b border-border pb-3 flex items-center gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{(p as any).online ? 'En ligne' : (p.phone || 'Hors ligne')}</p>
+                    <p className="text-xs text-muted-foreground truncate">{p.phone || 'Téléphone non renseigné'}</p>
+                    {(p as any).email && <p className="text-[10px] text-muted-foreground truncate">{(p as any).email}</p>}
                   </div>
                   <p className="text-[10px] text-muted-foreground shrink-0 text-right whitespace-nowrap">
                     {(p as any).online ? <span className="text-success font-semibold">● en ligne</span> : formatLastSeen((p as any).last_seen)}

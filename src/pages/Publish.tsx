@@ -45,6 +45,15 @@ export default function Publish() {
   const toggleGroup = (id: string) =>
     setSelectedGroups(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
 
+  const handleCancel = () => {
+    setTitle('');
+    setDescription('');
+    setFiles([]);
+    setPreviews([]);
+    setSelectedGroups([]);
+    navigate('/');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -100,14 +109,14 @@ export default function Publish() {
           }, 250);
         },
         onError: (err: any) => {
-          toast.error('Publication échouée', { description: err?.message || 'Erreur inconnue' });
+          toast.error('Publication échouée', { description: err?.message || 'Vos textes et images sont conservés. Réessayez.' });
           setUploading(false);
           setProgress(0);
           setProgressLabel('');
         },
       });
     } catch (err: any) {
-      toast.error('Erreur upload', { description: err?.message || 'Impossible de téléverser les images' });
+      toast.error('Erreur upload', { description: err?.message || 'Vos textes et images sont conservés. Réessayez.' });
       setUploading(false);
       setProgress(0);
       setProgressLabel('');
@@ -188,15 +197,20 @@ export default function Publish() {
           ℹ️ Une seule annonce sera envoyée sur <strong>zwandako.com</strong> (statut « en attente » de validation). La même annonce apparaît dans tous les groupes cochés et reste comptée comme <strong>1 seule publication</strong> dans votre profil.
         </div>
 
-        <Button type="submit" disabled={uploading || createMulti.isPending}
-          className="w-full rounded-full bg-primary text-primary-foreground h-11 text-sm font-semibold">
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={handleCancel} disabled={uploading || createMulti.isPending} className="rounded-full h-11 text-sm font-semibold px-5">
+            Annuler
+          </Button>
+          <Button type="submit" disabled={uploading || createMulti.isPending}
+          className="flex-1 rounded-full bg-primary text-primary-foreground h-11 text-sm font-semibold">
           {(uploading || createMulti.isPending) ? (
             <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
           ) : (
             <Send className="h-4 w-4 mr-2" />
           )}
           Publier
-        </Button>
+          </Button>
+        </div>
       </form>
     </div>
   );

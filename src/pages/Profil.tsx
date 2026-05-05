@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { User, Users, Edit2, LogOut, Save, Camera, Eye, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, ShieldCheck, Sparkles, BookOpen, ChevronRight, FileText, ImagePlus, X } from 'lucide-react';
+import { User, Users, Edit2, LogOut, Save, Camera, Eye, EyeOff, Trash2, MessageSquare, Moon, Sun, Bell, Volume2, Play, Heart, Image, MoreVertical, Mail, Bookmark, ImageIcon, ShieldCheck, Sparkles, BookOpen, ChevronRight, FileText, ImagePlus, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,7 @@ export default function Profil() {
   const [phone, setPhone] = useState(user?.profile?.phone || '');
   const [email, setEmail] = useState(user?.email && !user.email.startsWith('phone_') ? user.email : '');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get('tab') as 'annonces' | 'infos' | 'admin') || 'annonces';
   const [activeTab, setActiveTab] = useState<'annonces' | 'infos' | 'admin'>(initialTab);
@@ -75,6 +76,13 @@ export default function Profil() {
   const avatarUrl = profile?.avatar_url || user?.profile?.avatar_url;
   const backgroundUrl = (profile as any)?.background_url;
 
+  useEffect(() => {
+    setFirstName(profile?.first_name || user?.profile?.first_name || '');
+    setLastName(profile?.last_name || user?.profile?.last_name || '');
+    setPhone(profile?.phone || user?.profile?.phone || '');
+    setEmail((profile as any)?.email || user?.email || '');
+  }, [profile, user?.email, user?.profile]);
+
   const handleSave = async () => {
     if (!user) return;
     if (email && email.trim() && email !== user.email) {
@@ -87,7 +95,7 @@ export default function Profil() {
       if (!ok) { toast({ title: 'Mot de passe non modifié', variant: 'destructive' }); return; }
     }
     updateProfile.mutate(
-      { userId: user.id, first_name: firstName, last_name: lastName, phone },
+      { userId: user.id, first_name: firstName, last_name: lastName, phone, email },
       {
         onSuccess: () => { toast({ title: 'Profil mis à jour !' }); setEditing(false); setPassword(''); },
         onError: () => toast({ title: 'Erreur', variant: 'destructive' }),
@@ -269,12 +277,10 @@ export default function Profil() {
           <div className="mt-3 px-1 flex items-start gap-2">
             <div className="flex-1 min-w-0">
               <h1 className="text-lg font-bold text-foreground truncate">{fullName}</h1>
-              {user.profile?.phone && <p className="text-xs text-muted-foreground">{user.profile.phone}</p>}
+              {phone && <p className="text-xs text-muted-foreground truncate">{phone}</p>}
+              {email && <p className="text-xs text-muted-foreground truncate">{email}</p>}
               {isAdmin && <span className="text-[10px] bg-primary/15 text-primary px-2 py-0.5 rounded-full font-bold mt-1 inline-block">Admin</span>}
             </div>
-            <button onClick={() => setEditing(!editing)} className="p-2 rounded-full hover:bg-muted transition text-muted-foreground">
-              <Edit2 className="h-4 w-4" />
-            </button>
           </div>
         </div>
       </div>
@@ -324,14 +330,19 @@ export default function Profil() {
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="Votre email (optionnel)" className="rounded-full text-sm h-9 pl-10" type="email" />
           </div>
-          <Input
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="Nouveau mot de passe (laisser vide pour ne pas changer)"
-            className="rounded-full text-sm h-9"
-            type="password"
-            autoComplete="new-password"
-          />
+          <div className="relative">
+            <Input
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Nouveau mot de passe (laisser vide pour ne pas changer)"
+              className="rounded-full text-sm h-9 pr-10"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+            />
+            <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
           <p className="text-[10px] text-muted-foreground">L'email et le mot de passe vous permettront de récupérer votre compte. Non obligatoires.</p>
           <div className="flex gap-2">
             <Button onClick={handleSave} size="sm" className="flex-1 rounded-full bg-primary text-primary-foreground" disabled={updateProfile.isPending}>
