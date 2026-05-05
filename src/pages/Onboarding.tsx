@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Users, Share2, Globe, Search, FolderTree, Smartphone, ChevronRight } from 'lucide-react';
+import { Building2, Users, Globe, Search, Smartphone, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const SLIDES = [
@@ -81,6 +81,38 @@ export default function Onboarding() {
       }
     }, 150);
   };
+
+  if (step === 0) {
+    return (
+      <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
+        <button
+          onClick={goToLogin}
+          type="button"
+          disabled={skipping}
+          className="absolute right-4 z-10 text-sm text-muted-foreground font-medium px-3 py-1.5 rounded-full hover:bg-muted active:bg-muted/70 transition disabled:opacity-60"
+          style={{ top: 'calc(env(safe-area-inset-top) + 1rem)' }}
+        >
+          {skipping ? 'Chargement...' : 'Passer'}
+        </button>
+        <div className="flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden">
+          <img src="/whathouse-launch.png" alt="WhatHouse Pro de l’Immobilier" className="w-full h-full object-contain" />
+        </div>
+        <div className="shrink-0 px-6 pt-6 pb-8 max-w-md mx-auto w-full bg-background border-t border-border/50 safe-bottom">
+          <div className="flex justify-center gap-2 mb-5">
+            {SLIDES.map((_, i) => (
+              <div key={i} className={`h-1.5 rounded-full transition-all ${i === step ? 'w-6 bg-primary' : 'w-1.5 bg-muted'}`} />
+            ))}
+          </div>
+          <Button onClick={next} type="button" disabled={skipping} className="w-full rounded-full font-semibold bg-primary text-primary-foreground h-12 disabled:opacity-60">
+            Suivant <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+          <button onClick={goToLogin} type="button" disabled={skipping} className="w-full text-center text-xs text-muted-foreground mt-4 mb-2 py-2 disabled:opacity-60">
+            {skipping ? 'Chargement...' : 'Aller à la connexion'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const next = () => {
     if (skipping) return;
