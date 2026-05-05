@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Phone, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Phone, MessageSquare, Mail } from 'lucide-react';
 import { useProfile } from '@/hooks/use-data';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -35,6 +35,7 @@ export default function ContactDetail() {
       <div className="px-4 mt-3">
         <h1 className="text-xl font-bold text-foreground">{name}</h1>
         {profile.phone && <p className="text-sm text-muted-foreground mt-1">{profile.phone}</p>}
+        {(profile as any).email && <p className="text-sm text-muted-foreground mt-1">{(profile as any).email}</p>}
       </div>
 
       {/* Action buttons */}
@@ -59,6 +60,12 @@ export default function ContactDetail() {
 
       {/* Info */}
       <div className="px-4 mt-6 space-y-3">
+        {(profile as any).email && (
+          <div className="p-4 rounded-xl bg-card border border-border flex items-center gap-3">
+            <Mail className="h-4 w-4 text-primary shrink-0" />
+            <p className="text-sm text-foreground truncate">{(profile as any).email}</p>
+          </div>
+        )}
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs font-semibold text-muted-foreground mb-1">Membre depuis</p>
           <p className="text-sm text-foreground">{new Date(profile.created_at).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
