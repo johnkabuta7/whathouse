@@ -214,11 +214,14 @@ export default function Index() {
   const isSearching = search.trim().length >= 2;
   const displayGroups = isSearching ? searchResults : myGroups;
   const totalRequests = requestCounts?.total || 0;
+  const totalUnread = Object.values(unreadCounts || {}).reduce((sum, n) => sum + (Number(n) || 0), 0);
+  const totalNotifications = totalRequests + totalUnread;
 
   const handleBellClick = () => {
-    if (!requestCounts?.byGroup) return;
-    const groupIds = Object.keys(requestCounts.byGroup).filter(id => requestCounts.byGroup[id] > 0);
-    if (groupIds.length > 0) navigate(`/group/${groupIds[0]}/members`);
+    const requestGroupIds = Object.keys(requestCounts?.byGroup || {}).filter(id => (requestCounts?.byGroup || {})[id] > 0);
+    if (requestGroupIds.length > 0) { navigate(`/group/${requestGroupIds[0]}/members`); return; }
+    const unreadGroupId = Object.keys(unreadCounts || {}).find(id => (unreadCounts || {})[id] > 0);
+    if (unreadGroupId) navigate(`/group/${unreadGroupId}`);
   };
 
   const closeMenu = () => setShowMenu(false);
@@ -247,9 +250,9 @@ export default function Index() {
           )}
           <button onClick={handleBellClick} className="relative p-1.5 rounded-full hover:bg-muted transition">
             <Bell className="h-5 w-5 text-muted-foreground" />
-            {totalRequests > 0 && (
+            {totalNotifications > 0 && (
               <span className="absolute -top-1 -right-1 h-5 min-w-[20px] rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center px-1">
-                {totalRequests}
+                {totalNotifications > 999 ? '999+' : totalNotifications}
               </span>
             )}
           </button>
@@ -304,8 +307,8 @@ export default function Index() {
 
       {/* Contact carousel — Messenger style online indicator */}
       {contacts && contacts.length > 0 && !isSearching && (
-        <div className="px-3 pt-[5mm] pb-3" data-no-swipe>
-          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1 touch-pan-x">
+        <div className="px-4 pt-[5mm] pb-3" data-no-swipe>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 touch-pan-x">
             {contacts.slice(0, 30).map(c => {
               const name = `${c.first_name} ${c.last_name}`.trim() || '?';
               const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
