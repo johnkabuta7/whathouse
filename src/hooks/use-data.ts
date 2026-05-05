@@ -13,6 +13,7 @@ export function useIsAppAdmin() {
       return data?.role === 'admin';
     },
     enabled: !!user,
+    refetchInterval: 10_000,
   });
 }
 
@@ -707,7 +708,9 @@ export function useUpdateProfile() {
 // ========== IMAGE UPLOAD ==========
 export async function uploadListingImage(file: File, userId: string): Promise<string> {
   const ext = file.name.split('.').pop();
-  const path = `${userId}/${Date.now()}.${ext}`;
+  const safeExt = ext && ext.length <= 8 ? ext : 'jpg';
+  const unique = `${Date.now()}-${crypto.randomUUID()}`;
+  const path = `${userId}/${unique}.${safeExt}`;
   const { error } = await supabase.storage.from('listings').upload(path, file);
   if (error) throw error;
   const { data: { publicUrl } } = supabase.storage.from('listings').getPublicUrl(path);
