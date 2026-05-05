@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const profile = await fetchProfile(session.user.id);
       setUser({
       id: session.user.id,
-        email: isSyntheticEmail(session.user.email || '') ? '' : (session.user.email || ''),
+        email: isSyntheticEmail(session.user.email || '') ? (profile?.email || '') : (session.user.email || profile?.email || ''),
       profile,
     });
     setLoading(false);
@@ -176,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loginEmail = String(phoneData.email).trim().toLowerCase();
     const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
     if (error || !data.user) return false;
+    await upsertProfile({ userId: data.user.id, phone: normalized, email: loginEmail });
     myTokenRef.current = await claimActiveSession(data.user.id);
     return true;
   };
@@ -192,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 1. Try direct Supabase login first (works for users created with real email).
     const { data, error } = await supabase.auth.signInWithPassword({ email: trimmed, password });
     if (!error && data.user) {
+      await upsertProfile({ userId: data.user.id, email: trimmed });
       myTokenRef.current = await claimActiveSession(data.user.id);
       return true;
     }
@@ -206,6 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await new Promise(r => setTimeout(r, 300));
       const { data: loginData } = await supabase.auth.signInWithPassword({ email: trimmed, password });
       if (!loginData?.user) return false;
+      await upsertProfile({ userId: loginData.user.id, email: trimmed });
       myTokenRef.current = await claimActiveSession(loginData.user.id);
       return true;
     } catch {
