@@ -478,42 +478,27 @@ export function useCreateListing() {
     mutationFn: async (listing: { group_id: string; user_id: string; title: string; description: string; images: string[]; zwandako_url?: string }) => {
       if (!listing.description.trim()) throw new Error('La description est obligatoire pour publier sur Zwandako.');
       if (!listing.images?.length) throw new Error('Ajoutez au moins une image pour publier sur Zwandako.');
-      const { data, error } = await supabase.from('listings').insert(listing).select().single();
-      if (error) throw error;
-      let zwandakoUrl = data.zwandako_url;
       let wpPostId: number | null = null;
       let wpMediaIds: number[] | null = null;
-      try {
-        const { data: publishData, error: publishError } = await supabase.functions.invoke('wp-proxy', {
-          body: {
-            action: 'publish_listing',
-            payload: {
-              listing_id: data.id,
-              title: listing.title,
-              content: listing.description,
-              image_urls: listing.images || [],
-            },
+      let zwandakoUrl = listing.zwandako_url || null;
+      const { data: publishData, error: publishError } = await supabase.functions.invoke('wp-proxy', {
+        body: {
+          action: 'publish_listing',
+          payload: {
+            title: listing.title,
+            content: listing.description,
+            image_urls: listing.images || [],
           },
-        });
-
-        if (publishError) {
-          console.warn('WP sync error (listing kept locally):', publishError);
-        } else {
-          if (publishData?.link) zwandakoUrl = publishData.link;
-          wpPostId = publishData?.wp_post_id || null;
-          wpMediaIds = publishData?.media_ids || [];
-        }
-      } catch (e) {
-        console.warn('WP publish failed but listing kept locally:', e);
+        },
+      });
+      if (publishError || !publishData?.ok || publishData?.wp_sync_failed || !publishData?.wp_post_id) {
+        throw new Error(publishData?.error || publishError?.message || 'Publication Zwandako impossible. Réessayez.');
       }
-      // Persist whatever WP info we got (best-effort) so the "Voir" button works.
-      if (zwandakoUrl || wpPostId) {
-        await supabase.from('listings').update({
-          zwandako_url: zwandakoUrl || null,
-          wp_post_id: wpPostId,
-          wp_media_ids: wpMediaIds,
-        }).eq('id', data.id);
-      }
+      if (publishData?.link) zwandakoUrl = publishData.link;
+      wpPostId = publishData?.wp_post_id || null;
+      wpMediaIds = publishData?.media_ids || [];
+      const { data, error } = await supabase.from('listings').insert({ ...listing, zwandako_url: zwandakoUrl, wp_post_id: wpPostId, wp_media_ids: wpMediaIds } as any).select().single();
+      if (error) throw error;
       return { ...data, zwandako_url: zwandakoUrl, wp_post_id: wpPostId, wp_media_ids: wpMediaIds, wp_sync_failed: !wpPostId };
     },
     onSuccess: (data) => {
