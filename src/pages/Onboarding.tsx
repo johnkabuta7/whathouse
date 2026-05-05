@@ -82,6 +82,12 @@ export default function Onboarding() {
     }, 150);
   };
 
+  const next = () => {
+    if (skipping) return;
+    if (isLast) { goToLogin(); return; }
+    setStep(s => Math.min(s + 1, SLIDES.length - 1));
+  };
+
   if (step === 0) {
     return (
       <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
@@ -113,12 +119,6 @@ export default function Onboarding() {
       </div>
     );
   }
-
-  const next = () => {
-    if (skipping) return;
-    if (isLast) { goToLogin(); return; }
-    setStep(s => Math.min(s + 1, SLIDES.length - 1));
-  };
 
   return (
     <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
