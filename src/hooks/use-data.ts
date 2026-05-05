@@ -524,65 +524,32 @@ export function useCreateMultiGroupListing() {
       if (!input.images?.length) throw new Error('Ajoutez au moins une image.');
       if (!input.group_ids.length) throw new Error('Sélectionnez au moins un groupe.');
 
-      // 1) Insert in the FIRST group locally
-      const firstGroup = input.group_ids[0];
-      const { data: firstRow, error: firstErr } = await supabase.from('listings').insert({
-        group_id: firstGroup,
+      const { data: publishData, error: publishError } = await supabase.functions.invoke('wp-proxy', {
+        body: { action: 'publish_listing', payload: { title: input.title, content: input.description, image_urls: input.images } },
+      });
+      if (publishError || !publishData?.ok || publishData?.wp_sync_failed || !publishData?.wp_post_id) {
+        throw new Error(publishData?.error || publishError?.message || 'Publication Zwandako impossible. Vos textes et photos restent ici.');
+      }
+      const wpPostId = publishData.wp_post_id || null;
+      const wpMediaIds = publishData.media_ids || [];
+      const zwandakoUrl = publishData.link || null;
+
+      const rows = input.group_ids.map(gid => ({
+        group_id: gid,
         user_id: input.user_id,
         title: input.title,
         description: input.description,
         images: input.images,
-        zwandako_url: input.zwandako_url,
-      }).select().single();
-      if (firstErr) throw firstErr;
-
-      // 2) Duplicate locally in remaining groups IMMEDIATELY (so user sees fast result)
-      const others = input.group_ids.slice(1);
-      if (others.length) {
-        const rows = others.map(gid => ({
-          group_id: gid,
-          user_id: input.user_id,
-          title: input.title,
-          description: input.description,
-          images: input.images,
-        }));
-        const { error: dupErr } = await supabase.from('listings').insert(rows);
-        if (dupErr) console.warn('Dup insert error:', dupErr);
-      }
-
-      // 3) Fire WP publish in background (don't block UI)
-      (async () => {
-        try {
-          const { data: publishData } = await supabase.functions.invoke('wp-proxy', {
-            body: {
-              action: 'publish_listing',
-              payload: {
-                listing_id: firstRow.id,
-                title: input.title,
-                content: input.description,
-                image_urls: input.images,
-              },
-            },
-          });
-          const wpPostId = publishData?.wp_post_id || null;
-          const wpMediaIds = publishData?.media_ids || [];
-          const zwandakoUrl = publishData?.link || null;
-          if (wpPostId || zwandakoUrl) {
-            // Update ALL rows that share this title+description (the multi-group siblings)
-            await supabase.from('listings').update({
-              zwandako_url: zwandakoUrl,
-              wp_post_id: wpPostId,
-              wp_media_ids: wpMediaIds,
-            }).eq('user_id', input.user_id).eq('title', input.title).is('wp_post_id', null);
-          }
-        } catch (e) {
-          console.warn('WP publish background failed:', e);
-        }
-      })();
+        zwandako_url: zwandakoUrl,
+        wp_post_id: wpPostId,
+        wp_media_ids: wpMediaIds,
+      }));
+      const { error: insertErr } = await supabase.from('listings').insert(rows as any);
+      if (insertErr) throw insertErr;
 
       return {
-        zwandako_url: null as string | null,
-        wp_post_id: null as number | null,
+        zwandako_url: zwandakoUrl as string | null,
+        wp_post_id: wpPostId as number | null,
         groups_count: input.group_ids.length,
         wp_sync_failed: false,
       };
