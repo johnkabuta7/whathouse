@@ -43,8 +43,13 @@ export function Layout() {
   useEffect(() => {
     const onResize = () => { widthRef.current = window.innerWidth; };
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
+    const onAuthRequired = () => toast({ title: 'Connectez-vous pour continuer' });
+    window.addEventListener('wh:auth-required', onAuthRequired);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('wh:auth-required', onAuthRequired);
+    };
+  }, [toast]);
 
   // Reset drag when route changes
   useEffect(() => {
