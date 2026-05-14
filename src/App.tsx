@@ -32,7 +32,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       <div className="h-8 w-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
     </div>
   );
-  if (!user) return <Navigate to="/profil" replace />;
+  if (!user) {
+    try {
+      // Petit toast non-bloquant via event consommable, sinon Navigate suffit
+      window.dispatchEvent(new CustomEvent('wh:auth-required'));
+    } catch {}
+    return <Navigate to="/profil" replace />;
+  }
   return <>{children}</>;
 }
 
