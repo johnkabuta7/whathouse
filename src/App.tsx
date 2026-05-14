@@ -3,12 +3,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { PWAInstallProvider } from "@/contexts/PWAInstallContext";
+import { SplashScreen, shouldShowSplash } from "@/components/SplashScreen";
 import Login from "./pages/Login";
-import Onboarding from "./pages/Onboarding";
 import Index from "./pages/Index";
 import GroupDetail from "./pages/GroupDetail";
 import GroupMembers from "./pages/GroupMembers";
@@ -31,12 +32,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       <div className="h-8 w-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
     </div>
   );
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/profil" replace />;
   return <>{children}</>;
 }
 
 function AppRoutes() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -46,42 +47,47 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/onboarding" element={<Onboarding />} />
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : (localStorage.getItem('onboarded') ? <Login /> : <Navigate to="/onboarding" replace />)} />
-      <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+      <Route path="/login" element={<Login />} />
+      {/* Routes publiques (navigation, recherche, slider, propriétés Zwandako) */}
+      <Route element={<Layout />}>
         <Route path="/" element={<Index />} />
-        <Route path="/group/:id" element={<GroupDetail />} />
-        <Route path="/group/:id/members" element={<GroupMembers />} />
-        <Route path="/create-group" element={<CreateGroup />} />
         <Route path="/contacts" element={<Contacts />} />
-        <Route path="/contact/:userId" element={<ContactDetail />} />
         <Route path="/profil" element={<Profil />} />
+        <Route path="/contact/:userId" element={<ContactDetail />} />
         <Route path="/legal/:page" element={<Legal />} />
         <Route path="/listing/:id" element={<ListingRedirect />} />
-        <Route path="/drafts" element={<Drafts />} />
-        <Route path="/publish" element={<Publish />} />
+        {/* Routes nécessitant une connexion */}
+        <Route path="/group/:id" element={<ProtectedRoute><GroupDetail /></ProtectedRoute>} />
+        <Route path="/group/:id/members" element={<ProtectedRoute><GroupMembers /></ProtectedRoute>} />
+        <Route path="/create-group" element={<ProtectedRoute><CreateGroup /></ProtectedRoute>} />
+        <Route path="/drafts" element={<ProtectedRoute><Drafts /></ProtectedRoute>} />
+        <Route path="/publish" element={<ProtectedRoute><Publish /></ProtectedRoute>} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <PWAInstallProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AuthProvider>
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </AuthProvider>
-        </TooltipProvider>
-      </PWAInstallProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [showSplash, setShowSplash] = useState(() => shouldShowSplash());
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <PWAInstallProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <AuthProvider>
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </AuthProvider>
+            {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+          </TooltipProvider>
+        </PWAInstallProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
