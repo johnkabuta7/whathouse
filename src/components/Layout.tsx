@@ -17,6 +17,16 @@ export function Layout() {
   const { pathname } = useLocation();
   const { themeStyle } = useTheme();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const requireAuth = (e?: React.MouseEvent | React.SyntheticEvent) => {
+    if (user) return true;
+    e?.preventDefault();
+    e?.stopPropagation();
+    toast({ title: 'Connectez-vous pour continuer' });
+    navigate('/profil');
+    return false;
+  };
   const isGroupPage = pathname.startsWith('/group/');
   const isFloating = themeStyle === 'mocha' || themeStyle === 'nature';
   const padBottom = isGroupPage ? '' : isFloating ? 'pb-32' : 'pb-24';
