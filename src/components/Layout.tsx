@@ -137,6 +137,7 @@ export function Layout() {
     const translateX = `calc(${-swipeIdx * 100}% + ${dragX}px)`;
     return (
       <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
+        <InstallBanner />
         <div className={`flex-1 min-h-0 ${padBottom} relative overflow-hidden`}>
           <div
             className="flex h-full w-full"
@@ -144,24 +145,35 @@ export function Layout() {
               transform: `translate3d(${translateX}, 0, 0)`,
               transition: animating ? 'transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none',
               willChange: 'transform',
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden' as any,
+              transformStyle: 'preserve-3d',
             }}
           >
             {PAGES.map((Page, i) => (
               <div
                 key={i}
                 className="shrink-0 w-full h-full min-h-0 overflow-y-auto bg-background"
-                style={{ width: '100%', overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch' as any, touchAction: 'pan-y' }}
+                style={{
+                  width: '100%',
+                  overscrollBehaviorY: 'contain',
+                  WebkitOverflowScrolling: 'touch' as any,
+                  touchAction: 'pan-y',
+                  transform: 'translateZ(0)',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden' as any,
+                  willChange: 'transform',
+                }}
               >
                 <Page />
               </div>
             ))}
           </div>
         </div>
-        {/* FAB rendu globalement, conditionnel selon la route active.
-            Évite que le FAB d'une page apparaisse sur les autres pages du carousel. */}
         {pathname === '/' && (
           <Link
             to="/publish"
+            onClick={(e) => { if (!requireAuth(e)) return; }}
             title="Partager une annonce"
             aria-label="Partager une annonce"
             className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
@@ -172,7 +184,7 @@ export function Layout() {
         )}
         {pathname === '/contacts' && (
           <button
-            onClick={() => navigate('/create-group')}
+            onClick={(e) => { if (!requireAuth(e)) return; navigate('/create-group'); }}
             title="Créer un groupe"
             aria-label="Créer un groupe"
             className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
@@ -189,6 +201,7 @@ export function Layout() {
   // Non-swipe routes: render the matched route as usual via Outlet.
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col overflow-x-hidden">
+      <InstallBanner />
       <main className={`flex-1 bg-background ${padBottom}`}>
         <Outlet />
       </main>
