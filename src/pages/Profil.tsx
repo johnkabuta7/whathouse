@@ -16,7 +16,22 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+import Login from '@/pages/Login';
+
 export default function Profil() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-8 w-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (!user) return <Login />;
+  return <ProfilLogged />;
+}
+
+function ProfilLogged() {
   const { user, logout, updateEmail, updatePassword } = useAuth();
   const { theme, toggleTheme, themeStyle, setThemeStyle } = useTheme();
   const { data: myListings } = useMyListings();
