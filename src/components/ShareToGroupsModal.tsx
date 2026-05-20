@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Users, Send } from 'lucide-react';
+import { X, Users, Send, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useMyGroups, useCreateListing } from '@/hooks/use-data';
