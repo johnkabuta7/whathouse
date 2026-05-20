@@ -61,7 +61,7 @@ function AppRoutes() {
         <Route path="/profil" element={<Profil />} />
         <Route path="/contact/:userId" element={<ContactDetail />} />
         <Route path="/legal/:page" element={<Legal />} />
-        <Route path="/listing/:id" element={<ListingRedirect />} />
+        <Route path="/listing/:id" element={<ListingPreview />} />
         {/* Routes nécessitant une connexion */}
         <Route path="/group/:id" element={<ProtectedRoute><GroupDetail /></ProtectedRoute>} />
         <Route path="/group/:id/members" element={<ProtectedRoute><GroupMembers /></ProtectedRoute>} />
