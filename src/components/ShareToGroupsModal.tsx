@@ -28,8 +28,26 @@ export function ShareToGroupsModal({ open, onClose, listing }: Props) {
   const toggle = (id: string) =>
     setSelected(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
 
+  const listingUrl = `${window.location.origin}/listing/${listing.id}`;
+  const waText = `🏠 ${listing.title}\n\n${(listing.description || '').slice(0, 200)}${(listing.description || '').length > 200 ? '…' : ''}\n\n👉 Voir l'annonce : ${listingUrl}`;
+
+  const openWhatsApp = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(waText)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const handleShare = async () => {
-    if (!user || selected.length === 0) return;
+    if (!user) {
+      openWhatsApp();
+      onClose();
+      return;
+    }
+    if (selected.length === 0) {
+      // Skip groups → go straight to WhatsApp
+      openWhatsApp();
+      onClose();
+      return;
+    }
     setSharing(true);
     let success = 0;
     for (const groupId of selected) {
@@ -48,10 +66,12 @@ export function ShareToGroupsModal({ open, onClose, listing }: Props) {
     }
     setSharing(false);
     toast({
-      title: success > 0 ? `Partagé dans ${success} groupe${success > 1 ? 's' : ''} !` : 'Échec du partage',
+      title: success > 0 ? `Partagé dans ${success} groupe${success > 1 ? 's' : ''} — ouverture de WhatsApp…` : 'Échec du partage',
       variant: success === 0 ? 'destructive' : 'default',
     });
     setSelected([]);
+    // After group share, open WhatsApp to forward to contacts
+    setTimeout(() => openWhatsApp(), 200);
     onClose();
   };
 
