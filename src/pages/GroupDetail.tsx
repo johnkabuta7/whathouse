@@ -204,7 +204,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
         </div>
       </div>
       {images.length > 0 && (
-        <div className="relative">
+        <Link to={`/listing/${listing.id}`} className="block relative" aria-label="Voir l'annonce en aperçu">
           <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
             {images.map((img: string, i: number) => (
               <img key={i} src={img} alt={`${listing.title} ${i + 1}`} className="w-full h-48 object-cover snap-center shrink-0" />
@@ -215,10 +215,12 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
               {images.length} photos
             </div>
           )}
-        </div>
+        </Link>
       )}
       <div className="p-3">
-        <h3 className="text-sm font-bold text-foreground">{listing.title}</h3>
+        <Link to={`/listing/${listing.id}`} className="block">
+          <h3 className="text-sm font-bold text-foreground hover:underline">{listing.title}</h3>
+        </Link>
         <p className="text-xs text-muted-foreground leading-relaxed mt-1">
           {isLong && !expanded ? desc.slice(0, 120) + '...' : desc}
         </p>
