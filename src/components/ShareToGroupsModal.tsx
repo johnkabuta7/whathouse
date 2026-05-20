@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Users, Send } from 'lucide-react';
+import { X, Users, Send, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useMyGroups, useCreateListing } from '@/hooks/use-data';
@@ -28,8 +28,26 @@ export function ShareToGroupsModal({ open, onClose, listing }: Props) {
   const toggle = (id: string) =>
     setSelected(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
 
+  const listingUrl = `${window.location.origin}/listing/${listing.id}`;
+  const waText = `🏠 ${listing.title}\n\n${(listing.description || '').slice(0, 200)}${(listing.description || '').length > 200 ? '…' : ''}\n\n👉 Voir l'annonce : ${listingUrl}`;
+
+  const openWhatsApp = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(waText)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const handleShare = async () => {
-    if (!user || selected.length === 0) return;
+    if (!user) {
+      openWhatsApp();
+      onClose();
+      return;
+    }
+    if (selected.length === 0) {
+      // Skip groups → go straight to WhatsApp
+      openWhatsApp();
+      onClose();
+      return;
+    }
     setSharing(true);
     let success = 0;
     for (const groupId of selected) {
@@ -48,10 +66,12 @@ export function ShareToGroupsModal({ open, onClose, listing }: Props) {
     }
     setSharing(false);
     toast({
-      title: success > 0 ? `Partagé dans ${success} groupe${success > 1 ? 's' : ''} !` : 'Échec du partage',
+      title: success > 0 ? `Partagé dans ${success} groupe${success > 1 ? 's' : ''} — ouverture de WhatsApp…` : 'Échec du partage',
       variant: success === 0 ? 'destructive' : 'default',
     });
     setSelected([]);
+    // After group share, open WhatsApp to forward to contacts
+    setTimeout(() => openWhatsApp(), 200);
     onClose();
   };
 
@@ -84,15 +104,29 @@ export function ShareToGroupsModal({ open, onClose, listing }: Props) {
           )}
         </div>
 
-        <Button onClick={handleShare} disabled={sharing || selected.length === 0}
-          className="w-full rounded-full bg-primary text-primary-foreground mt-3">
-          {sharing ? (
-            <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
-          ) : (
-            <Send className="h-4 w-4 mr-1" />
-          )}
-          Partager{selected.length > 0 ? ` (${selected.length})` : ''}
-        </Button>
+        <div className="mt-3 space-y-2">
+          <Button onClick={handleShare} disabled={sharing}
+            className="w-full rounded-full bg-primary text-primary-foreground">
+            {sharing ? (
+              <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
+            ) : (
+              <Send className="h-4 w-4 mr-1" />
+            )}
+            {selected.length > 0
+              ? `Partager dans ${selected.length} groupe${selected.length > 1 ? 's' : ''} puis WhatsApp`
+              : 'Partager directement sur WhatsApp'}
+          </Button>
+          <button
+            onClick={() => { openWhatsApp(); onClose(); }}
+            className="w-full rounded-full bg-success text-success-foreground font-semibold py-2.5 flex items-center justify-center gap-2 active:scale-[0.98] transition"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Envoyer le lien sur WhatsApp
+          </button>
+          <p className="text-[10px] text-muted-foreground text-center">
+            Vos contacts ouvrent le lien et voient l'annonce directement dans WhatHouse.
+          </p>
+        </div>
       </div>
     </div>
   );

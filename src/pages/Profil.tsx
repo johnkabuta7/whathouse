@@ -302,27 +302,21 @@ function ProfilLogged() {
 
       <div className="px-4 mt-3">
         <div className="grid grid-cols-3 gap-2">
-          <button
-            onClick={() => setActiveTab('annonces')}
-            className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-card border border-border active:scale-[0.97] transition"
-          >
+          <div className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-card border border-border select-none">
             <MessageSquare className="h-3.5 w-3.5 text-primary shrink-0" />
             <div className="min-w-0 text-left">
               <p className="text-sm font-bold leading-none text-foreground">{myListings?.length || 0}</p>
               <p className="text-[9px] text-muted-foreground leading-tight">Annonces</p>
             </div>
-          </button>
-          <Link
-            to="/"
-            className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-card border border-border active:scale-[0.97] transition"
-          >
+          </div>
+          <div className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-card border border-border select-none">
             <Users className="h-3.5 w-3.5 text-primary shrink-0" />
             <div className="min-w-0 text-left">
               <p className="text-sm font-bold leading-none text-foreground">{groups?.length || 0}</p>
               <p className="text-[9px] text-muted-foreground leading-tight">Groupes</p>
             </div>
-          </Link>
-          <div className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-card border border-border">
+          </div>
+          <div className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-card border border-border select-none">
             <Heart className="h-3.5 w-3.5 text-destructive shrink-0" />
             <div className="min-w-0 text-left">
               <p className="text-sm font-bold leading-none text-foreground">
