@@ -42,7 +42,7 @@ export function SelectGroupModal({ open, onClose, userIds }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-foreground/50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" onClick={onClose}>
       <div className="bg-card w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl p-4 max-h-[80vh] flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
         <div className="flex items-center mb-3">
           <h2 className="text-base font-bold text-foreground flex-1">Ajouter à un groupe</h2>
