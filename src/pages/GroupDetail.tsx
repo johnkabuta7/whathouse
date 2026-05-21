@@ -321,6 +321,9 @@ function GroupEditHeader({ group, onClose }: { group: any; onClose: () => void }
 
 function GridListingCard({ listing }: { listing: any }) {
   const img = (listing.images && listing.images[0]) || '';
+  const { data: ownerProfile } = useProfile(listing.user_id);
+  const agentName = `${ownerProfile?.first_name || ''} ${ownerProfile?.last_name || ''}`.trim() || 'Agent';
+  const agentInitials = agentName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'A';
   const zwandakoHref = listing.zwandako_url || (listing.wp_post_id ? `https://zwandako.com/?p=${listing.wp_post_id}` : `https://zwandako.com/?s=${encodeURIComponent(listing.title || '')}`);
   return (
     <a href={`#listing-${listing.id}`}
@@ -330,8 +333,15 @@ function GridListingCard({ listing }: { listing: any }) {
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }}
       className="block bg-card rounded-xl overflow-hidden border border-border shadow-sm hover:shadow-md transition">
-      <div className="aspect-square w-full bg-muted overflow-hidden">
+      <div className="relative aspect-square w-full bg-muted overflow-hidden">
         {img ? <img src={img} alt={listing.title} className="h-full w-full object-cover" loading="lazy" /> : null}
+        <div className="absolute top-1.5 left-1.5 h-7 w-7 rounded-full bg-card/90 backdrop-blur ring-2 ring-primary/30 flex items-center justify-center overflow-hidden">
+          {ownerProfile?.avatar_url ? (
+            <img src={ownerProfile.avatar_url} alt={agentName} className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-[10px] font-bold text-primary">{agentInitials}</span>
+          )}
+        </div>
       </div>
       <div className="p-2">
         <p className="text-xs font-bold text-foreground line-clamp-2 leading-tight">{listing.title}</p>
