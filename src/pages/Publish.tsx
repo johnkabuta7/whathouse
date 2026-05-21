@@ -18,6 +18,7 @@ export default function Publish() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
@@ -48,6 +49,7 @@ export default function Publish() {
   const handleCancel = () => {
     setTitle('');
     setDescription('');
+    setPrice('');
     setFiles([]);
     setPreviews([]);
     setSelectedGroups([]);
@@ -89,11 +91,15 @@ export default function Publish() {
       setProgress(65);
       setProgressLabel('Publication sur Zwandako (en attente)...');
 
+      const finalDescription = price.trim()
+        ? `**Prix : ${price.trim()}**\n\n${description.trim()}`
+        : description.trim();
+
       createMulti.mutate({
         group_ids: selectedGroups,
         user_id: user.id,
         title: title.trim(),
-        description: description.trim(),
+        description: finalDescription,
         images: urls,
       }, {
         onSuccess: (res) => {
@@ -144,24 +150,33 @@ export default function Publish() {
       </header>
 
       <form onSubmit={handleSubmit} className="p-4 space-y-3">
-        <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de l'annonce *" className="rounded-full text-sm h-10" required />
+        <div className="space-y-1.5">
+          <label htmlFor="ad-title" className="text-xs font-semibold text-foreground">Titre de l'annonce</label>
+          <Input id="ad-title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex : Parcelle à vendre à Lemba Salongo" className="rounded-full text-sm h-10" required />
+        </div>
         <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description complète *" className="rounded-xl text-sm resize-y min-h-[140px]" rows={6} required />
 
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-foreground">Photos ({previews.length}) *</p>
-          <div className="flex gap-2 flex-wrap">
-            {previews.map((p, i) => (
-              <div key={i} className="relative h-20 w-20 rounded-lg overflow-hidden border border-border">
-                <img src={p} className="h-full w-full object-cover" />
-                <button type="button" onClick={() => removeFile(i)} className="absolute top-0 right-0 bg-foreground/70 text-background rounded-full p-0.5">
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            <label className="cursor-pointer h-20 w-20 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 flex items-center justify-center text-primary">
-              <input type="file" accept="image/*" multiple className="hidden" onChange={e => addFiles(Array.from(e.target.files || []))} />
-              <ImagePlus className="h-6 w-6" />
-            </label>
+          <p className="text-xs font-semibold text-foreground">Photos ({previews.length}) *  •  Prix</p>
+          <div className="flex gap-3 items-start">
+            <div className="flex gap-2 flex-wrap flex-1">
+              {previews.map((p, i) => (
+                <div key={i} className="relative h-20 w-20 rounded-lg overflow-hidden border border-border">
+                  <img src={p} className="h-full w-full object-cover" />
+                  <button type="button" onClick={() => removeFile(i)} className="absolute top-0 right-0 bg-foreground/70 text-background rounded-full p-0.5">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              <label className="cursor-pointer h-20 w-20 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 flex items-center justify-center text-primary">
+                <input type="file" accept="image/*" multiple className="hidden" onChange={e => addFiles(Array.from(e.target.files || []))} />
+                <ImagePlus className="h-6 w-6" />
+              </label>
+            </div>
+            <div className="w-28 shrink-0">
+              <Input value={price} onChange={e => setPrice(e.target.value)} placeholder="Prix" className="rounded-xl text-sm h-10" inputMode="text" />
+              <p className="text-[10px] text-muted-foreground mt-1 leading-tight">Ex : 25 000 $</p>
+            </div>
           </div>
         </div>
 
