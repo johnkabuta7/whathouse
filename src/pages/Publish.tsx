@@ -18,6 +18,7 @@ export default function Publish() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
