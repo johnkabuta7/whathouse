@@ -16,14 +16,24 @@ export function InstallBanner() {
   const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
 
   useEffect(() => {
-    const handler = () => {
+    const showHandler = () => {
       try { localStorage.removeItem(DISMISS_KEY); } catch {}
       setDismissed(false);
       setForceShow(true);
     };
-    window.addEventListener('wh:show-install-banner', handler);
-    return () => window.removeEventListener('wh:show-install-banner', handler);
-  }, []);
+    const triggerHandler = () => {
+      // Auto-detect platform and trigger install immediately
+      if (isIOS) handleIosInstall();
+      else handleAndroidInstall();
+    };
+    window.addEventListener('wh:show-install-banner', showHandler);
+    window.addEventListener('wh:trigger-install', triggerHandler);
+    return () => {
+      window.removeEventListener('wh:show-install-banner', showHandler);
+      window.removeEventListener('wh:trigger-install', triggerHandler);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canInstall, isIOS]);
 
   const handleClose = () => {
     try { localStorage.setItem(DISMISS_KEY, '1'); } catch {}
