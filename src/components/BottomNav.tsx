@@ -36,7 +36,7 @@ export function BottomNav() {
                     'rounded-full backdrop-blur-xl flex items-center justify-center transition-all active:scale-95',
                     isActive
                       ? 'h-14 w-14 bg-primary text-primary-foreground shadow-xl shadow-primary/40 ring-4 ring-primary/15'
-                      : 'h-12 w-12 bg-card/95 text-foreground border-[2.5px] border-foreground/40 shadow-md'
+                      : 'h-12 w-12 bg-transparent text-foreground border-[2.5px] border-foreground/40'
                   )}
                 >
                   <item.icon className={cn(isActive ? 'h-6 w-6' : 'h-5 w-5')} />
@@ -53,8 +53,8 @@ export function BottomNav() {
       <nav className="fixed bottom-0 left-0 right-0 z-50 px-3 pointer-events-none" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2.5mm)', paddingTop: '0' }}>
         <div className="max-w-lg mx-auto flex items-center justify-center gap-2 pointer-events-auto">
           <div
-            className="flex-1 flex items-center justify-around backdrop-blur-xl border rounded-full px-2 py-1.5 shadow-lg shadow-black/30"
-            style={{ backgroundColor: '#EBF2FA', borderColor: 'rgba(0,0,0,0.08)' }}
+            className="flex-1 flex items-center justify-around backdrop-blur-xl border rounded-full px-2 py-1.5"
+            style={{ backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.18)' }}
           >
             {navItems.map(item => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -65,10 +65,10 @@ export function BottomNav() {
                   className={cn(
                     'flex flex-col items-center gap-0.5 px-4 py-2 rounded-full transition-all relative',
                   )}
-                  style={isActive ? { backgroundColor: 'rgba(0,132,250,0.12)' } : undefined}
+                  style={isActive ? { backgroundColor: 'hsl(var(--primary) / 0.15)' } : undefined}
                   aria-label={item.label}
                 >
-                  <item.icon className="h-[20px] w-[20px]" style={{ color: isActive ? '#0084FA' : '#000000' }} />
+                  <item.icon className="h-[20px] w-[20px]" style={{ color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }} />
                 </Link>
               );
             })}

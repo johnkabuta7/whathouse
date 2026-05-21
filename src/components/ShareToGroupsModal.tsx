@@ -29,7 +29,8 @@ export function ShareToGroupsModal({ open, onClose, listing }: Props) {
     setSelected(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
 
   const listingUrl = `${window.location.origin}/listing/${listing.id}`;
-  const waText = `🏠 ${listing.title}\n\n${(listing.description || '').slice(0, 200)}${(listing.description || '').length > 200 ? '…' : ''}\n\n👉 Voir l'annonce : ${listingUrl}`;
+  const firstImage = (listing.images && listing.images[0]) || '';
+  const waText = `🏠 ${listing.title}\n\n${(listing.description || '').slice(0, 200)}${(listing.description || '').length > 200 ? '…' : ''}\n\n${firstImage ? firstImage + '\n\n' : ''}👉 Voir l'annonce : ${listingUrl}`;
 
   const openWhatsApp = () => {
     const url = `https://wa.me/?text=${encodeURIComponent(waText)}`;

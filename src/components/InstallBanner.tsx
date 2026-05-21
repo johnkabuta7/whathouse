@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Download, X, Apple, Share, Plus } from 'lucide-react';
 import { usePWAInstall } from '@/contexts/PWAInstallContext';
-import { useToast } from '@/hooks/use-toast';
+
 
 const DISMISS_KEY = 'wh_install_dismissed';
 
 export function InstallBanner() {
   const { canInstall, isInstalled, promptInstall } = usePWAInstall();
-  const { toast } = useToast();
   const [forceShow, setForceShow] = useState(false);
   const [iosGuideOpen, setIosGuideOpen] = useState(false);
   const [dismissed, setDismissed] = useState<boolean>(() => {
@@ -17,14 +16,24 @@ export function InstallBanner() {
   const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
 
   useEffect(() => {
-    const handler = () => {
+    const showHandler = () => {
       try { localStorage.removeItem(DISMISS_KEY); } catch {}
       setDismissed(false);
       setForceShow(true);
     };
-    window.addEventListener('wh:show-install-banner', handler);
-    return () => window.removeEventListener('wh:show-install-banner', handler);
-  }, []);
+    const triggerHandler = () => {
+      // Auto-detect platform and trigger install immediately
+      if (isIOS) handleIosInstall();
+      else handleAndroidInstall();
+    };
+    window.addEventListener('wh:show-install-banner', showHandler);
+    window.addEventListener('wh:trigger-install', triggerHandler);
+    return () => {
+      window.removeEventListener('wh:show-install-banner', showHandler);
+      window.removeEventListener('wh:trigger-install', triggerHandler);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canInstall, isIOS]);
 
   const handleClose = () => {
     try { localStorage.setItem(DISMISS_KEY, '1'); } catch {}
@@ -35,23 +44,18 @@ export function InstallBanner() {
   const handleAndroidInstall = async () => {
     if (canInstall) {
       const r = await promptInstall();
-      if (r === 'accepted') {
-        toast({ title: '✅ WhatHouse ajoutée à l\'écran d\'accueil' });
-        handleClose();
-      } else if (r === 'dismissed') {
-        toast({ title: 'Installation annulée' });
-      } else {
-        toast({
-          title: 'Installation Android',
-          description: 'Ouvrez le menu ⋮ de votre navigateur Chrome et choisissez « Installer l\'application ».',
-        });
-      }
-    } else {
-      toast({
-        title: 'Installation Android',
-        description: 'Ouvrez le menu ⋮ de Chrome et choisissez « Installer l\'application » ou « Ajouter à l\'écran d\'accueil ».',
-      });
+      if (r === 'accepted') handleClose();
+      return;
     }
+    setIosGuideOpen(true);
+  };
+
+  const handleIosInstall = async () => {
+    if (canInstall) {
+      const r = await promptInstall();
+      if (r === 'accepted') { handleClose(); return; }
+    }
+    setIosGuideOpen(true);
   };
 
   if (isInstalled) return null;
@@ -80,7 +84,7 @@ export function InstallBanner() {
           Android
         </button>
         <button
-          onClick={() => setIosGuideOpen(true)}
+          onClick={handleIosInstall}
           className="bg-white text-[#FC4E00] font-semibold text-xs rounded-full px-3 py-1.5 active:scale-95 transition flex items-center gap-1"
           aria-label="Installer sur iPhone"
         >
