@@ -83,7 +83,7 @@ function SliderBanner() {
   return (
     <div
       data-no-swipe
-      className="relative w-full h-[100px] overflow-hidden touch-pan-y"
+      className="relative w-full h-[100px] lg:h-[260px] lg:rounded-2xl lg:mt-3 lg:mb-2 overflow-hidden touch-pan-y"
       onTouchStart={e => setTouchStart(e.touches[0].clientX)}
       onTouchEnd={e => handleTouchEnd(e.changedTouches[0].clientX)}
     >
