@@ -461,7 +461,7 @@ export default function Index() {
               </Link>
             </div>
           ) : (
-            <div>
+            <div className="lg:grid lg:grid-cols-2 lg:gap-x-4 lg:px-2">
               {displayGroups.map(group => {
                 const reqCount = requestCounts?.byGroup[group.id] || 0;
                 const unread = unreadCounts?.[group.id] || 0;
