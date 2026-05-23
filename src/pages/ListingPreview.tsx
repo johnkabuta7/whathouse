@@ -16,6 +16,7 @@ export default function ListingPreview() {
   const [owner, setOwner] = useState<any | null>(null);
   const [group, setGroup] = useState<any | null>(null);
   const [idx, setIdx] = useState(0);
+  const [fsOpen, setFsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
