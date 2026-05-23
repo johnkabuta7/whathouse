@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, ExternalLink, Users } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, ExternalLink, Users, Maximize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { FullscreenGallery } from '@/components/FullscreenGallery';
 
 /**
  * Public preview of a single listing.
