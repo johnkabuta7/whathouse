@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, ExternalLink, Users } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, ExternalLink, Users, Maximize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { FullscreenGallery } from '@/components/FullscreenGallery';
 
 /**
  * Public preview of a single listing.
@@ -15,6 +16,7 @@ export default function ListingPreview() {
   const [owner, setOwner] = useState<any | null>(null);
   const [group, setGroup] = useState<any | null>(null);
   const [idx, setIdx] = useState(0);
+  const [fsOpen, setFsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -79,24 +81,60 @@ export default function ListingPreview() {
 
       {images.length > 0 && (
         <div className="relative bg-black">
-          <img src={images[idx]} alt={listing.title} className="w-full h-72 object-contain" />
+          <button
+            type="button"
+            onClick={() => setFsOpen(true)}
+            className="block w-full"
+            aria-label="Voir en plein écran"
+          >
+            <img src={images[idx]} alt={listing.title} className="w-full h-[60vh] max-h-[600px] object-contain" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setFsOpen(true)}
+            aria-label="Plein écran"
+            className="absolute top-2 right-2 h-9 w-9 rounded-full bg-white/20 backdrop-blur text-white flex items-center justify-center"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </button>
           {images.length > 1 && (
             <>
               <button onClick={() => setIdx((idx - 1 + images.length) % images.length)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-foreground/40 text-background flex items-center justify-center">
+                className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-white/20 backdrop-blur text-white flex items-center justify-center">
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <button onClick={() => setIdx((idx + 1) % images.length)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-foreground/40 text-background flex items-center justify-center">
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-white/20 backdrop-blur text-white flex items-center justify-center">
                 <ChevronRight className="h-5 w-5" />
               </button>
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-foreground/60 text-background text-[10px] font-bold px-2 py-0.5 rounded-lg">
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg">
                 {idx + 1}/{images.length}
               </div>
             </>
           )}
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar p-2 bg-black/90">
+            {images.map((img, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setIdx(i)}
+                className={`shrink-0 h-14 w-14 rounded-md overflow-hidden border-2 transition ${i === idx ? 'border-primary' : 'border-transparent opacity-70'}`}
+                aria-label={`Photo ${i + 1}`}
+              >
+                <img src={img} className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
         </div>
       )}
+
+      <FullscreenGallery
+        images={images}
+        initialIndex={idx}
+        open={fsOpen}
+        onClose={() => setFsOpen(false)}
+        alt={listing.title}
+      />
 
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-2">
