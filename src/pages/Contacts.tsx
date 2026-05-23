@@ -111,7 +111,7 @@ export default function Contacts() {
   const closeMenu = () => setShowMenu(false);
 
   return (
-    <div className="max-w-lg mx-auto min-h-full animate-fade-in">
+    <div className="max-w-lg lg:max-w-4xl mx-auto min-h-full animate-fade-in">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)' }}>
         <div className="px-4 py-3 flex items-center gap-3">

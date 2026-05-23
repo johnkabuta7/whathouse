@@ -181,7 +181,7 @@ export function Layout() {
             onClick={(e) => { if (!requireAuth(e)) return; }}
             title="Partager une annonce"
             aria-label="Partager une annonce"
-            className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+            className="fixed right-4 lg:right-8 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
             style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
           >
             <Share2 className="h-6 w-6" />
@@ -192,7 +192,7 @@ export function Layout() {
             onClick={(e) => { if (!requireAuth(e)) return; navigate('/create-group'); }}
             title="Créer un groupe"
             aria-label="Créer un groupe"
-            className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+            className="fixed right-4 lg:right-8 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
             style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
           >
             <UserPlus className="h-6 w-6" />

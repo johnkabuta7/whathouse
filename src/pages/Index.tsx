@@ -83,7 +83,7 @@ function SliderBanner() {
   return (
     <div
       data-no-swipe
-      className="relative w-full h-[100px] overflow-hidden touch-pan-y"
+      className="relative w-full h-[100px] lg:h-[260px] lg:rounded-2xl lg:mt-3 lg:mb-2 overflow-hidden touch-pan-y"
       onTouchStart={e => setTouchStart(e.touches[0].clientX)}
       onTouchEnd={e => handleTouchEnd(e.changedTouches[0].clientX)}
     >
@@ -228,14 +228,14 @@ export default function Index() {
 
   if (isLoading) {
     return (
-      <div className="px-4 py-4 max-w-lg mx-auto space-y-2">
+      <div className="px-4 py-4 max-w-lg lg:max-w-5xl mx-auto space-y-2">
         {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-[72px] rounded-none" />)}
       </div>
     );
   }
 
   return (
-    <div className="max-w-lg mx-auto min-h-full animate-fade-in">
+    <div className="max-w-lg lg:max-w-5xl mx-auto min-h-full animate-fade-in">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)', position: 'sticky' as any }}>
         <div className="px-4 py-3 flex items-center gap-3">
@@ -461,7 +461,7 @@ export default function Index() {
               </Link>
             </div>
           ) : (
-            <div>
+            <div className="lg:grid lg:grid-cols-2 lg:gap-x-4 lg:px-2">
               {displayGroups.map(group => {
                 const reqCount = requestCounts?.byGroup[group.id] || 0;
                 const unread = unreadCounts?.[group.id] || 0;
