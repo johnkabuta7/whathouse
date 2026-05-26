@@ -9,25 +9,39 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { InstallPrompt } from '@/components/InstallPrompt';
 
+function normPhone(p: string): string {
+  if (!p) return '';
+  const digits = p.replace(/[^0-9+]/g, '');
+  if (digits.startsWith('+')) return '+' + digits.slice(1).replace(/[^0-9]/g, '');
+  return digits.replace(/^00/, '+');
+}
+
 function useOnlineContacts() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ['all_profiles_carousel'],
+    queryKey: ['repertoire_carousel', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('*');
-      if (error) throw error;
-      const others = data?.filter(p => p.user_id !== user?.id) || [];
-      // Fetch online users (active in last 2 minutes)
+      if (!user) return [];
+      // Only show contacts the user has imported & confirmed
+      const { data: imported } = await supabase
+        .from('imported_contacts')
+        .select('contact_phone')
+        .eq('user_id', user.id)
+        .eq('status', 'confirmed');
+      const phones = (imported || []).map((i: any) => i.contact_phone);
+      if (phones.length === 0) return [];
+      const { data: profiles } = await supabase.from('profiles').select('*').in('phone', phones);
+      const others = (profiles || []).filter((p: any) => p.user_id !== user.id);
       const { data: sessions } = await supabase
         .from('active_sessions' as any)
         .select('user_id, updated_at');
-      const cutoff = Date.now() - 60 * 1000; // 60s = en ligne
+      const cutoff = Date.now() - 60 * 1000;
       const onlineSet = new Set(
         (sessions as any[] | null)
           ?.filter((s: any) => new Date(s.updated_at).getTime() > cutoff)
           .map((s: any) => s.user_id) || []
       );
-      return others.map(p => ({ ...p, online: onlineSet.has(p.user_id) }));
+      return others.map((p: any) => ({ ...p, online: onlineSet.has(p.user_id) }));
     },
     enabled: !!user,
     refetchInterval: 60_000,
@@ -61,11 +75,11 @@ function SliderBanner() {
     { id: '3', image_url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=200&fit=crop', link_url: null },
   ];
 
-  const slides = banners && banners.length > 0 ? banners : defaultBanners;
+  const slides = banners || [];
 
   useEffect(() => {
     if (slides.length <= 1) return;
-    const timer = setInterval(() => setCurrent(p => (p + 1) % slides.length), 180000);
+    const timer = setInterval(() => setCurrent(p => (p + 1) % slides.length), 3000);
     return () => clearInterval(timer);
   }, [slides.length]);
 
