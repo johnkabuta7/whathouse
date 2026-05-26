@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 
 const navItems = [
-  { label: 'Discussions', icon: MessageSquare, href: '/' },
+  { label: 'Accueil', icon: MessageSquare, href: '/' },
   { label: 'Contacts', icon: Users, href: '/contacts' },
   { label: 'Profil', icon: User, href: '/profil' },
 ];

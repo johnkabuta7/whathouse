@@ -19,7 +19,27 @@ export function InstallBanner() {
     setForceShow(false);
   };
 
-  const doInstall = async () => {
+  const installAndroid = async () => {
+    const r = await promptInstall();
+    if (r === 'accepted') handleClose();
+    else if (r === 'unavailable') {
+      // Fallback: open native share so user can "Add to Home Screen" via browser menu
+      try {
+        await (navigator as any).share?.({ title: 'WhatHouse', url: window.location.origin });
+      } catch {}
+    }
+  };
+
+  const installIOS = async () => {
+    // iOS Safari requires user action via the share sheet. Open it directly = one tap.
+    try {
+      if ((navigator as any).share) {
+        await (navigator as any).share({ title: 'WhatHouse', text: 'Ajoutez WhatHouse à l\'écran d\'accueil', url: window.location.origin });
+        handleClose();
+        return;
+      }
+    } catch {}
+    // Last resort: trigger Android-style prompt if available
     const r = await promptInstall();
     if (r === 'accepted') handleClose();
   };
@@ -30,7 +50,7 @@ export function InstallBanner() {
       setDismissed(false);
       setForceShow(true);
     };
-    const triggerHandler = () => { doInstall(); };
+    const triggerHandler = () => { isIOS ? installIOS() : installAndroid(); };
     window.addEventListener('wh:show-install-banner', showHandler);
     window.addEventListener('wh:trigger-install', triggerHandler);
     return () => {
@@ -57,7 +77,7 @@ export function InstallBanner() {
         <div className="text-[10px] opacity-90 truncate">Choisissez votre appareil</div>
       </div>
       <button
-        onClick={doInstall}
+        onClick={installAndroid}
         className="bg-white text-[#FC4E00] font-semibold text-xs rounded-full px-3 py-1.5 active:scale-95 transition flex items-center gap-1"
         aria-label="Installer sur Android"
       >
@@ -65,7 +85,7 @@ export function InstallBanner() {
         Android
       </button>
       <button
-        onClick={doInstall}
+        onClick={installIOS}
         className="bg-white text-[#FC4E00] font-semibold text-xs rounded-full px-3 py-1.5 active:scale-95 transition flex items-center gap-1"
         aria-label="Installer sur iPhone"
       >
