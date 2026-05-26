@@ -90,6 +90,7 @@ function SliderBanner() {
     setTouchStart(null);
   };
 
+  if (slides.length === 0) return null;
   return (
     <div
       data-no-swipe
