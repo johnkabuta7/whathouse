@@ -69,11 +69,7 @@ function SliderBanner() {
   const [current, setCurrent] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
-  const defaultBanners = [
-    { id: '1', image_url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=200&fit=crop', link_url: null },
-    { id: '2', image_url: 'https://images.unsplash.com/photo-1582407947092-987bce739e14?w=800&h=200&fit=crop', link_url: null },
-    { id: '3', image_url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=200&fit=crop', link_url: null },
-  ];
+  // No default banners — only admin-managed slider banners are shown.
 
   const slides = banners || [];
 
