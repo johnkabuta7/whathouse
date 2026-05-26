@@ -182,6 +182,36 @@ export type Database = {
         }
         Relationships: []
       }
+      imported_contacts: {
+        Row: {
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_name?: string
+          contact_phone: string
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       listing_favorites: {
         Row: {
           created_at: string
