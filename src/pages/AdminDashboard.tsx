@@ -141,12 +141,59 @@ export default function AdminDashboard() {
   );
 }
 
+function PremiumBenefits() {
+  return (
+    <div className="bg-gradient-to-br from-amber-500/10 to-rose-500/10 border border-amber-500/30 rounded-2xl p-3 text-xs">
+      <p className="font-bold text-foreground flex items-center gap-1.5 mb-2"><Sparkles className="h-3.5 w-3.5 text-amber-500" />Avantages Agent Premium</p>
+      <ul className="space-y-1 text-muted-foreground">
+        <li>• Badge doré visible sur le profil et les annonces</li>
+        <li>• Mise en avant prioritaire dans les recherches</li>
+        <li>• Nombre illimité d'annonces actives</li>
+        <li>• Statistiques détaillées sur les vues et likes</li>
+        <li>• Support prioritaire et accès anticipé aux nouveautés</li>
+      </ul>
+      <p className="text-[10px] text-muted-foreground mt-2 italic">Les administrateurs bénéficient automatiquement de tous les avantages Premium.</p>
+    </div>
+  );
+}
+
+function UserTypeRow({ u }: { u: any }) {
+  const qc = useQueryClient();
+  const current: AccountType = (u.account_type as AccountType) || 'agent';
+  const meta = TYPE_META[current];
+  const Icon = meta.icon;
+  const update = async (val: AccountType) => {
+    const { error } = await supabase.from('profiles').update({ account_type: val }).eq('user_id', u.user_id);
+    if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Type de compte mis à jour' });
+    qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
+  };
+  return (
+    <div className="px-3 py-2 text-xs flex items-center gap-2">
+      <span className="font-medium text-foreground flex-1 truncate">{`${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}</span>
+      <span className="text-muted-foreground truncate hidden sm:inline">{u.phone || u.email || ''}</span>
+      <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${meta.cls}`}>
+        <Icon className="h-3 w-3" />{meta.label}
+      </span>
+      <select
+        value={current}
+        onChange={e => update(e.target.value as AccountType)}
+        className="text-[10px] bg-muted rounded-md border border-border px-1 py-0.5 text-foreground"
+      >
+        <option value="agent">Agent</option>
+        <option value="agent_premium">Premium</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+  );
+}
+
 function DataTablesSection() {
   const { data } = useQuery({
     queryKey: ['admin_data_tables'],
     queryFn: async () => {
       const [users, listings, groups] = await Promise.all([
-        supabase.from('profiles').select('user_id, first_name, last_name, phone, email, created_at').order('created_at', { ascending: false }).limit(30),
+        supabase.from('profiles').select('user_id, first_name, last_name, phone, email, account_type, created_at').order('created_at', { ascending: false }).limit(50),
         supabase.from('listings').select('id, title, description, created_at, user_id').order('created_at', { ascending: false }).limit(30),
         supabase.from('groups').select('id, name, created_at, created_by').order('created_at', { ascending: false }).limit(30),
       ]);
@@ -162,15 +209,15 @@ function DataTablesSection() {
         <Database className="h-3.5 w-3.5" />Base de données
       </h2>
 
+      <PremiumBenefits />
+
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="px-3 py-2 bg-muted text-xs font-semibold text-foreground">Utilisateurs ({data.users.length})</div>
-        <div className="divide-y divide-border max-h-72 overflow-y-auto">
-          {data.users.map((u: any) => (
-            <div key={u.user_id} className="px-3 py-2 text-xs flex items-center gap-2">
-              <span className="font-medium text-foreground flex-1 truncate">{`${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}</span>
-              <span className="text-muted-foreground truncate">{u.phone || u.email || ''}</span>
-            </div>
-          ))}
+        <div className="px-3 py-2 bg-muted text-xs font-semibold text-foreground flex items-center justify-between">
+          <span>Utilisateurs ({data.users.length})</span>
+          <span className="text-[10px] text-muted-foreground">Cliquez sur le menu pour changer le type</span>
+        </div>
+        <div className="divide-y divide-border max-h-96 overflow-y-auto">
+          {data.users.map((u: any) => <UserTypeRow key={u.user_id} u={u} />)}
         </div>
       </div>
 
@@ -200,3 +247,4 @@ function DataTablesSection() {
     </section>
   );
 }
+
