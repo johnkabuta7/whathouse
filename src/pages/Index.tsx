@@ -275,11 +275,7 @@ export default function Index() {
               <>
                 <div className="fixed inset-0 z-40" onClick={closeMenu} />
                 <div className="absolute right-0 top-full mt-1 w-60 bg-popover text-popover-foreground rounded-xl shadow-xl border border-border z-50 py-1 animate-fade-in">
-                  <button onClick={async () => {
-                    closeMenu();
-                    // Fire global event so InstallBanner can react / handle install via PWAInstallContext
-                    window.dispatchEvent(new Event('wh:trigger-install'));
-                  }}
+                  <button onClick={() => { closeMenu(); setShowInstall(true); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-popover-foreground hover:bg-muted transition">
                     <Download className="h-4 w-4 text-primary" />Installer l'App
                   </button>
