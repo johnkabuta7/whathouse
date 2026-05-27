@@ -225,8 +225,8 @@ export default function Contacts() {
             const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2);
             return (
               <div key={p.import_id} className="flex items-center gap-3 px-4 py-2.5">
-                <div className="h-10 w-10 rounded-full bg-primary/15 text-primary text-sm font-bold flex items-center justify-center overflow-hidden shrink-0">
-                  {p.avatar_url ? <img src={p.avatar_url} className="h-full w-full object-cover" /> : initials}
+                <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0">
+                  <img src={p.avatar_url || '/whathouse-icon.png'} className="h-full w-full object-cover" alt={name} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{name}</p>
