@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, X, Share, Plus } from 'lucide-react';
+import { Download, X, Share, Plus, Apple, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePWAInstall } from '@/contexts/PWAInstallContext';
 import { useToast } from '@/hooks/use-toast';
@@ -16,33 +16,38 @@ export function InstallPrompt({ open, onClose }: { open: boolean; onClose: () =>
 
   const handleClose = () => { setStep('ask'); onClose(); };
 
-  const handleYes = async () => {
-    setBusy(true);
-    if (isInstalled) {
-      toast({ title: 'Déjà installée', description: "L'application est déjà sur votre écran d'accueil." });
-      setBusy(false);
-      handleClose();
-      return;
-    }
+  const triggerNative = async () => {
     if (canInstall) {
       const result = await promptInstall();
       if (result === 'accepted') toast({ title: '✅ WhatHouse ajoutée à l\'écran d\'accueil !' });
       else if (result === 'dismissed') toast({ title: 'Installation annulée' });
-      setBusy(false);
-      handleClose();
-      return;
+      return true;
     }
-    // No native prompt available
-    const ua = navigator.userAgent;
-    if (/iPhone|iPad|iPod/.test(ua)) {
-      setStep('ios-guide');
-    } else {
-      toast({
-        title: 'Installation indisponible',
-        description: "Ouvrez le menu ⋮ du navigateur puis « Installer l'application ».",
-      });
-      handleClose();
+    return false;
+  };
+
+  const handleAndroid = async () => {
+    setBusy(true);
+    if (isInstalled) {
+      toast({ title: 'Déjà installée' });
+      setBusy(false); handleClose(); return;
     }
+    const ok = await triggerNative();
+    if (!ok) {
+      toast({ title: 'Installation indisponible', description: "Ouvrez le menu ⋮ du navigateur puis « Installer l'application »." });
+    }
+    setBusy(false); handleClose();
+  };
+
+  const handleIOS = async () => {
+    setBusy(true);
+    if (isInstalled) {
+      toast({ title: 'Déjà installée' });
+      setBusy(false); handleClose(); return;
+    }
+    const ok = await triggerNative();
+    if (ok) { setBusy(false); handleClose(); return; }
+    setStep('ios-guide');
     setBusy(false);
   };
 
@@ -62,10 +67,13 @@ export function InstallPrompt({ open, onClose }: { open: boolean; onClose: () =>
             <p className="text-sm text-muted-foreground text-center mt-2">
               Voulez-vous ajouter <span className="font-semibold text-foreground">WhatHouse</span> à l'écran d'accueil ?
             </p>
-            <div className="flex gap-2 mt-5">
-              <Button variant="outline" className="flex-1" onClick={handleClose} disabled={busy}>Non</Button>
-              <Button className="flex-1 bg-primary text-primary-foreground" onClick={handleYes} disabled={busy}>
-                {busy ? '...' : 'Oui, ajouter'}
+            <p className="text-[11px] text-muted-foreground text-center mt-3">Choisissez votre appareil :</p>
+            <div className="flex gap-2 mt-2">
+              <Button variant="outline" className="flex-1 h-12 rounded-xl flex items-center justify-center gap-2" onClick={handleIOS} disabled={busy}>
+                <Apple className="h-4 w-4" /> iOS
+              </Button>
+              <Button className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center gap-2" onClick={handleAndroid} disabled={busy}>
+                <Smartphone className="h-4 w-4" /> {busy ? '...' : 'Android'}
               </Button>
             </div>
           </>
