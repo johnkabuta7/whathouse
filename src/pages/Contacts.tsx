@@ -149,6 +149,12 @@ export default function Contacts() {
           <button onClick={() => setShowImport(true)} className="p-1.5 rounded-full hover:bg-muted transition" aria-label="Importer des contacts">
             <UserPlus className="h-5 w-5 text-primary" />
           </button>
+          <button onClick={() => navigate('/collaboration/inbox')} className="relative p-1.5 rounded-full hover:bg-muted transition" aria-label="Demandes de collaboration">
+            <Inbox className="h-5 w-5 text-primary" />
+            {incomingCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground inline-flex items-center justify-center px-1">{incomingCount}</span>
+            )}
+          </button>
           <button onClick={() => setSearchOpen(!searchOpen)} className="p-1.5 rounded-full hover:bg-muted transition">
             <Search className="h-5 w-5 text-muted-foreground" />
           </button>
