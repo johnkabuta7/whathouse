@@ -1,9 +1,19 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Users, FileText, TrendingUp, Loader2, Database } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, BarChart3, Users, FileText, TrendingUp, Loader2, Database, Crown, Shield, User as UserIcon, Sparkles } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsAppAdmin } from '@/hooks/use-data';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
+
+type AccountType = 'agent' | 'agent_premium' | 'admin';
+
+const TYPE_META: Record<AccountType, { label: string; cls: string; icon: any }> = {
+  agent:         { label: 'Agent',         cls: 'bg-blue-500/15 text-blue-500 border-blue-500/30',         icon: UserIcon },
+  agent_premium: { label: 'Agent Premium', cls: 'bg-amber-500/15 text-amber-500 border-amber-500/30',       icon: Crown },
+  admin:         { label: 'Admin',         cls: 'bg-rose-500/15 text-rose-500 border-rose-500/30',          icon: Shield },
+};
+
 
 
 function startOf(period: 'day' | 'week' | 'month'): string {
