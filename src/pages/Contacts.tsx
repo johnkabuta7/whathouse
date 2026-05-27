@@ -170,6 +170,10 @@ export default function Contacts() {
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted transition">
                     <UserPlus className="h-4 w-4 text-primary" />Importer des contacts
                   </button>
+                  <button onClick={() => { closeMenu(); navigate('/collaboration/request'); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted transition">
+                    <Handshake className="h-4 w-4 text-primary" />Demande de collaboration
+                  </button>
                   <button onClick={() => { closeMenu(); navigate('/create-group'); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted transition">
                     <Users className="h-4 w-4 text-primary" />Créer un groupe
