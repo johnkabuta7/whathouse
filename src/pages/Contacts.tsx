@@ -274,8 +274,8 @@ export default function Contacts() {
                 className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer ${isSelected ? 'bg-primary/10' : ''}`}
               >
                 <div className="relative shrink-0">
-                  <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
-                    {isSelected ? '✓' : p.avatar_url ? <img src={p.avatar_url} className="h-full w-full object-cover rounded-full" /> : initials}
+                  <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-white'}`}>
+                    {isSelected ? '✓' : <img src={p.avatar_url || '/whathouse-icon.png'} className="h-full w-full object-cover rounded-full" alt={name} />}
                   </div>
                   {p.online && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-success border-2 border-card" />}
                 </div>
