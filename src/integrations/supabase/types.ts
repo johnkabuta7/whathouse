@@ -379,6 +379,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_type: string
           avatar_url: string | null
           background_url: string | null
           created_at: string
@@ -393,6 +394,7 @@ export type Database = {
           wp_user_password: string | null
         }
         Insert: {
+          account_type?: string
           avatar_url?: string | null
           background_url?: string | null
           created_at?: string
@@ -407,6 +409,7 @@ export type Database = {
           wp_user_password?: string | null
         }
         Update: {
+          account_type?: string
           avatar_url?: string | null
           background_url?: string | null
           created_at?: string
