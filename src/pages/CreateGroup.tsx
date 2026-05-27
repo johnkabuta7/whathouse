@@ -8,16 +8,31 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
-function useAllProfiles() {
+function normPhone(p: string): string {
+  if (!p) return '';
+  const d = p.replace(/[^0-9+]/g, '');
+  if (d.startsWith('+')) return '+' + d.slice(1).replace(/[^0-9]/g, '');
+  return d.replace(/^00/, '+');
+}
+
+// Only profiles present in current user's repertoire (imported contacts)
+function useRepertoireProfiles() {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ['all_profiles'],
+    queryKey: ['repertoire_profiles', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('*');
-      if (error) throw error;
-      return data;
+      if (!user) return [] as any[];
+      const { data: imported } = await supabase
+        .from('imported_contacts').select('contact_phone').eq('user_id', user.id);
+      const phones = Array.from(new Set((imported || []).map((i: any) => normPhone(i.contact_phone)).filter(Boolean)));
+      if (phones.length === 0) return [];
+      const { data } = await supabase.from('profiles').select('*').in('phone', phones);
+      return (data || []).filter((p: any) => p.user_id !== user.id);
     },
+    enabled: !!user,
   });
 }
+
 
 export default function CreateGroup() {
   const [step, setStep] = useState<'info' | 'members'>('info');
@@ -39,7 +54,7 @@ export default function CreateGroup() {
 
   const { user } = useAuth();
   const createGroup = useCreateGroup();
-  const { data: allProfiles } = useAllProfiles();
+  const { data: repertoire } = useRepertoireProfiles();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -52,10 +67,11 @@ export default function CreateGroup() {
     setSelectedMembers(p => p.includes(userId) ? p.filter(id => id !== userId) : [...p, userId]);
   };
 
-  const otherProfiles = allProfiles?.filter(p => p.user_id !== user?.id);
-  const filteredProfiles = otherProfiles?.filter(p =>
-    `${p.first_name} ${p.last_name}`.toLowerCase().includes(memberSearch.toLowerCase()) ||
-    (p.phone || '').includes(memberSearch)
+  const q = memberSearch.trim().toLowerCase();
+  const filteredProfiles = (repertoire || []).filter(p =>
+    !q ||
+    `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) ||
+    (p.phone || '').replace(/\s+/g, '').includes(q.replace(/\s+/g, ''))
   );
 
   const handleCreate = async () => {
