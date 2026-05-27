@@ -22,6 +22,9 @@ import ListingPreview from "./pages/ListingPreview";
 import NotFound from "./pages/NotFound";
 import Drafts from "./pages/Drafts";
 import Publish from "./pages/Publish";
+import CollaborationRequest from "./pages/CollaborationRequest";
+import CollaborationInbox from "./pages/CollaborationInbox";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +71,9 @@ function AppRoutes() {
         <Route path="/create-group" element={<ProtectedRoute><CreateGroup /></ProtectedRoute>} />
         <Route path="/drafts" element={<ProtectedRoute><Drafts /></ProtectedRoute>} />
         <Route path="/publish" element={<ProtectedRoute><Publish /></ProtectedRoute>} />
+        <Route path="/collaboration/request" element={<ProtectedRoute><CollaborationRequest /></ProtectedRoute>} />
+        <Route path="/collaboration/inbox" element={<ProtectedRoute><CollaborationInbox /></ProtectedRoute>} />
+        <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

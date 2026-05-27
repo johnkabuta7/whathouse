@@ -56,6 +56,33 @@ export type Database = {
         }
         Relationships: []
       }
+      collaboration_requests: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          id: string
+          status: string
+          to_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          id?: string
+          status?: string
+          to_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          status?: string
+          to_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       group_join_requests: {
         Row: {
           created_at: string
@@ -454,6 +481,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_collaboration_request: {
+        Args: { _request_id: string }
+        Returns: undefined
+      }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {

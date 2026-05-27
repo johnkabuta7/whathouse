@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, MoreVertical, Settings, Users, Clock, History, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Search, UserPlus, MoreVertical, Settings, Users, Clock, History, Plus, Sparkles, Trash2, Handshake, Inbox } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SelectGroupModal } from '@/components/SelectGroupModal';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { ImportContactsModal } from '@/components/ImportContactsModal';
+import { useIncomingCollabRequests } from '@/pages/CollaborationInbox';
 import { normalizeSearch } from '@/hooks/use-data';
 import { toast } from '@/hooks/use-toast';
 
@@ -102,6 +103,8 @@ export default function Contacts() {
   const [showInstall, setShowInstall] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const navigate = useNavigate();
+  const { data: incomingCollab } = useIncomingCollabRequests();
+  const incomingCount = incomingCollab?.length || 0;
 
   const confirmed = data?.confirmed || [];
   const pending = data?.pending || [];
@@ -146,6 +149,12 @@ export default function Contacts() {
           <button onClick={() => setShowImport(true)} className="p-1.5 rounded-full hover:bg-muted transition" aria-label="Importer des contacts">
             <UserPlus className="h-5 w-5 text-primary" />
           </button>
+          <button onClick={() => navigate('/collaboration/inbox')} className="relative p-1.5 rounded-full hover:bg-muted transition" aria-label="Demandes de collaboration">
+            <Inbox className="h-5 w-5 text-primary" />
+            {incomingCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground inline-flex items-center justify-center px-1">{incomingCount}</span>
+            )}
+          </button>
           <button onClick={() => setSearchOpen(!searchOpen)} className="p-1.5 rounded-full hover:bg-muted transition">
             <Search className="h-5 w-5 text-muted-foreground" />
           </button>
@@ -160,6 +169,10 @@ export default function Contacts() {
                   <button onClick={() => { closeMenu(); setShowImport(true); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted transition">
                     <UserPlus className="h-4 w-4 text-primary" />Importer des contacts
+                  </button>
+                  <button onClick={() => { closeMenu(); navigate('/collaboration/request'); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted transition">
+                    <Handshake className="h-4 w-4 text-primary" />Demande de collaboration
                   </button>
                   <button onClick={() => { closeMenu(); navigate('/create-group'); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted transition">
