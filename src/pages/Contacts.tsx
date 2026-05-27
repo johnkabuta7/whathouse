@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, MoreVertical, Settings, Users, Clock, History, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Search, UserPlus, MoreVertical, Settings, Users, Clock, History, Plus, Sparkles, Trash2, Handshake, Inbox } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SelectGroupModal } from '@/components/SelectGroupModal';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { ImportContactsModal } from '@/components/ImportContactsModal';
+import { useIncomingCollabRequests } from '@/pages/CollaborationInbox';
 import { normalizeSearch } from '@/hooks/use-data';
 import { toast } from '@/hooks/use-toast';
 
