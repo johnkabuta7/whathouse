@@ -22,6 +22,9 @@ import ListingPreview from "./pages/ListingPreview";
 import NotFound from "./pages/NotFound";
 import Drafts from "./pages/Drafts";
 import Publish from "./pages/Publish";
+import CollaborationRequest from "./pages/CollaborationRequest";
+import CollaborationInbox from "./pages/CollaborationInbox";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
