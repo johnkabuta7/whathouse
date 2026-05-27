@@ -103,6 +103,8 @@ export default function Contacts() {
   const [showInstall, setShowInstall] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const navigate = useNavigate();
+  const { data: incomingCollab } = useIncomingCollabRequests();
+  const incomingCount = incomingCollab?.length || 0;
 
   const confirmed = data?.confirmed || [];
   const pending = data?.pending || [];
