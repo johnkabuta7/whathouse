@@ -485,6 +485,7 @@ export type Database = {
         Args: { _request_id: string }
         Returns: undefined
       }
+      add_mandatory_contacts: { Args: { _user_id: string }; Returns: undefined }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
