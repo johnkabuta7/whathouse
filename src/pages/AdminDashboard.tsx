@@ -123,8 +123,70 @@ export default function AdminDashboard() {
               <StatCard icon={Users} label="Contacts importés" value={stats.contactsTotal} />
             </div>
           </section>
+
+          <DataTablesSection />
         </div>
       )}
     </div>
+  );
+}
+
+function DataTablesSection() {
+  const { data } = useQuery({
+    queryKey: ['admin_data_tables'],
+    queryFn: async () => {
+      const [users, listings, groups] = await Promise.all([
+        supabase.from('profiles').select('user_id, first_name, last_name, phone, email, created_at').order('created_at', { ascending: false }).limit(30),
+        supabase.from('listings').select('id, title, description, created_at, user_id').order('created_at', { ascending: false }).limit(30),
+        supabase.from('groups').select('id, name, created_at, created_by').order('created_at', { ascending: false }).limit(30),
+      ]);
+      return { users: users.data || [], listings: listings.data || [], groups: groups.data || [] };
+    },
+    refetchInterval: 60_000,
+  });
+
+  if (!data) return null;
+  return (
+    <section className="space-y-4">
+      <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+        <Database className="h-3.5 w-3.5" />Base de données
+      </h2>
+
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="px-3 py-2 bg-muted text-xs font-semibold text-foreground">Utilisateurs ({data.users.length})</div>
+        <div className="divide-y divide-border max-h-72 overflow-y-auto">
+          {data.users.map((u: any) => (
+            <div key={u.user_id} className="px-3 py-2 text-xs flex items-center gap-2">
+              <span className="font-medium text-foreground flex-1 truncate">{`${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}</span>
+              <span className="text-muted-foreground truncate">{u.phone || u.email || ''}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="px-3 py-2 bg-muted text-xs font-semibold text-foreground">Annonces ({data.listings.length})</div>
+        <div className="divide-y divide-border max-h-72 overflow-y-auto">
+          {data.listings.map((l: any) => (
+            <div key={l.id} className="px-3 py-2 text-xs">
+              <p className="font-medium text-foreground truncate">{l.title}</p>
+              <p className="text-muted-foreground truncate">{new Date(l.created_at).toLocaleString('fr-FR')}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="px-3 py-2 bg-muted text-xs font-semibold text-foreground">Groupes ({data.groups.length})</div>
+        <div className="divide-y divide-border max-h-72 overflow-y-auto">
+          {data.groups.map((g: any) => (
+            <div key={g.id} className="px-3 py-2 text-xs flex items-center gap-2">
+              <span className="font-medium text-foreground flex-1 truncate">{g.name}</span>
+              <span className="text-muted-foreground">{new Date(g.created_at).toLocaleDateString('fr-FR')}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
