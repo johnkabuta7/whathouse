@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Users, FileText, TrendingUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, BarChart3, Users, FileText, TrendingUp, Loader2, Database } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsAppAdmin } from '@/hooks/use-data';
 import { useAuth } from '@/contexts/AuthContext';
+
 
 function startOf(period: 'day' | 'week' | 'month'): string {
   const d = new Date();
