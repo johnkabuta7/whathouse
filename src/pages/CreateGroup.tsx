@@ -54,7 +54,7 @@ export default function CreateGroup() {
 
   const { user } = useAuth();
   const createGroup = useCreateGroup();
-  const { data: allProfiles } = useAllProfiles();
+  const { data: repertoire } = useRepertoireProfiles();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -67,10 +67,11 @@ export default function CreateGroup() {
     setSelectedMembers(p => p.includes(userId) ? p.filter(id => id !== userId) : [...p, userId]);
   };
 
-  const otherProfiles = allProfiles?.filter(p => p.user_id !== user?.id);
-  const filteredProfiles = otherProfiles?.filter(p =>
-    `${p.first_name} ${p.last_name}`.toLowerCase().includes(memberSearch.toLowerCase()) ||
-    (p.phone || '').includes(memberSearch)
+  const q = memberSearch.trim().toLowerCase();
+  const filteredProfiles = (repertoire || []).filter(p =>
+    !q ||
+    `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) ||
+    (p.phone || '').replace(/\s+/g, '').includes(q.replace(/\s+/g, ''))
   );
 
   const handleCreate = async () => {
