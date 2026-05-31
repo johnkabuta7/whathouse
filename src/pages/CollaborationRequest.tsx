@@ -134,7 +134,7 @@ export default function CollaborationRequest() {
       )}
 
       {selected.size > 0 && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-full max-w-lg lg:max-w-md px-4">
+        <div className="fixed bottom-40 left-1/2 -translate-x-1/2 z-40 w-full max-w-lg lg:max-w-md px-4">
           <Button onClick={sendRequests} disabled={sending}
             className="w-full h-12 rounded-full bg-primary text-primary-foreground shadow-2xl">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
