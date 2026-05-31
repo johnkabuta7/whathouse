@@ -175,8 +175,46 @@ export default function GroupMembers() {
             className="w-full rounded-full bg-primary text-primary-foreground">
             <UserPlus className="h-4 w-4 mr-1" />Ajouter {picked.length > 0 && `(${picked.length})`}
           </Button>
+
+          <div className="pt-3 mt-2 border-t border-primary/20 space-y-2">
+            <p className="text-[11px] font-bold text-primary uppercase tracking-wide">Ajouter un membre fantôme</p>
+            <p className="text-[10px] text-muted-foreground">Pour quelqu'un qui n'a pas encore de compte. Il rejoindra automatiquement dès son inscription.</p>
+            <Input value={ghostName} onChange={e => setGhostName(e.target.value)} placeholder="Nom (optionnel)" className="rounded-full text-xs h-8" />
+            <Input value={ghostPhone} onChange={e => setGhostPhone(e.target.value)} placeholder="+243..." className="rounded-full text-xs h-8" />
+            <Button onClick={addGhostMember} disabled={!ghostPhone.trim()} variant="outline" className="w-full rounded-full text-xs h-8">
+              <Phone className="h-3.5 w-3.5 mr-1" />Ajouter en attente
+            </Button>
+          </div>
         </div>
       )}
+
+      {pendingMembers && pendingMembers.length > 0 && (
+        <div className="mb-5">
+          <h2 className="text-xs font-bold text-muted-foreground uppercase mb-2">En attente ({pendingMembers.length})</h2>
+          <div className="space-y-2">
+            {pendingMembers.map((p: any) => (
+              <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-dashed border-border">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{p.phone} · En attente d'inscription</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => inviteGhost(p.phone, p.name)} className="rounded-full h-8 px-2 text-[10px]">
+                  Inviter
+                </Button>
+                {isCreator && (
+                  <Button size="sm" variant="ghost" onClick={() => removeGhostMember(p.id)} className="text-destructive h-8 w-8 p-0">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
 
       {/* Join requests (admin only) */}
       {isCreator && joinRequests && joinRequests.length > 0 && (
