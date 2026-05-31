@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Users, FileText, TrendingUp, Loader2, Database, Crown, Shield, User as UserIcon, Sparkles } from 'lucide-react';
+import { ArrowLeft, BarChart3, Users, FileText, TrendingUp, Loader2, Database, Crown, Shield, User as UserIcon, Sparkles, Trash2, Star } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useIsAppAdmin } from '@/hooks/use-data';
+import { useIsAppAdmin, useDeleteGroup } from '@/hooks/use-data';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
