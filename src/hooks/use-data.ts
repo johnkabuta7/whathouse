@@ -697,7 +697,7 @@ export function useProfile(userId: string) {
 export function useUpdateProfile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId, ...updates }: { userId: string; first_name?: string; last_name?: string; phone?: string; email?: string; avatar_url?: string; background_url?: string }) => {
+    mutationFn: async ({ userId, ...updates }: { userId: string; first_name?: string; last_name?: string; phone?: string; email?: string; avatar_url?: string; background_url?: string; ghost_mode?: boolean }) => {
       const { data, error } = await supabase.from('profiles').update(updates).eq('user_id', userId).select().single();
       if (error) throw error;
       return data;
