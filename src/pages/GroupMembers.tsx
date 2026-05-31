@@ -88,6 +88,45 @@ export default function GroupMembers() {
     });
   };
 
+  const normalizePhone = (p: string) => {
+    const d = (p || '').replace(/[^0-9+]/g, '');
+    return d.startsWith('+') ? '+' + d.slice(1).replace(/[^0-9]/g, '') : d.replace(/^00/, '+');
+  };
+
+  const addGhostMember = async () => {
+    if (!id || !user) return;
+    const phone = normalizePhone(ghostPhone);
+    if (!phone || phone.replace(/[^0-9]/g, '').length < 7) {
+      toast({ title: 'Numéro invalide', variant: 'destructive' }); return;
+    }
+    const { error } = await supabase.from('pending_group_members' as any).insert({
+      group_id: id, phone, name: ghostName.trim() || phone, invited_by: user.id,
+    });
+    if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+    setGhostName(''); setGhostPhone('');
+    toast({ title: 'Membre fantôme ajouté', description: 'Il rejoindra automatiquement le groupe dès son inscription.' });
+    qc.invalidateQueries({ queryKey: ['pending_group_members', id] });
+  };
+
+  const removeGhostMember = async (pid: string) => {
+    if (!id) return;
+    const { error } = await supabase.from('pending_group_members' as any).delete().eq('id', pid);
+    if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+    qc.invalidateQueries({ queryKey: ['pending_group_members', id] });
+  };
+
+  const inviteGhost = (phone: string, name: string) => {
+    const origin = window.location.origin;
+    const msg = `Bonjour ${name || ''}, vous avez été ajouté(e) au groupe "${group?.name || ''}" sur WhatHouse. Inscrivez-vous ici : ${origin}/login`;
+    const phoneDigits = phone.replace(/[^0-9]/g, '');
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const url = isMobile
+      ? `whatsapp://send?phone=${phoneDigits}&text=${encodeURIComponent(msg)}`
+      : `https://wa.me/${phoneDigits}?text=${encodeURIComponent(msg)}`;
+    if (isMobile) window.location.href = url;
+    else window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="max-w-lg mx-auto px-4 py-4 animate-fade-in">
       <div className="flex items-center gap-3 mb-4">
