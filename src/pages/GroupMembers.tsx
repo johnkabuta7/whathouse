@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, UserMinus, Users, Check, X, UserPlus, Search } from 'lucide-react';
+import { ArrowLeft, UserMinus, Users, Check, X, UserPlus, Search, Phone, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGroup, useGroupMembers, useLeaveGroup, useJoinRequests, useRespondJoinRequest, useAddMembersToGroup } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 function useAllProfiles() {
   return useQuery({
