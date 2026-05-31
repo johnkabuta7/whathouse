@@ -59,23 +59,33 @@ export default function GroupMembers() {
     queryKey: ['my_imported_phones_gm', user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from('imported_contacts').select('contact_phone').eq('user_id', user!.id);
-      return new Set((data || []).map((r: any) => normP(r.contact_phone)));
+      const { data } = await supabase.from('imported_contacts').select('contact_phone, contact_name, status').eq('user_id', user!.id);
+      return data || [];
     },
   });
+  const importedPhoneSet = new Set((myImported || []).map((r: any) => normP(r.contact_phone)));
+  const ghostInvites = (myImported || []).filter((r: any) => r.status === 'pending');
 
   const isCreator = group?.created_by === user?.id;
   const memberIds = members?.map((m: any) => m.user_id) || [];
-  const candidates = (allProfiles || []).filter(p => !memberIds.includes(p.user_id));
+  const pendingPhonesInGroup = new Set((pendingMembers || []).map((p: any) => normP(p.phone)));
+  const profilePhonesSet = new Set((allProfiles || []).map((p: any) => normP(p.phone || '')).filter(Boolean));
+
+  // Ghost invites that aren't already real profiles and not already pending in this group
+  const ghostRows = ghostInvites
+    .filter((g: any) => !profilePhonesSet.has(normP(g.contact_phone)))
+    .filter((g: any) => !pendingPhonesInGroup.has(normP(g.contact_phone)))
+    .filter((g: any) => !search || g.contact_name?.toLowerCase().includes(search.toLowerCase()) || g.contact_phone.includes(search));
+
+  const candidates = (allProfiles || []).filter(p => !memberIds.includes(p.user_id) && p.user_id !== user?.id);
   const filtered = candidates
     .filter(p =>
       `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
       (p.phone || '').includes(search)
     )
     .sort((a, b) => {
-      const pb = myImported || new Set();
-      const ap = pb.has(normP(a.phone || '')) ? 0 : 1;
-      const bp = pb.has(normP(b.phone || '')) ? 0 : 1;
+      const ap = importedPhoneSet.has(normP(a.phone || '')) ? 0 : 1;
+      const bp = importedPhoneSet.has(normP(b.phone || '')) ? 0 : 1;
       return ap - bp;
     });
 
@@ -173,7 +183,30 @@ export default function GroupMembers() {
             <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un contact..." className="rounded-full text-sm h-9 pl-9" />
           </div>
           <div className="max-h-60 overflow-y-auto space-y-1">
-            {filtered.length === 0 ? (
+            {/* Ghost invites (already invited contacts pending signup) shown first */}
+            {ghostRows.map((g: any) => (
+              <button key={`ghost-${g.contact_phone}`}
+                onClick={async () => {
+                  if (!id || !user) return;
+                  const { error } = await supabase.from('pending_group_members' as any).insert({
+                    group_id: id, phone: normP(g.contact_phone), name: g.contact_name || g.contact_phone, invited_by: user.id,
+                  });
+                  if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+                  toast({ title: 'Invité ajouté au groupe', description: 'En attente d\'inscription.' });
+                  qc.invalidateQueries({ queryKey: ['pending_group_members', id] });
+                }}
+                className="w-full flex items-center gap-3 p-2 rounded-xl text-left transition hover:bg-amber-500/10 border border-dashed border-amber-500/30">
+                <div className="h-9 w-9 rounded-full bg-amber-500/15 text-amber-600 flex items-center justify-center shrink-0">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{g.contact_name || g.contact_phone}</p>
+                  <p className="text-[10px] text-amber-600">👻 Fantôme · En attente d'inscription</p>
+                </div>
+                <UserPlus className="h-4 w-4 text-amber-600" />
+              </button>
+            ))}
+            {filtered.length === 0 && ghostRows.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-4">Aucun contact disponible</p>
             ) : filtered.map(p => {
               const name = `${p.first_name} ${p.last_name}`.trim() || 'Utilisateur';

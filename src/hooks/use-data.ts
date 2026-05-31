@@ -125,7 +125,10 @@ export function useMyGroups() {
       if (mErr) throw mErr;
       if (!memberships?.length) return [];
       const groupIds = memberships.map(m => m.group_id);
-      const { data, error } = await supabase.from('groups').select('*').in('id', groupIds).order('updated_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('groups').select('*').in('id', groupIds)
+        .order('visibility_stars', { ascending: false })
+        .order('updated_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -137,7 +140,10 @@ export function useAllGroups() {
   return useQuery({
     queryKey: ['all_groups'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('groups').select('*').order('updated_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('groups').select('*')
+        .order('visibility_stars', { ascending: false })
+        .order('updated_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -161,8 +167,11 @@ export function useSearchGroups(search: string) {
     queryKey: ['search_groups', search],
     queryFn: async () => {
       if (!search.trim()) return [];
-      // Fetch all groups then filter client-side using normalized strings (accent/punct tolerant)
-      const { data, error } = await supabase.from('groups').select('*').limit(500);
+      const { data, error } = await supabase
+        .from('groups').select('*')
+        .order('visibility_stars', { ascending: false })
+        .order('updated_at', { ascending: false })
+        .limit(500);
       if (error) throw error;
       const q = normalizeSearch(search);
       return (data || []).filter(g =>
