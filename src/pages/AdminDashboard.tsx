@@ -195,7 +195,7 @@ function DataTablesSection() {
       const [users, listings, groups] = await Promise.all([
         supabase.from('profiles').select('user_id, first_name, last_name, phone, email, account_type, created_at').order('created_at', { ascending: false }).limit(50),
         supabase.from('listings').select('id, title, description, created_at, user_id').order('created_at', { ascending: false }).limit(30),
-        supabase.from('groups').select('id, name, created_at, created_by').order('created_at', { ascending: false }).limit(30),
+        supabase.from('groups').select('id, name, created_at, created_by, visibility_stars').order('created_at', { ascending: false }).limit(50),
       ]);
       return { users: users.data || [], listings: listings.data || [], groups: groups.data || [] };
     },
