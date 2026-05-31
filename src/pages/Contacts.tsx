@@ -56,13 +56,14 @@ function useRepertoire() {
         if (profile && profile.user_id === user.id) continue;
 
         if (profile) {
+          const ghost = !!profile.ghost_mode;
           const row = {
             ...profile,
             import_id: imp.id,
             import_status: imp.status,
             contact_name: imp.contact_name,
-            online: onlineSet.has(profile.user_id),
-            last_seen: seenMap.get(profile.user_id) || null,
+            online: ghost ? false : onlineSet.has(profile.user_id),
+            last_seen: ghost ? null : (seenMap.get(profile.user_id) || null),
             is_pending: false,
           };
           if (imp.status === 'confirmed') confirmed.push(row);
