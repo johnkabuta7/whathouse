@@ -112,7 +112,7 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
     });
     qc.invalidateQueries({ queryKey: ['repertoire'] });
 
-    // Send WhatsApp invite to each pending contact in sequence (one tab per contact)
+    // Open WhatsApp invites via native deep link (skips wa.me intermediate screen)
     if (invites.length > 0) {
       const origin = window.location.origin;
       const invitedKey = 'wh_invited_phones';
@@ -122,8 +122,14 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
       toInvite.forEach((inv, i) => {
         const msg = `Bonjour ${inv.name || ''}, je vous invite à rejoindre WhatHouse — la plateforme des pros de l'immobilier. Inscrivez-vous ici : ${origin}/login`;
         const phoneDigits = inv.phone.replace(/[^0-9]/g, '');
-        const url = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(msg)}`;
-        setTimeout(() => window.open(url, '_blank', 'noopener,noreferrer'), i * 600);
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const url = isMobile
+          ? `whatsapp://send?phone=${phoneDigits}&text=${encodeURIComponent(msg)}`
+          : `https://wa.me/${phoneDigits}?text=${encodeURIComponent(msg)}`;
+        setTimeout(() => {
+          if (isMobile) window.location.href = url;
+          else window.open(url, '_blank', 'noopener,noreferrer');
+        }, i * 800);
       });
       try {
         localStorage.setItem(invitedKey, JSON.stringify([...alreadyInvited, ...toInvite.map(i => i.phone)]));
@@ -137,7 +143,13 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
     if (!nav.contacts || !nav.contacts.select) { setStep('manual'); return; }
     setLoading(true);
     try {
-      const result = await nav.contacts.select(['name', 'tel'], { multiple: true });
+      // Request 'icon' as best-effort (Chrome Android only — iOS Safari ignores)
+      let result: any[];
+      try {
+        result = await nav.contacts.select(['name', 'tel', 'icon'], { multiple: true });
+      } catch {
+        result = await nav.contacts.select(['name', 'tel'], { multiple: true });
+      }
       try { localStorage.setItem(PERMISSION_KEY, '1'); } catch {}
       const contacts: PhoneContact[] = [];
       for (const c of result) {
