@@ -59,23 +59,33 @@ export default function GroupMembers() {
     queryKey: ['my_imported_phones_gm', user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from('imported_contacts').select('contact_phone').eq('user_id', user!.id);
-      return new Set((data || []).map((r: any) => normP(r.contact_phone)));
+      const { data } = await supabase.from('imported_contacts').select('contact_phone, contact_name, status').eq('user_id', user!.id);
+      return data || [];
     },
   });
+  const importedPhoneSet = new Set((myImported || []).map((r: any) => normP(r.contact_phone)));
+  const ghostInvites = (myImported || []).filter((r: any) => r.status === 'pending');
 
   const isCreator = group?.created_by === user?.id;
   const memberIds = members?.map((m: any) => m.user_id) || [];
-  const candidates = (allProfiles || []).filter(p => !memberIds.includes(p.user_id));
+  const pendingPhonesInGroup = new Set((pendingMembers || []).map((p: any) => normP(p.phone)));
+  const profilePhonesSet = new Set((allProfiles || []).map((p: any) => normP(p.phone || '')).filter(Boolean));
+
+  // Ghost invites that aren't already real profiles and not already pending in this group
+  const ghostRows = ghostInvites
+    .filter((g: any) => !profilePhonesSet.has(normP(g.contact_phone)))
+    .filter((g: any) => !pendingPhonesInGroup.has(normP(g.contact_phone)))
+    .filter((g: any) => !search || g.contact_name?.toLowerCase().includes(search.toLowerCase()) || g.contact_phone.includes(search));
+
+  const candidates = (allProfiles || []).filter(p => !memberIds.includes(p.user_id) && p.user_id !== user?.id);
   const filtered = candidates
     .filter(p =>
       `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
       (p.phone || '').includes(search)
     )
     .sort((a, b) => {
-      const pb = myImported || new Set();
-      const ap = pb.has(normP(a.phone || '')) ? 0 : 1;
-      const bp = pb.has(normP(b.phone || '')) ? 0 : 1;
+      const ap = importedPhoneSet.has(normP(a.phone || '')) ? 0 : 1;
+      const bp = importedPhoneSet.has(normP(b.phone || '')) ? 0 : 1;
       return ap - bp;
     });
 
