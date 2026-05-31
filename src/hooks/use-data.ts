@@ -219,10 +219,15 @@ export function useDeleteGroup() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('groups').delete().eq('id', id);
+      // Cascade delete via RPC: removes listings, members, join requests, reads, likes, favorites.
+      const { error } = await (supabase as any).rpc('delete_group_cascade', { _group_id: id });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['my_groups'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my_groups'] });
+      qc.invalidateQueries({ queryKey: ['all_groups'] });
+      qc.invalidateQueries({ queryKey: ['listings'] });
+    },
   });
 }
 

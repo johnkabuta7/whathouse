@@ -71,27 +71,64 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
 
   const autoImport = async (contacts: PhoneContact[]) => {
     if (!user) return;
-    const phones = Array.from(new Set(contacts.map(c => normalizePhone(c.phone)).filter(Boolean)));
-    if (phones.length === 0) { toast({ title: 'Aucun numéro détecté', variant: 'destructive' }); return; }
-    const { data: profiles } = await supabase.from('profiles').select('*').in('phone', phones);
+    const cleaned = contacts
+      .map(c => ({ name: (c.name || '').trim(), phone: normalizePhone(c.phone) }))
+      .filter(c => c.phone && c.phone.length >= 7);
+    if (cleaned.length === 0) { toast({ title: 'Aucun numéro détecté', variant: 'destructive' }); return; }
+
+    const phones = Array.from(new Set(cleaned.map(c => c.phone)));
+    const { data: profiles } = await supabase.from('profiles').select('user_id, first_name, last_name, phone').in('phone', phones);
     const byPhone = new Map<string, any>();
     (profiles || []).forEach((p: any) => p.phone && byPhone.set(normalizePhone(p.phone), p));
-    const rows = contacts
-      .map(c => ({ ...c, phone: normalizePhone(c.phone) }))
-      .filter(c => c.phone && byPhone.has(c.phone) && byPhone.get(c.phone).user_id !== user.id)
-      .map(c => ({
+
+    const rows: any[] = [];
+    const invites: PhoneContact[] = [];
+    const seen = new Set<string>();
+    for (const c of cleaned) {
+      if (seen.has(c.phone)) continue;
+      seen.add(c.phone);
+      const prof = byPhone.get(c.phone);
+      if (prof && prof.user_id === user.id) continue;
+      const displayName = c.name || (prof ? `${prof.first_name || ''} ${prof.last_name || ''}`.trim() : '') || c.phone;
+      rows.push({
         user_id: user.id,
         contact_phone: c.phone,
-        contact_name: c.name || `${byPhone.get(c.phone).first_name || ''} ${byPhone.get(c.phone).last_name || ''}`.trim(),
-        status: 'confirmed',
-      }));
-    const seen = new Set<string>();
-    const unique = rows.filter(r => seen.has(r.contact_phone) ? false : (seen.add(r.contact_phone), true));
-    if (unique.length === 0) { toast({ title: "Aucun de vos contacts n'est sur WhatHouse" }); close(); return; }
-    const { error } = await supabase.from('imported_contacts').upsert(unique as any, { onConflict: 'user_id,contact_phone' });
+        contact_name: displayName,
+        status: prof ? 'confirmed' : 'pending',
+      });
+      if (!prof) invites.push({ name: displayName, phone: c.phone });
+    }
+
+    if (rows.length === 0) { toast({ title: 'Aucun contact à importer' }); close(); return; }
+    const { error } = await supabase.from('imported_contacts').upsert(rows as any, { onConflict: 'user_id,contact_phone' });
     if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: `${unique.length} contact(s) ajouté(s)` });
+
+    const onApp = rows.length - invites.length;
+    toast({
+      title: `${rows.length} contact(s) importé(s)`,
+      description: invites.length > 0
+        ? `${onApp} sur WhatHouse · ${invites.length} en attente — invitation WhatsApp en cours…`
+        : `${onApp} sur WhatHouse`,
+    });
     qc.invalidateQueries({ queryKey: ['repertoire'] });
+
+    // Send WhatsApp invite to each pending contact in sequence (one tab per contact)
+    if (invites.length > 0) {
+      const origin = window.location.origin;
+      const invitedKey = 'wh_invited_phones';
+      let alreadyInvited: string[] = [];
+      try { alreadyInvited = JSON.parse(localStorage.getItem(invitedKey) || '[]'); } catch {}
+      const toInvite = invites.filter(i => !alreadyInvited.includes(i.phone));
+      toInvite.forEach((inv, i) => {
+        const msg = `Bonjour ${inv.name || ''}, je vous invite à rejoindre WhatHouse — la plateforme des pros de l'immobilier. Inscrivez-vous ici : ${origin}/login`;
+        const phoneDigits = inv.phone.replace(/[^0-9]/g, '');
+        const url = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(msg)}`;
+        setTimeout(() => window.open(url, '_blank', 'noopener,noreferrer'), i * 600);
+      });
+      try {
+        localStorage.setItem(invitedKey, JSON.stringify([...alreadyInvited, ...toInvite.map(i => i.phone)]));
+      } catch {}
+    }
     close();
   };
 

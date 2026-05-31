@@ -342,12 +342,41 @@ function GridListingCard({ listing }: { listing: any }) {
             <span className="text-[10px] font-bold text-primary">{agentInitials}</span>
           )}
         </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault(); e.stopPropagation();
+            const url = `${window.location.origin}/listing/${listing.id}`;
+            const text = `🏠 ${listing.title}\n${url}`;
+            if ((navigator as any).share) (navigator as any).share({ title: listing.title, text, url }).catch(() => {});
+            else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+          }}
+          aria-label="Partager"
+          className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-card/90 backdrop-blur flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition"
+        >
+          <Share2 className="h-3.5 w-3.5" />
+        </button>
       </div>
       <div className="p-2">
         <p className="text-xs font-bold text-foreground line-clamp-2 leading-tight">{listing.title}</p>
         <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5 font-normal">{listing.description}</p>
-        <a href={zwandakoHref} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-          className="text-[10px] text-primary font-bold mt-1 inline-block">Voir →</a>
+        <div className="flex items-center justify-between mt-1 gap-1">
+          <a href={zwandakoHref} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+            className="text-[10px] text-primary font-bold inline-block">Voir →</a>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault(); e.stopPropagation();
+              const url = `${window.location.origin}/listing/${listing.id}`;
+              const text = `🏠 ${listing.title}\n${url}`;
+              if ((navigator as any).share) (navigator as any).share({ title: listing.title, text, url }).catch(() => {});
+              else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+            }}
+            className="text-[10px] font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition"
+          >
+            <Share2 className="h-2.5 w-2.5" />Partager
+          </button>
+        </div>
       </div>
     </a>
   );

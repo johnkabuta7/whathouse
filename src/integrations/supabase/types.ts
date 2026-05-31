@@ -489,6 +489,7 @@ export type Database = {
         Returns: undefined
       }
       add_mandatory_contacts: { Args: { _user_id: string }; Returns: undefined }
+      delete_group_cascade: { Args: { _group_id: string }; Returns: undefined }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
