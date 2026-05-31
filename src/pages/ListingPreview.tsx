@@ -176,6 +176,18 @@ export default function ListingPreview() {
               <ExternalLink className="h-4 w-4" /> Voir sur Zwandako
             </a>
           )}
+          <button
+            type="button"
+            onClick={() => {
+              const url = window.location.href;
+              const text = `🏠 ${listing.title}\n${url}`;
+              if ((navigator as any).share) (navigator as any).share({ title: listing.title, text, url }).catch(() => {});
+              else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+            }}
+            className="w-full rounded-full bg-foreground text-background font-semibold py-2.5 flex items-center justify-center gap-2"
+          >
+            <Share2 className="h-4 w-4" /> Partager cette annonce
+          </button>
           {group && (
             <Link to={`/group/${group.id}#listing-${listing.id}`}
               className="w-full rounded-full bg-muted text-foreground font-semibold py-2.5 flex items-center justify-center gap-2">
