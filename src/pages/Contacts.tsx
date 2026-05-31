@@ -232,26 +232,42 @@ export default function Contacts() {
         </div>
       )}
 
-      {/* Nouveaux contacts disponibles */}
+      {/* Nouveaux contacts disponibles / en attente d'inscription */}
       {pending.length > 0 && (
         <div className="border-b border-border bg-primary/5">
           <p className="px-4 py-2 text-xs font-bold text-primary uppercase tracking-wide flex items-center gap-1">
-            <Sparkles className="h-3 w-3" />Nouveaux contacts disponibles ({pending.length})
+            <Sparkles className="h-3 w-3" />Contacts ({pending.length})
           </p>
           {pending.map((p: any) => {
             const name = `${p.first_name} ${p.last_name}`.trim() || p.contact_name || 'Contact';
-            const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2);
+            const inviteHref = p.is_pending
+              ? `https://wa.me/${(p.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour ${name}, rejoignez-moi sur WhatHouse : ${window.location.origin}/login`)}`
+              : null;
             return (
               <div key={p.import_id} className="flex items-center gap-3 px-4 py-2.5">
                 <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0">
                   <img src={p.avatar_url || '/whathouse-icon.png'} className="h-full w-full object-cover" alt={name} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{name}</p>
+                  <p className="text-sm font-medium text-foreground truncate flex items-center gap-2">
+                    {name}
+                    {p.is_pending && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600">En attente</span>}
+                  </p>
                   <p className="text-[11px] text-muted-foreground truncate">{p.phone}</p>
                 </div>
-                <Button size="sm" className="rounded-full text-xs h-8 bg-primary text-primary-foreground"
-                  onClick={() => confirmPending(p.import_id)}>Ajouter</Button>
+                {p.is_pending ? (
+                  <div className="flex items-center gap-1">
+                    {inviteHref && (
+                      <a href={inviteHref} target="_blank" rel="noopener noreferrer"
+                        className="text-[11px] font-semibold px-2.5 py-1.5 rounded-full bg-success text-success-foreground">Inviter</a>
+                    )}
+                    <button onClick={() => removeImport(p.import_id)} title="Retirer"
+                      className="p-1.5 rounded-full hover:bg-destructive/10 text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                ) : (
+                  <Button size="sm" className="rounded-full text-xs h-8 bg-primary text-primary-foreground"
+                    onClick={() => confirmPending(p.import_id)}>Ajouter</Button>
+                )}
               </div>
             );
           })}
