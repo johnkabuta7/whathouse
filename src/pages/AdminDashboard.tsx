@@ -235,16 +235,54 @@ function DataTablesSection() {
 
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <div className="px-3 py-2 bg-muted text-xs font-semibold text-foreground">Groupes ({data.groups.length})</div>
-        <div className="divide-y divide-border max-h-72 overflow-y-auto">
-          {data.groups.map((g: any) => (
-            <div key={g.id} className="px-3 py-2 text-xs flex items-center gap-2">
-              <span className="font-medium text-foreground flex-1 truncate">{g.name}</span>
-              <span className="text-muted-foreground">{new Date(g.created_at).toLocaleDateString('fr-FR')}</span>
-            </div>
-          ))}
+        <div className="divide-y divide-border max-h-[28rem] overflow-y-auto">
+          {data.groups.map((g: any) => <GroupAdminRow key={g.id} g={g} />)}
         </div>
       </div>
     </section>
+  );
+}
+
+function GroupAdminRow({ g }: { g: any }) {
+  const qc = useQueryClient();
+  const del = useDeleteGroup();
+  const stars: number = g.visibility_stars || 1;
+
+  const setStars = async (val: number) => {
+    const { error } = await supabase.from('groups').update({ visibility_stars: val }).eq('id', g.id);
+    if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: `Visibilité : ${'★'.repeat(val)}` });
+    qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
+    qc.invalidateQueries({ queryKey: ['all_groups'] });
+    qc.invalidateQueries({ queryKey: ['my_groups'] });
+  };
+
+  const handleDelete = () => {
+    if (!confirm(`Supprimer définitivement le groupe "${g.name}" et toutes ses annonces ?`)) return;
+    del.mutate(g.id, {
+      onSuccess: () => {
+        toast({ title: 'Groupe supprimé' });
+        qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
+      },
+      onError: (e: any) => toast({ title: 'Erreur', description: e.message, variant: 'destructive' }),
+    });
+  };
+
+  return (
+    <div className="px-3 py-2 text-xs flex items-center gap-2">
+      <span className="font-medium text-foreground flex-1 truncate">{g.name}</span>
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3].map(n => (
+          <button key={n} onClick={() => setStars(n)} className="p-0.5" title={`${n} étoile${n>1?'s':''}`}>
+            <Star className={`h-3.5 w-3.5 ${n <= stars ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground/40'}`} />
+          </button>
+        ))}
+      </div>
+      <span className="text-[10px] text-muted-foreground hidden sm:inline">{new Date(g.created_at).toLocaleDateString('fr-FR')}</span>
+      <button onClick={handleDelete} disabled={del.isPending} className="p-1 rounded hover:bg-destructive/10 text-destructive">
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </div>
   );
 }
 
