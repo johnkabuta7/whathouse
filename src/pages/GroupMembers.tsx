@@ -20,6 +20,17 @@ function useAllProfiles() {
   });
 }
 
+function usePendingMembers(groupId: string) {
+  return useQuery({
+    queryKey: ['pending_group_members', groupId],
+    enabled: !!groupId,
+    queryFn: async () => {
+      const { data } = await supabase.from('pending_group_members' as any).select('*').eq('group_id', groupId).order('created_at', { ascending: false });
+      return (data as any[]) || [];
+    },
+  });
+}
+
 export default function GroupMembers() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -27,13 +38,17 @@ export default function GroupMembers() {
   const { data: members, isLoading } = useGroupMembers(id || '');
   const { data: joinRequests } = useJoinRequests(id || '');
   const { data: allProfiles } = useAllProfiles();
+  const { data: pendingMembers } = usePendingMembers(id || '');
   const leaveGroup = useLeaveGroup();
   const respondRequest = useRespondJoinRequest();
   const addMembers = useAddMembersToGroup();
   const { toast } = useToast();
+  const qc = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
+  const [ghostName, setGhostName] = useState('');
+  const [ghostPhone, setGhostPhone] = useState('');
 
   const isCreator = group?.created_by === user?.id;
   const memberIds = members?.map((m: any) => m.user_id) || [];
