@@ -17,15 +17,30 @@ export default function CollaborationRequest() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
 
+  const normPhone = (p: string) => {
+    if (!p) return '';
+    const d = p.replace(/[^0-9+]/g, '');
+    return d.startsWith('+') ? '+' + d.slice(1).replace(/[^0-9]/g, '') : d.replace(/^00/, '+');
+  };
+
   const { data: profiles, isLoading } = useQuery({
     queryKey: ['all_profiles_for_collab'],
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('user_id, first_name, last_name, avatar_url')
+        .select('user_id, first_name, last_name, avatar_url, phone')
         .order('created_at', { ascending: false })
         .limit(1000);
       return (data || []).filter(p => p.user_id !== user?.id);
+    },
+    enabled: !!user,
+  });
+
+  const { data: phoneBook } = useQuery({
+    queryKey: ['my_imported_contacts_phones', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from('imported_contacts').select('contact_phone').eq('user_id', user!.id);
+      return new Set((data || []).map((r: any) => normPhone(r.contact_phone)));
     },
     enabled: !!user,
   });
@@ -41,9 +56,17 @@ export default function CollaborationRequest() {
   const sentMap = useMemo(() => new Map((existingReqs || []).map((r: any) => [r.to_user_id, r.status])), [existingReqs]);
 
   const q = normalizeSearch(search);
-  const filtered = (profiles || []).filter(p =>
-    !q || normalizeSearch(`${p.first_name || ''} ${p.last_name || ''}`).includes(q)
-  );
+  const filtered = useMemo(() => {
+    const list = (profiles || []).filter(p =>
+      !q || normalizeSearch(`${p.first_name || ''} ${p.last_name || ''}`).includes(q)
+    );
+    const pb = phoneBook || new Set();
+    return [...list].sort((a, b) => {
+      const ap = pb.has(normPhone(a.phone || '')) ? 0 : 1;
+      const bp = pb.has(normPhone(b.phone || '')) ? 0 : 1;
+      return ap - bp;
+    });
+  }, [profiles, phoneBook, q]);
 
   const toggle = (id: string) => {
     setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -111,7 +134,7 @@ export default function CollaborationRequest() {
       )}
 
       {selected.size > 0 && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-full max-w-lg lg:max-w-md px-4">
+        <div className="fixed bottom-40 left-1/2 -translate-x-1/2 z-40 w-full max-w-lg lg:max-w-md px-4">
           <Button onClick={sendRequests} disabled={sending}
             className="w-full h-12 rounded-full bg-primary text-primary-foreground shadow-2xl">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

@@ -15,19 +15,24 @@ function normPhone(p: string): string {
   return d.replace(/^00/, '+');
 }
 
-// Only profiles present in current user's repertoire (imported contacts)
+// All profiles, ordered: phone-book (imported_contacts) first, then DB-only
 function useRepertoireProfiles() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ['repertoire_profiles', user?.id],
+    queryKey: ['all_profiles_for_members', user?.id],
     queryFn: async () => {
       if (!user) return [] as any[];
-      const { data: imported } = await supabase
-        .from('imported_contacts').select('contact_phone').eq('user_id', user.id);
-      const phones = Array.from(new Set((imported || []).map((i: any) => normPhone(i.contact_phone)).filter(Boolean)));
-      if (phones.length === 0) return [];
-      const { data } = await supabase.from('profiles').select('*').in('phone', phones);
-      return (data || []).filter((p: any) => p.user_id !== user.id);
+      const [{ data: imported }, { data: profiles }] = await Promise.all([
+        supabase.from('imported_contacts').select('contact_phone').eq('user_id', user.id),
+        supabase.from('profiles').select('*'),
+      ]);
+      const importedSet = new Set((imported || []).map((i: any) => normPhone(i.contact_phone)));
+      const list = (profiles || []).filter((p: any) => p.user_id !== user.id);
+      return list.sort((a: any, b: any) => {
+        const ap = importedSet.has(normPhone(a.phone || '')) ? 0 : 1;
+        const bp = importedSet.has(normPhone(b.phone || '')) ? 0 : 1;
+        return ap - bp;
+      });
     },
     enabled: !!user,
   });

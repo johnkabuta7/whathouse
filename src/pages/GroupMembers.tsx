@@ -50,13 +50,34 @@ export default function GroupMembers() {
   const [ghostName, setGhostName] = useState('');
   const [ghostPhone, setGhostPhone] = useState('');
 
+  const normP = (p: string) => {
+    if (!p) return '';
+    const d = p.replace(/[^0-9+]/g, '');
+    return d.startsWith('+') ? '+' + d.slice(1).replace(/[^0-9]/g, '') : d.replace(/^00/, '+');
+  };
+  const { data: myImported } = useQuery({
+    queryKey: ['my_imported_phones_gm', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from('imported_contacts').select('contact_phone').eq('user_id', user!.id);
+      return new Set((data || []).map((r: any) => normP(r.contact_phone)));
+    },
+  });
+
   const isCreator = group?.created_by === user?.id;
   const memberIds = members?.map((m: any) => m.user_id) || [];
   const candidates = (allProfiles || []).filter(p => !memberIds.includes(p.user_id));
-  const filtered = candidates.filter(p =>
-    `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
-    (p.phone || '').includes(search)
-  );
+  const filtered = candidates
+    .filter(p =>
+      `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
+      (p.phone || '').includes(search)
+    )
+    .sort((a, b) => {
+      const pb = myImported || new Set();
+      const ap = pb.has(normP(a.phone || '')) ? 0 : 1;
+      const bp = pb.has(normP(b.phone || '')) ? 0 : 1;
+      return ap - bp;
+    });
 
   const handleRemove = (userId: string) => {
     if (!id) return;
