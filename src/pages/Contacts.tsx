@@ -53,18 +53,36 @@ function useRepertoire() {
       const pending: any[] = [];
       for (const imp of all) {
         const profile = byPhone.get(normalizePhone(imp.contact_phone));
-        if (!profile) continue; // not on app yet — silently skip
-        if (profile.user_id === user.id) continue;
-        const row = {
-          ...profile,
-          import_id: imp.id,
-          import_status: imp.status,
-          contact_name: imp.contact_name,
-          online: onlineSet.has(profile.user_id),
-          last_seen: seenMap.get(profile.user_id) || null,
-        };
-        if (imp.status === 'confirmed') confirmed.push(row);
-        else pending.push(row);
+        if (profile && profile.user_id === user.id) continue;
+
+        if (profile) {
+          const row = {
+            ...profile,
+            import_id: imp.id,
+            import_status: imp.status,
+            contact_name: imp.contact_name,
+            online: onlineSet.has(profile.user_id),
+            last_seen: seenMap.get(profile.user_id) || null,
+            is_pending: false,
+          };
+          if (imp.status === 'confirmed') confirmed.push(row);
+          else pending.push(row);
+        } else {
+          // Contact imported but not yet on WhatHouse — keep in "pending" list
+          pending.push({
+            user_id: null,
+            first_name: imp.contact_name || '',
+            last_name: '',
+            phone: imp.contact_phone,
+            avatar_url: null,
+            import_id: imp.id,
+            import_status: 'pending',
+            contact_name: imp.contact_name,
+            online: false,
+            last_seen: null,
+            is_pending: true,
+          });
+        }
       }
       return { confirmed, pending };
     },
