@@ -176,18 +176,21 @@ export default function CreateGroup() {
           </div>
 
           <div className="px-4">
-            {filteredProfiles?.map(p => {
+            {filteredProfiles?.map((p: any) => {
               const pName = `${p.first_name} ${p.last_name}`.trim() || 'Utilisateur';
               const selected = selectedMembers.includes(p.user_id);
+              const isGhost = !!p.__ghost;
               return (
                 <button key={p.user_id} onClick={() => toggleMember(p.user_id)}
-                  className="w-full flex items-center gap-3 py-3 border-b border-border text-left">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${selected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
-                    {selected ? <Check className="h-4 w-4" /> : pName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  className={`w-full flex items-center gap-3 py-3 border-b border-border text-left ${isGhost ? 'bg-amber-500/5' : ''}`}>
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${selected ? 'bg-primary text-primary-foreground' : isGhost ? 'bg-amber-500/15 text-amber-600' : 'bg-primary/10 text-primary'}`}>
+                    {selected ? <Check className="h-4 w-4" /> : isGhost ? '👻' : pName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{pName}</p>
-                    {p.phone && <p className="text-[10px] text-muted-foreground">{p.phone}</p>}
+                    {isGhost ? (
+                      <p className="text-[10px] text-amber-600">Fantôme · En attente d'inscription</p>
+                    ) : p.phone && <p className="text-[10px] text-muted-foreground">{p.phone}</p>}
                   </div>
                 </button>
               );
