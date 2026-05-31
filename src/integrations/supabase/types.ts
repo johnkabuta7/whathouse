@@ -377,6 +377,33 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_group_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          invited_by: string
+          name: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          invited_by: string
+          name?: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          invited_by?: string
+          name?: string
+          phone?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_type: string
@@ -385,6 +412,7 @@ export type Database = {
           created_at: string
           email: string | null
           first_name: string
+          ghost_mode: boolean
           id: string
           last_name: string
           phone: string | null
@@ -400,6 +428,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name?: string
+          ghost_mode?: boolean
           id?: string
           last_name?: string
           phone?: string | null
@@ -415,6 +444,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name?: string
+          ghost_mode?: boolean
           id?: string
           last_name?: string
           phone?: string | null
