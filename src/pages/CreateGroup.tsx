@@ -102,12 +102,23 @@ export default function CreateGroup() {
       try { image_url = await uploadListingImage(imageFile, user.id); } catch { /* ignore */ }
     }
 
+    const ghostPicks = selectedMembers.filter(id => id.startsWith('ghost:'));
+    const realPicks = selectedMembers.filter(id => !id.startsWith('ghost:'));
+
     createGroup.mutate(
       { name: name.trim(), created_by: user.id, image_url },
       {
         onSuccess: async (data) => {
-          for (const memberId of selectedMembers) {
+          for (const memberId of realPicks) {
             await supabase.from('group_members').insert({ group_id: data.id, user_id: memberId });
+          }
+          // Add ghost invites as pending_group_members
+          for (const gid of ghostPicks) {
+            const phone = gid.replace('ghost:', '');
+            const ghost = (repertoire || []).find((r: any) => r.user_id === gid);
+            await supabase.from('pending_group_members' as any).insert({
+              group_id: data.id, phone, name: ghost?.first_name || phone, invited_by: user.id,
+            });
           }
           toast({ title: 'Groupe créé !' });
           navigate(`/group/${data.id}`);
