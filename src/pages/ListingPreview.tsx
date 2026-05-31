@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, ExternalLink, Users, Maximize2 } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, ExternalLink, Users, Maximize2, Share2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenGallery } from '@/components/FullscreenGallery';
 
@@ -77,6 +77,19 @@ export default function ListingPreview() {
           <p className="text-sm font-bold truncate text-foreground">{listing.title}</p>
           <p className="text-[11px] text-muted-foreground truncate">Aperçu de l'annonce</p>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            const url = window.location.href;
+            const text = `🏠 ${listing.title}\n${url}`;
+            if ((navigator as any).share) (navigator as any).share({ title: listing.title, text, url }).catch(() => {});
+            else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+          }}
+          aria-label="Partager"
+          className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-muted text-primary"
+        >
+          <Share2 className="h-5 w-5" />
+        </button>
       </div>
 
       {images.length > 0 && (
