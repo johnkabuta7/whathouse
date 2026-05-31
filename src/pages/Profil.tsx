@@ -603,6 +603,18 @@ function ProfilLogged() {
               />
             </div>
 
+            <div className="w-full flex items-start gap-3 py-3 border-b border-border">
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0"><EyeOff className="h-4 w-4 text-primary" /></div>
+              <div className="flex-1 text-left">
+                <p className="text-sm text-foreground">Mode fantôme</p>
+                <p className="text-[11px] text-muted-foreground">Masque votre statut en ligne, dernière connexion et accusés de lecture.</p>
+              </div>
+              <Switch
+                checked={(profile as any)?.ghost_mode ?? false}
+                onCheckedChange={(checked) => user && updateProfile.mutate({ userId: user.id, ghost_mode: checked } as any)}
+              />
+            </div>
+
             {notifSettings?.sound_enabled !== false && (
               <div className="py-3 border-b border-border">
                 <div className="flex items-center gap-3 mb-2">

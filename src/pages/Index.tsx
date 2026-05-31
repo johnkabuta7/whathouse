@@ -41,7 +41,7 @@ function useOnlineContacts() {
           ?.filter((s: any) => new Date(s.updated_at).getTime() > cutoff)
           .map((s: any) => s.user_id) || []
       );
-      return others.map((p: any) => ({ ...p, online: onlineSet.has(p.user_id) }));
+      return others.map((p: any) => ({ ...p, online: p.ghost_mode ? false : onlineSet.has(p.user_id) }));
     },
     enabled: !!user,
     refetchInterval: 60_000,

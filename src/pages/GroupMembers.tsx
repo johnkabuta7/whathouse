@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, UserMinus, Users, Check, X, UserPlus, Search } from 'lucide-react';
+import { ArrowLeft, UserMinus, Users, Check, X, UserPlus, Search, Phone, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGroup, useGroupMembers, useLeaveGroup, useJoinRequests, useRespondJoinRequest, useAddMembersToGroup } from '@/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 function useAllProfiles() {
   return useQuery({
@@ -20,6 +20,17 @@ function useAllProfiles() {
   });
 }
 
+function usePendingMembers(groupId: string) {
+  return useQuery({
+    queryKey: ['pending_group_members', groupId],
+    enabled: !!groupId,
+    queryFn: async () => {
+      const { data } = await supabase.from('pending_group_members' as any).select('*').eq('group_id', groupId).order('created_at', { ascending: false });
+      return (data as any[]) || [];
+    },
+  });
+}
+
 export default function GroupMembers() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -27,13 +38,17 @@ export default function GroupMembers() {
   const { data: members, isLoading } = useGroupMembers(id || '');
   const { data: joinRequests } = useJoinRequests(id || '');
   const { data: allProfiles } = useAllProfiles();
+  const { data: pendingMembers } = usePendingMembers(id || '');
   const leaveGroup = useLeaveGroup();
   const respondRequest = useRespondJoinRequest();
   const addMembers = useAddMembersToGroup();
   const { toast } = useToast();
+  const qc = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
+  const [ghostName, setGhostName] = useState('');
+  const [ghostPhone, setGhostPhone] = useState('');
 
   const isCreator = group?.created_by === user?.id;
   const memberIds = members?.map((m: any) => m.user_id) || [];
@@ -71,6 +86,45 @@ export default function GroupMembers() {
       },
       onError: (e: any) => toast({ title: 'Erreur', description: e.message, variant: 'destructive' }),
     });
+  };
+
+  const normalizePhone = (p: string) => {
+    const d = (p || '').replace(/[^0-9+]/g, '');
+    return d.startsWith('+') ? '+' + d.slice(1).replace(/[^0-9]/g, '') : d.replace(/^00/, '+');
+  };
+
+  const addGhostMember = async () => {
+    if (!id || !user) return;
+    const phone = normalizePhone(ghostPhone);
+    if (!phone || phone.replace(/[^0-9]/g, '').length < 7) {
+      toast({ title: 'Numéro invalide', variant: 'destructive' }); return;
+    }
+    const { error } = await supabase.from('pending_group_members' as any).insert({
+      group_id: id, phone, name: ghostName.trim() || phone, invited_by: user.id,
+    });
+    if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+    setGhostName(''); setGhostPhone('');
+    toast({ title: 'Membre fantôme ajouté', description: 'Il rejoindra automatiquement le groupe dès son inscription.' });
+    qc.invalidateQueries({ queryKey: ['pending_group_members', id] });
+  };
+
+  const removeGhostMember = async (pid: string) => {
+    if (!id) return;
+    const { error } = await supabase.from('pending_group_members' as any).delete().eq('id', pid);
+    if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+    qc.invalidateQueries({ queryKey: ['pending_group_members', id] });
+  };
+
+  const inviteGhost = (phone: string, name: string) => {
+    const origin = window.location.origin;
+    const msg = `Bonjour ${name || ''}, vous avez été ajouté(e) au groupe "${group?.name || ''}" sur WhatHouse. Inscrivez-vous ici : ${origin}/login`;
+    const phoneDigits = phone.replace(/[^0-9]/g, '');
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const url = isMobile
+      ? `whatsapp://send?phone=${phoneDigits}&text=${encodeURIComponent(msg)}`
+      : `https://wa.me/${phoneDigits}?text=${encodeURIComponent(msg)}`;
+    if (isMobile) window.location.href = url;
+    else window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -121,8 +175,46 @@ export default function GroupMembers() {
             className="w-full rounded-full bg-primary text-primary-foreground">
             <UserPlus className="h-4 w-4 mr-1" />Ajouter {picked.length > 0 && `(${picked.length})`}
           </Button>
+
+          <div className="pt-3 mt-2 border-t border-primary/20 space-y-2">
+            <p className="text-[11px] font-bold text-primary uppercase tracking-wide">Ajouter un membre fantôme</p>
+            <p className="text-[10px] text-muted-foreground">Pour quelqu'un qui n'a pas encore de compte. Il rejoindra automatiquement dès son inscription.</p>
+            <Input value={ghostName} onChange={e => setGhostName(e.target.value)} placeholder="Nom (optionnel)" className="rounded-full text-xs h-8" />
+            <Input value={ghostPhone} onChange={e => setGhostPhone(e.target.value)} placeholder="+243..." className="rounded-full text-xs h-8" />
+            <Button onClick={addGhostMember} disabled={!ghostPhone.trim()} variant="outline" className="w-full rounded-full text-xs h-8">
+              <Phone className="h-3.5 w-3.5 mr-1" />Ajouter en attente
+            </Button>
+          </div>
         </div>
       )}
+
+      {pendingMembers && pendingMembers.length > 0 && (
+        <div className="mb-5">
+          <h2 className="text-xs font-bold text-muted-foreground uppercase mb-2">En attente ({pendingMembers.length})</h2>
+          <div className="space-y-2">
+            {pendingMembers.map((p: any) => (
+              <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-dashed border-border">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{p.phone} · En attente d'inscription</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => inviteGhost(p.phone, p.name)} className="rounded-full h-8 px-2 text-[10px]">
+                  Inviter
+                </Button>
+                {isCreator && (
+                  <Button size="sm" variant="ghost" onClick={() => removeGhostMember(p.id)} className="text-destructive h-8 w-8 p-0">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
 
       {/* Join requests (admin only) */}
       {isCreator && joinRequests && joinRequests.length > 0 && (
