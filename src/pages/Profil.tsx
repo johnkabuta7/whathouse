@@ -611,7 +611,7 @@ function ProfilLogged() {
               </div>
               <Switch
                 checked={(profile as any)?.ghost_mode ?? false}
-                onCheckedChange={(checked) => user && updateProfile.mutate({ userId: user.id, updates: { ghost_mode: checked } as any })}
+                onCheckedChange={(checked) => user && updateProfile.mutate({ userId: user.id, ghost_mode: checked } as any)}
               />
             </div>
 
