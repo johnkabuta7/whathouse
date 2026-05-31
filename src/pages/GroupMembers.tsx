@@ -183,7 +183,30 @@ export default function GroupMembers() {
             <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un contact..." className="rounded-full text-sm h-9 pl-9" />
           </div>
           <div className="max-h-60 overflow-y-auto space-y-1">
-            {filtered.length === 0 ? (
+            {/* Ghost invites (already invited contacts pending signup) shown first */}
+            {ghostRows.map((g: any) => (
+              <button key={`ghost-${g.contact_phone}`}
+                onClick={async () => {
+                  if (!id || !user) return;
+                  const { error } = await supabase.from('pending_group_members' as any).insert({
+                    group_id: id, phone: normP(g.contact_phone), name: g.contact_name || g.contact_phone, invited_by: user.id,
+                  });
+                  if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+                  toast({ title: 'Invité ajouté au groupe', description: 'En attente d\'inscription.' });
+                  qc.invalidateQueries({ queryKey: ['pending_group_members', id] });
+                }}
+                className="w-full flex items-center gap-3 p-2 rounded-xl text-left transition hover:bg-amber-500/10 border border-dashed border-amber-500/30">
+                <div className="h-9 w-9 rounded-full bg-amber-500/15 text-amber-600 flex items-center justify-center shrink-0">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{g.contact_name || g.contact_phone}</p>
+                  <p className="text-[10px] text-amber-600">👻 Fantôme · En attente d'inscription</p>
+                </div>
+                <UserPlus className="h-4 w-4 text-amber-600" />
+              </button>
+            ))}
+            {filtered.length === 0 && ghostRows.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-4">Aucun contact disponible</p>
             ) : filtered.map(p => {
               const name = `${p.first_name} ${p.last_name}`.trim() || 'Utilisateur';
