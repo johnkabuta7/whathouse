@@ -219,17 +219,22 @@ export default function GroupMembers() {
 
       {/* Add members panel */}
       {showAdd && isCreator && (
-        <div className="mb-5 p-3 rounded-2xl border border-primary/20 bg-primary/5 animate-fade-in space-y-3">
+        <div className="mb-5 p-3 rounded-2xl border border-border bg-card animate-fade-in space-y-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-primary flex-1">Ajouter des membres</h2>
+            <h2 className="text-sm font-bold text-foreground flex-1">Ajouter des membres</h2>
             <button onClick={() => { setShowAdd(false); setPicked([]); setSearch(''); }} className="text-muted-foreground"><X className="h-4 w-4" /></button>
           </div>
+
+          <Button onClick={pickFromPhonebook} disabled={importing} variant="outline" className="w-full rounded-full h-10 text-sm gap-2">
+            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
+            Importer depuis le répertoire
+          </Button>
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un contact..." className="rounded-full text-sm h-9 pl-9" />
           </div>
           <div className="max-h-60 overflow-y-auto space-y-1">
-            {/* Ghost invites (already invited contacts pending signup) shown first */}
             {ghostRows.map((g: any) => (
               <button key={`ghost-${g.contact_phone}`}
                 onClick={async () => {
@@ -241,15 +246,15 @@ export default function GroupMembers() {
                   toast({ title: 'Invité ajouté au groupe', description: 'En attente d\'inscription.' });
                   qc.invalidateQueries({ queryKey: ['pending_group_members', id] });
                 }}
-                className="w-full flex items-center gap-3 p-2 rounded-xl text-left transition hover:bg-amber-500/10 border border-dashed border-amber-500/30">
-                <div className="h-9 w-9 rounded-full bg-amber-500/15 text-amber-600 flex items-center justify-center shrink-0">
+                className="w-full flex items-center gap-3 p-2 rounded-xl text-left transition hover:bg-muted">
+                <div className="h-9 w-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
                   <Phone className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{g.contact_name || g.contact_phone}</p>
-                  <p className="text-[10px] text-amber-600">👻 Fantôme · En attente d'inscription</p>
+                  <p className="text-[10px] text-muted-foreground">👻 En attente d'inscription</p>
                 </div>
-                <UserPlus className="h-4 w-4 text-amber-600" />
+                <UserPlus className="h-4 w-4 text-muted-foreground" />
               </button>
             ))}
             {filtered.length === 0 && ghostRows.length === 0 ? (
@@ -260,7 +265,7 @@ export default function GroupMembers() {
               return (
                 <button key={p.user_id} onClick={() => togglePick(p.user_id)}
                   className={`w-full flex items-center gap-3 p-2 rounded-xl text-left transition ${isPicked ? 'bg-primary/15' : 'hover:bg-muted'}`}>
-                  <div className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden shrink-0 ${isPicked ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+                  <div className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden shrink-0 ${isPicked ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
                     {isPicked ? <Check className="h-4 w-4" /> : (p.avatar_url ? <img src={p.avatar_url} className="h-full w-full object-cover rounded-full" /> : name.split(' ').map(n => n[0]).join('').slice(0, 2))}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -275,16 +280,6 @@ export default function GroupMembers() {
             className="w-full rounded-full bg-primary text-primary-foreground">
             <UserPlus className="h-4 w-4 mr-1" />Ajouter {picked.length > 0 && `(${picked.length})`}
           </Button>
-
-          <div className="pt-3 mt-2 border-t border-primary/20 space-y-2">
-            <p className="text-[11px] font-bold text-primary uppercase tracking-wide">Ajouter un membre fantôme</p>
-            <p className="text-[10px] text-muted-foreground">Pour quelqu'un qui n'a pas encore de compte. Il rejoindra automatiquement dès son inscription.</p>
-            <Input value={ghostName} onChange={e => setGhostName(e.target.value)} placeholder="Nom (optionnel)" className="rounded-full text-xs h-8" />
-            <Input value={ghostPhone} onChange={e => setGhostPhone(e.target.value)} placeholder="+243..." className="rounded-full text-xs h-8" />
-            <Button onClick={addGhostMember} disabled={!ghostPhone.trim()} variant="outline" className="w-full rounded-full text-xs h-8">
-              <Phone className="h-3.5 w-3.5 mr-1" />Ajouter en attente
-            </Button>
-          </div>
         </div>
       )}
 
