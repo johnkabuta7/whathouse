@@ -108,8 +108,8 @@ export default function Login() {
       </button>
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center animate-fade-in">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary/10 mb-4 overflow-hidden">
-            <img src="/whathouse-icon.png" alt="WhatHouse" className="h-12 w-12 object-contain" />
+          <div className="inline-flex items-center justify-center h-28 w-28 rounded-3xl bg-black mb-4 overflow-hidden shadow-lg">
+            <img src="/whathouse-icon.png" alt="WhatHouse" className="h-full w-full object-cover" />
           </div>
           <h1 className="text-2xl font-extrabold text-foreground">WhatHouse</h1>
           <p className="text-sm text-muted-foreground mt-1">Pro Immobilier</p>
