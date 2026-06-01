@@ -77,6 +77,62 @@ export default function CreateGroup() {
   const { data: repertoire } = useRepertoireProfiles();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const qc = useQueryClient();
+  const [importing, setImporting] = useState(false);
+
+  const normalizePhone = (p: string) => {
+    const d = (p || '').replace(/[^0-9+]/g, '');
+    return d.startsWith('+') ? '+' + d.slice(1).replace(/[^0-9]/g, '') : d.replace(/^00/, '+');
+  };
+
+  const importFromPhonebook = async () => {
+    if (!user) return;
+    const nav: any = navigator;
+    if (!nav.contacts || !nav.contacts.select) {
+      toast({ title: 'Indisponible', description: "Le navigateur ne supporte pas l'accès au répertoire." });
+      return;
+    }
+    setImporting(true);
+    try {
+      let result: any[];
+      try { result = await nav.contacts.select(['name', 'tel', 'icon'], { multiple: true }); }
+      catch { result = await nav.contacts.select(['name', 'tel'], { multiple: true }); }
+      const seen = new Set<string>();
+      const cleaned: { name: string; phone: string }[] = [];
+      for (const c of result) {
+        const nm = (c.name && c.name[0]) || '';
+        for (const tel of (c.tel || [])) {
+          const phone = normalizePhone(tel);
+          if (!phone || phone.replace(/[^0-9]/g, '').length < 7) continue;
+          if (seen.has(phone)) continue; seen.add(phone);
+          cleaned.push({ name: nm, phone });
+        }
+      }
+      if (cleaned.length === 0) { toast({ title: 'Aucun numéro détecté' }); return; }
+
+      const phones = cleaned.map(c => c.phone);
+      const { data: profiles } = await supabase.from('profiles').select('user_id, phone').in('phone', phones);
+      const byPhone = new Map<string, any>();
+      (profiles || []).forEach((p: any) => p.phone && byPhone.set(normalizePhone(p.phone), p));
+
+      await supabase.from('imported_contacts').upsert(cleaned.map(c => ({
+        user_id: user.id, contact_phone: c.phone, contact_name: c.name || c.phone,
+        status: byPhone.get(c.phone) ? 'confirmed' : 'pending',
+      })) as any, { onConflict: 'user_id,contact_phone' });
+
+      // Auto-select these contacts
+      const newIds: string[] = [];
+      for (const c of cleaned) {
+        const prof = byPhone.get(c.phone);
+        if (prof) newIds.push(prof.user_id);
+        else newIds.push(`ghost:${c.phone}`);
+      }
+      setSelectedMembers(prev => Array.from(new Set([...prev, ...newIds])));
+      qc.invalidateQueries({ queryKey: ['all_profiles_for_members', user.id] });
+      toast({ title: `${cleaned.length} contact(s) importé(s) et sélectionné(s)` });
+    } catch { toast({ title: 'Accès refusé', variant: 'destructive' }); }
+    finally { setImporting(false); }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -172,8 +228,11 @@ export default function CreateGroup() {
               {selectedMembers.length} membre{selectedMembers.length > 1 ? 's' : ''} sélectionné{selectedMembers.length > 1 ? 's' : ''}
             </div>
           )}
-          <div className="px-4 py-2">
-            <Input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} placeholder="Rechercher un contact..." className="rounded-full text-sm h-9" />
+          <div className="px-4 py-2 flex gap-2">
+            <Input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} placeholder="Rechercher un contact..." className="rounded-full text-sm h-9 flex-1" />
+            <Button onClick={importFromPhonebook} disabled={importing} size="sm" variant="outline" className="rounded-full h-9 px-3 shrink-0" title="Importer depuis le répertoire">
+              {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
+            </Button>
           </div>
 
           <div className="px-4">
