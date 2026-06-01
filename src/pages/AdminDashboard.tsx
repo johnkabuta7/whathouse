@@ -236,7 +236,7 @@ function DataTablesSection() {
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <div className="px-3 py-2 bg-muted text-xs font-semibold text-foreground flex items-center justify-between">
           <span>Utilisateurs ({data.users.length})</span>
-          <span className="text-[10px] text-muted-foreground">Cliquez sur le menu pour changer le type</span>
+          <span className="text-[10px] text-muted-foreground">Type · Se connecter en tant que</span>
         </div>
         <div className="divide-y divide-border max-h-96 overflow-y-auto">
           {data.users.map((u: any) => <UserTypeRow key={u.user_id} u={u} />)}
@@ -246,12 +246,7 @@ function DataTablesSection() {
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <div className="px-3 py-2 bg-muted text-xs font-semibold text-foreground">Annonces ({data.listings.length})</div>
         <div className="divide-y divide-border max-h-72 overflow-y-auto">
-          {data.listings.map((l: any) => (
-            <div key={l.id} className="px-3 py-2 text-xs">
-              <p className="font-medium text-foreground truncate">{l.title}</p>
-              <p className="text-muted-foreground truncate">{new Date(l.created_at).toLocaleString('fr-FR')}</p>
-            </div>
-          ))}
+          {data.listings.map((l: any) => <ListingAdminRow key={l.id} l={l} users={data.users} />)}
         </div>
       </div>
 
@@ -265,18 +260,62 @@ function DataTablesSection() {
   );
 }
 
+function ListingAdminRow({ l, users }: { l: any; users: any[] }) {
+  const qc = useQueryClient();
+  const [authorId, setAuthorId] = useState<string>(l.user_id || '');
+  const [saving, setSaving] = useState(false);
+
+  const updateAuthor = async (val: string) => {
+    setAuthorId(val);
+    setSaving(true);
+    const { error } = await supabase.from('listings').update({ user_id: val }).eq('id', l.id);
+    setSaving(false);
+    if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Auteur mis à jour' });
+    qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
+  };
+
+  return (
+    <div className="px-3 py-2 text-xs flex items-center gap-2">
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-foreground truncate">{l.title}</p>
+        <p className="text-[10px] text-muted-foreground truncate">{new Date(l.created_at).toLocaleString('fr-FR')}</p>
+      </div>
+      <select
+        value={authorId}
+        onChange={e => updateAuthor(e.target.value)}
+        disabled={saving}
+        className="text-[10px] bg-muted rounded-md border border-border px-1 py-0.5 text-foreground max-w-[40%] truncate"
+      >
+        {!users.find(u => u.user_id === authorId) && <option value={authorId}>— Auteur inconnu —</option>}
+        {users.map(u => (
+          <option key={u.user_id} value={u.user_id}>
+            {(`${u.first_name || ''} ${u.last_name || ''}`.trim() || u.phone || u.email || u.user_id.slice(0, 8))}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function GroupAdminRow({ g }: { g: any }) {
   const qc = useQueryClient();
   const del = useDeleteGroup();
-  const stars: number = g.visibility_stars || 1;
+  const [stars, setStarsState] = useState<number>(g.visibility_stars || 1);
 
   const setStars = async (val: number) => {
+    setStarsState(val); // optimistic
     const { error } = await supabase.from('groups').update({ visibility_stars: val }).eq('id', g.id);
-    if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+    if (error) {
+      setStarsState(g.visibility_stars || 1);
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
     toast({ title: `Visibilité : ${'★'.repeat(val)}` });
     qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
     qc.invalidateQueries({ queryKey: ['all_groups'] });
     qc.invalidateQueries({ queryKey: ['my_groups'] });
+    qc.invalidateQueries({ queryKey: ['search_groups'] });
   };
 
   const handleDelete = () => {
@@ -291,18 +330,17 @@ function GroupAdminRow({ g }: { g: any }) {
   };
 
   return (
-    <div className="px-3 py-2 text-xs flex items-center gap-2">
+    <div className="px-3 py-2.5 text-xs flex items-center gap-2">
       <span className="font-medium text-foreground flex-1 truncate">{g.name}</span>
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-1">
         {[1, 2, 3].map(n => (
-          <button key={n} onClick={() => setStars(n)} className="p-0.5" title={`${n} étoile${n>1?'s':''}`}>
-            <Star className={`h-3.5 w-3.5 ${n <= stars ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground/40'}`} />
+          <button key={n} onClick={() => setStars(n)} className="p-1 hover:scale-110 transition-transform" title={`${n} étoile${n>1?'s':''}`}>
+            <Star className={`h-6 w-6 ${n <= stars ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground/40'}`} />
           </button>
         ))}
       </div>
-      <span className="text-[10px] text-muted-foreground hidden sm:inline">{new Date(g.created_at).toLocaleDateString('fr-FR')}</span>
-      <button onClick={handleDelete} disabled={del.isPending} className="p-1 rounded hover:bg-destructive/10 text-destructive">
-        <Trash2 className="h-3.5 w-3.5" />
+      <button onClick={handleDelete} disabled={del.isPending} className="p-1.5 rounded hover:bg-destructive/10 text-destructive">
+        <Trash2 className="h-4 w-4" />
       </button>
     </div>
   );
