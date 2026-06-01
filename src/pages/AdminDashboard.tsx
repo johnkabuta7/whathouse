@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Users, FileText, TrendingUp, Loader2, Database, Crown, Shield, User as UserIcon, Sparkles, Trash2, Star } from 'lucide-react';
+import { ArrowLeft, BarChart3, Users, FileText, TrendingUp, Loader2, Database, Crown, Shield, User as UserIcon, Sparkles, Trash2, Star, LogIn } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsAppAdmin, useDeleteGroup } from '@/hooks/use-data';
@@ -162,16 +163,34 @@ function UserTypeRow({ u }: { u: any }) {
   const current: AccountType = (u.account_type as AccountType) || 'agent';
   const meta = TYPE_META[current];
   const Icon = meta.icon;
+  const [imp, setImp] = useState(false);
+
   const update = async (val: AccountType) => {
     const { error } = await supabase.from('profiles').update({ account_type: val }).eq('user_id', u.user_id);
     if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Type de compte mis à jour' });
     qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
   };
+
+  const loginAs = async () => {
+    if (!confirm(`Se connecter en tant que "${(u.first_name || '') + ' ' + (u.last_name || '')}" ?\n\nVotre session admin sera remplacée.`)) return;
+    setImp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-impersonate', { body: { target_user_id: u.user_id } });
+      if (error) throw error;
+      if (!data?.email || !data?.token_hash) throw new Error('Réponse invalide');
+      const { error: vErr } = await supabase.auth.verifyOtp({ type: 'magiclink', email: data.email, token_hash: data.token_hash } as any);
+      if (vErr) throw vErr;
+      toast({ title: 'Connecté en tant que ' + (u.first_name || u.email || u.phone) });
+      window.location.href = '/';
+    } catch (e: any) {
+      toast({ title: 'Erreur', description: e.message || 'Impersonation impossible', variant: 'destructive' });
+    } finally { setImp(false); }
+  };
+
   return (
     <div className="px-3 py-2 text-xs flex items-center gap-2">
       <span className="font-medium text-foreground flex-1 truncate">{`${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}</span>
-      <span className="text-muted-foreground truncate hidden sm:inline">{u.phone || u.email || ''}</span>
       <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${meta.cls}`}>
         <Icon className="h-3 w-3" />{meta.label}
       </span>
@@ -184,6 +203,9 @@ function UserTypeRow({ u }: { u: any }) {
         <option value="agent_premium">Premium</option>
         <option value="admin">Admin</option>
       </select>
+      <button onClick={loginAs} disabled={imp} title="Se connecter en tant que" className="p-1 rounded hover:bg-primary/10 text-primary">
+        {imp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogIn className="h-3.5 w-3.5" />}
+      </button>
     </div>
   );
 }
