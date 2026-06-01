@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, UserMinus, Users, Check, X, UserPlus, Search, Phone, Trash2 } from 'lucide-react';
+import { ArrowLeft, UserMinus, Check, X, UserPlus, Search, Phone, Trash2, Smartphone, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,8 +47,7 @@ export default function GroupMembers() {
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
-  const [ghostName, setGhostName] = useState('');
-  const [ghostPhone, setGhostPhone] = useState('');
+  const [importing, setImporting] = useState(false);
 
   const normP = (p: string) => {
     if (!p) return '';
@@ -124,19 +123,66 @@ export default function GroupMembers() {
     return d.startsWith('+') ? '+' + d.slice(1).replace(/[^0-9]/g, '') : d.replace(/^00/, '+');
   };
 
-  const addGhostMember = async () => {
+  const pickFromPhonebook = async () => {
     if (!id || !user) return;
-    const phone = normalizePhone(ghostPhone);
-    if (!phone || phone.replace(/[^0-9]/g, '').length < 7) {
-      toast({ title: 'Numéro invalide', variant: 'destructive' }); return;
+    const nav: any = navigator;
+    if (!nav.contacts || !nav.contacts.select) {
+      toast({ title: 'Indisponible', description: "Le navigateur ne supporte pas l'accès au répertoire.", variant: 'destructive' });
+      return;
     }
-    const { error } = await supabase.from('pending_group_members' as any).insert({
-      group_id: id, phone, name: ghostName.trim() || phone, invited_by: user.id,
-    });
-    if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
-    setGhostName(''); setGhostPhone('');
-    toast({ title: 'Membre fantôme ajouté', description: 'Il rejoindra automatiquement le groupe dès son inscription.' });
-    qc.invalidateQueries({ queryKey: ['pending_group_members', id] });
+    setImporting(true);
+    try {
+      let result: any[];
+      try { result = await nav.contacts.select(['name', 'tel', 'icon'], { multiple: true }); }
+      catch { result = await nav.contacts.select(['name', 'tel'], { multiple: true }); }
+
+      const contacts: { name: string; phone: string }[] = [];
+      for (const c of result) {
+        const nm = (c.name && c.name[0]) || '';
+        for (const tel of (c.tel || [])) contacts.push({ name: nm, phone: normalizePhone(tel) });
+      }
+      const seen = new Set<string>();
+      const cleaned = contacts.filter(c => {
+        if (!c.phone || c.phone.replace(/[^0-9]/g, '').length < 7) return false;
+        if (seen.has(c.phone)) return false; seen.add(c.phone); return true;
+      });
+      if (cleaned.length === 0) { toast({ title: 'Aucun numéro détecté' }); return; }
+
+      // Lookup matching profiles
+      const phones = cleaned.map(c => c.phone);
+      const { data: profiles } = await supabase.from('profiles').select('user_id, phone').in('phone', phones);
+      const byPhone = new Map<string, any>();
+      (profiles || []).forEach((p: any) => p.phone && byPhone.set(normalizePhone(p.phone), p));
+
+      // Save to imported_contacts (for repertoire)
+      const importedRows = cleaned.map(c => ({
+        user_id: user.id, contact_phone: c.phone, contact_name: c.name || c.phone,
+        status: byPhone.get(c.phone) ? 'confirmed' : 'pending',
+      }));
+      await supabase.from('imported_contacts').upsert(importedRows as any, { onConflict: 'user_id,contact_phone' });
+
+      // Add registered ones directly as group members
+      let addedMembers = 0, pending = 0;
+      for (const c of cleaned) {
+        const prof = byPhone.get(c.phone);
+        if (prof && !memberIds.includes(prof.user_id)) {
+          const { error } = await supabase.from('group_members').insert({ group_id: id, user_id: prof.user_id });
+          if (!error) addedMembers++;
+        } else if (!prof && !pendingPhonesInGroup.has(c.phone)) {
+          const { error } = await supabase.from('pending_group_members' as any).insert({
+            group_id: id, phone: c.phone, name: c.name || c.phone, invited_by: user.id,
+          });
+          if (!error) pending++;
+        }
+      }
+
+      toast({ title: 'Répertoire importé', description: `${addedMembers} membre(s) · ${pending} en attente` });
+      qc.invalidateQueries({ queryKey: ['group_members', id] });
+      qc.invalidateQueries({ queryKey: ['pending_group_members', id] });
+      qc.invalidateQueries({ queryKey: ['my_imported_phones_gm', user.id] });
+      qc.invalidateQueries({ queryKey: ['repertoire'] });
+    } catch { toast({ title: 'Accès refusé', variant: 'destructive' }); }
+    finally { setImporting(false); }
   };
 
   const removeGhostMember = async (pid: string) => {
