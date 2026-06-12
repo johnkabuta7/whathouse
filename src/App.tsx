@@ -16,6 +16,7 @@ import GroupMembers from "./pages/GroupMembers";
 import CreateGroup from "./pages/CreateGroup";
 import Contacts from "./pages/Contacts";
 import Profil from "./pages/Profil";
+import OffreImmo from "./pages/OffreImmo";
 import ContactDetail from "./pages/ContactDetail";
 import Legal from "./pages/Legal";
 import ListingPreview from "./pages/ListingPreview";
@@ -25,6 +26,7 @@ import Publish from "./pages/Publish";
 import CollaborationRequest from "./pages/CollaborationRequest";
 import CollaborationInbox from "./pages/CollaborationInbox";
 import AdminDashboard from "./pages/AdminDashboard";
+
 
 const queryClient = new QueryClient();
 
@@ -61,6 +63,7 @@ function AppRoutes() {
       <Route element={<Layout />}>
         <Route path="/" element={<Index />} />
         <Route path="/contacts" element={<Contacts />} />
+        <Route path="/offre-immo" element={<OffreImmo />} />
         <Route path="/profil" element={<Profil />} />
         <Route path="/contact/:userId" element={<ContactDetail />} />
         <Route path="/legal/:page" element={<Legal />} />

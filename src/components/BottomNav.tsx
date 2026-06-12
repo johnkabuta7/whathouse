@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { MessageSquare, Users, User } from 'lucide-react';
+import { MessageSquare, Users, Building2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 
 const navItems = [
   { label: 'Accueil', icon: MessageSquare, href: '/' },
   { label: 'Contacts', icon: Users, href: '/contacts' },
+  { label: 'Offre Immo', icon: Building2, href: '/offre-immo' },
   { label: 'Profil', icon: User, href: '/profil' },
 ];
 
