@@ -5,7 +5,7 @@ export default function OffreImmo() {
   const [loading, setLoading] = useState(true);
 
   return (
-    <div className="h-full w-full flex flex-col bg-background">
+    <div className="relative h-full w-full flex flex-col bg-background">
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
