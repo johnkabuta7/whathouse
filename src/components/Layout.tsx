@@ -8,10 +8,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import Index from '@/pages/Index';
 import Contacts from '@/pages/Contacts';
+import OffreImmo from '@/pages/OffreImmo';
 import Profil from '@/pages/Profil';
 
-const SWIPE_ROUTES = ['/', '/contacts', '/profil'];
-const PAGES = [Index, Contacts, Profil];
+const SWIPE_ROUTES = ['/', '/contacts', '/offre-immo', '/profil'];
+const PAGES = [Index, Contacts, OffreImmo, Profil];
 
 export function Layout() {
   const { pathname } = useLocation();
