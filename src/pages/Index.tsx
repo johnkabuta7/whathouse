@@ -32,9 +32,10 @@ function useOnlineContacts() {
       if (phones.length === 0) return [];
       const { data: profiles } = await supabase.from('profiles').select('*').in('phone', phones);
       const others = (profiles || []).filter((p: any) => p.user_id !== user.id);
-      const { data: sessions } = await supabase
-        .from('active_sessions' as any)
-        .select('user_id, updated_at');
+      const userIds = others.map((p: any) => p.user_id).filter(Boolean);
+      const { data: sessions } = userIds.length
+        ? await supabase.rpc('get_online_status' as any, { _user_ids: userIds })
+        : { data: [] as any[] };
       const cutoff = Date.now() - 60 * 1000;
       const onlineSet = new Set(
         (sessions as any[] | null)

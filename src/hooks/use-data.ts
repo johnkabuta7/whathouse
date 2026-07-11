@@ -482,16 +482,16 @@ export function useMyListings() {
       }
       const unique = Array.from(seen.values());
       const listingIds = unique.map(l => l.id);
-      let likes: any[] = [];
+      let likeCounts = new Map<string, number>();
       if (listingIds.length) {
-        const { data: l2 } = await supabase.from('listing_likes').select('listing_id').in('listing_id', listingIds);
-        likes = l2 || [];
+        const { data: l2 } = await supabase.rpc('get_listing_like_counts', { _listing_ids: listingIds });
+        ((l2 as any[]) || []).forEach((r: any) => likeCounts.set(r.listing_id, r.count));
       }
       return unique.map(l => {
         const key = l.wp_post_id ? `wp_${l.wp_post_id}` : `sig_${l.title}_${(l.description || '').slice(0, 80)}_${new Date(l.created_at).toISOString().slice(0, 16)}`;
         return {
           ...l,
-          like_count: likes.filter(lk => lk.listing_id === l.id).length || 0,
+          like_count: likeCounts.get(l.id) || 0,
           shared_in_groups: groupCounts.get(key) || 1,
         };
       });
@@ -625,10 +625,15 @@ export function useListingLikes(listingId: string) {
   return useQuery({
     queryKey: ['likes', listingId, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('listing_likes').select('*').eq('listing_id', listingId);
-      if (error) throw error;
-      const liked = user ? data.some(l => l.user_id === user.id) : false;
-      return { count: data.length, liked };
+      const [countRes, ownRes] = await Promise.all([
+        supabase.rpc('get_listing_like_counts', { _listing_ids: [listingId] }),
+        user
+          ? supabase.from('listing_likes').select('id').eq('listing_id', listingId).eq('user_id', user.id).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+      ]);
+      const count = (countRes.data as any[] | null)?.[0]?.count || 0;
+      const liked = !!(ownRes as any)?.data;
+      return { count, liked };
     },
     enabled: !!listingId,
   });
