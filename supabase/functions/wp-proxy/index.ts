@@ -743,6 +743,13 @@ Deno.serve(async (req) => {
 
     if (action === "publish_listing") {
       const { title, content, image_urls, listing_id } = payload;
+      // Android / multi-group publish support: accept `group_id` or `group_ids`
+      // so a listing published from the mobile app also lands in the group(s)
+      // on the Lovable web site. Single source of truth = public.listings.
+      const rawGroupIds: string[] = Array.isArray(payload?.group_ids)
+        ? payload.group_ids.filter((g: unknown) => typeof g === "string" && g)
+        : (typeof payload?.group_id === "string" && payload.group_id ? [payload.group_id] : []);
+      const source: string = typeof payload?.source === "string" ? payload.source : "";
       if (!title || !content) {
         return jsonResponse({ error: "title and content required" }, 400);
       }
