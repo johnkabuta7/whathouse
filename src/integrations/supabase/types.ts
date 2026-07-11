@@ -523,6 +523,20 @@ export type Database = {
       }
       add_mandatory_contacts: { Args: { _user_id: string }; Returns: undefined }
       delete_group_cascade: { Args: { _group_id: string }; Returns: undefined }
+      get_listing_like_counts: {
+        Args: { _listing_ids: string[] }
+        Returns: {
+          count: number
+          listing_id: string
+        }[]
+      }
+      get_online_status: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          updated_at: string
+          user_id: string
+        }[]
+      }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {

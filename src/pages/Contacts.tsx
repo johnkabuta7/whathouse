@@ -40,7 +40,10 @@ function useRepertoire() {
       const byPhone = new Map<string, any>();
       (profiles || []).forEach((p: any) => p.phone && byPhone.set(normalizePhone(p.phone), p));
 
-      const { data: sessions } = await supabase.from('active_sessions' as any).select('user_id, updated_at');
+      const userIds = (profiles || []).map((p: any) => p.user_id).filter(Boolean);
+      const { data: sessions } = userIds.length
+        ? await supabase.rpc('get_online_status' as any, { _user_ids: userIds })
+        : { data: [] as any[] };
       const cutoff = Date.now() - 2 * 60 * 1000;
       const onlineSet = new Set<string>();
       const seenMap = new Map<string, string>();
