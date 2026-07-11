@@ -514,78 +514,7 @@ export type Database = {
       }
     }
     Views: {
-      active_sessions_public: {
-        Row: {
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      listing_like_counts: {
-        Row: {
-          count: number | null
-          listing_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_likes_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles_public: {
-        Row: {
-          account_type: string | null
-          avatar_url: string | null
-          background_url: string | null
-          created_at: string | null
-          first_name: string | null
-          ghost_mode: boolean | null
-          id: string | null
-          last_name: string | null
-          phone: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          account_type?: string | null
-          avatar_url?: string | null
-          background_url?: string | null
-          created_at?: string | null
-          first_name?: string | null
-          ghost_mode?: boolean | null
-          id?: string | null
-          last_name?: string | null
-          phone?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          account_type?: string | null
-          avatar_url?: string | null
-          background_url?: string | null
-          created_at?: string | null
-          first_name?: string | null
-          ghost_mode?: boolean | null
-          id?: string | null
-          last_name?: string | null
-          phone?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_collaboration_request: {
@@ -594,6 +523,20 @@ export type Database = {
       }
       add_mandatory_contacts: { Args: { _user_id: string }; Returns: undefined }
       delete_group_cascade: { Args: { _group_id: string }; Returns: undefined }
+      get_listing_like_counts: {
+        Args: { _listing_ids: string[] }
+        Returns: {
+          count: number
+          listing_id: string
+        }[]
+      }
+      get_online_status: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          updated_at: string
+          user_id: string
+        }[]
+      }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
