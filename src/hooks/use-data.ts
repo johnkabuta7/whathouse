@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -439,6 +440,18 @@ export function useAddMembersToGroup() {
 
 // ========== LISTINGS ==========
 export function useListings(groupId: string) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!groupId) return;
+    const channel = supabase
+      .channel(`listings-${groupId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings', filter: `group_id=eq.${groupId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['listings', groupId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [groupId, queryClient]);
+
   return useQuery({
     queryKey: ['listings', groupId],
     queryFn: async () => {

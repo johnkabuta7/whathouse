@@ -743,6 +743,13 @@ Deno.serve(async (req) => {
 
     if (action === "publish_listing") {
       const { title, content, image_urls, listing_id } = payload;
+      // Android / multi-group publish support: accept `group_id` or `group_ids`
+      // so a listing published from the mobile app also lands in the group(s)
+      // on the Lovable web site. Single source of truth = public.listings.
+      const rawGroupIds: string[] = Array.isArray(payload?.group_ids)
+        ? payload.group_ids.filter((g: unknown) => typeof g === "string" && g)
+        : (typeof payload?.group_id === "string" && payload.group_id ? [payload.group_id] : []);
+      const source: string = typeof payload?.source === "string" ? payload.source : "";
       if (!title || !content) {
         return jsonResponse({ error: "title and content required" }, 400);
       }
@@ -918,27 +925,88 @@ Deno.serve(async (req) => {
         }
       }
 
+      const zwandakoUrl = wpPublicLink(postJson);
+      const createdListingIds: string[] = [];
+
       if (listing_id) {
+        // Web flow: the client already inserted the row(s); just sync WP fields.
         const { error: updateError } = await supabase
           .from("listings")
           .update({
             wp_post_id: postJson.id,
             wp_media_ids: mediaIds,
-            zwandako_url: wpPublicLink(postJson),
+            zwandako_url: zwandakoUrl,
           })
           .eq("id", listing_id);
 
         if (updateError) {
           throw new Error(`Listing sync failed: ${updateError.message}`);
         }
+      } else if (rawGroupIds.length > 0) {
+        // Android / external flow: insert one listing row per group so the
+        // annonce appears in each group on the Lovable web site. We verify
+        // membership server-side (service role bypasses RLS).
+        const { data: memberRows, error: memberErr } = await supabase
+          .from("group_members")
+          .select("group_id")
+          .eq("user_id", uid)
+          .in("group_id", rawGroupIds);
+        if (memberErr) throw new Error(`Group membership check failed: ${memberErr.message}`);
+        const allowedGroupIds = (memberRows || []).map((r: any) => r.group_id);
+
+        for (const gid of allowedGroupIds) {
+          // Avoid duplicates: if a row for this wp_post_id already exists in this group, update it.
+          const { data: existing } = await supabase
+            .from("listings")
+            .select("id")
+            .eq("group_id", gid)
+            .eq("wp_post_id", postJson.id)
+            .maybeSingle();
+
+          if (existing?.id) {
+            await supabase
+              .from("listings")
+              .update({
+                title,
+                description: String(content),
+                images: image_urls,
+                wp_media_ids: mediaIds,
+                zwandako_url: zwandakoUrl,
+              })
+              .eq("id", existing.id);
+            createdListingIds.push(existing.id);
+          } else {
+            const { data: inserted, error: insertErr } = await supabase
+              .from("listings")
+              .insert({
+                group_id: gid,
+                user_id: uid,
+                title,
+                description: String(content),
+                images: image_urls,
+                wp_post_id: postJson.id,
+                wp_media_ids: mediaIds,
+                zwandako_url: zwandakoUrl,
+              })
+              .select("id")
+              .single();
+            if (insertErr) {
+              console.error("android listing insert failed:", insertErr);
+              continue;
+            }
+            if (inserted?.id) createdListingIds.push(inserted.id);
+          }
+        }
       }
 
       return jsonResponse({
         ok: true,
         wp_post_id: postJson.id,
-        link: wpPublicLink(postJson),
+        link: zwandakoUrl,
         media_ids: mediaIds,
         mode: wpActor.mode,
+        source: source || undefined,
+        listing_ids: createdListingIds,
       });
     }
 
