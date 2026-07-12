@@ -1066,6 +1066,29 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true, posts });
     }
 
+    if (action === "list_leads") {
+      // Real Zwandako client requests (leads) — public endpoint.
+      const perPage = payload?.per_page || 40;
+      const page = payload?.page || 1;
+      try {
+        const res = await fetch(
+          `https://zwandako.com/wp-json/zwandako/v1/requests/public?per_page=${perPage}&page=${page}`,
+          { headers: { Accept: "application/json" } },
+        );
+        const text = await res.text();
+        let json: any = null;
+        try { json = text ? JSON.parse(text) : null; } catch { /* ignore */ }
+        if (!res.ok) {
+          return jsonResponse({ ok: false, error: `zwandako leads [${res.status}]: ${text.slice(0, 200)}`, items: [] }, 200);
+        }
+        const items = json?.data?.items || json?.items || [];
+        return jsonResponse({ ok: true, items });
+      } catch (e) {
+        return jsonResponse({ ok: false, error: String(e), items: [] }, 200);
+      }
+    }
+
+
     if (action === "debug_admin") {
       const capabilities = await getAdminCapabilities();
       return jsonResponse({ ...capabilities, request_ok: true });

@@ -367,75 +367,8 @@ function ProfilLogged() {
           </div>
         </section>
 
-        <section>
-          <h2 className="text-lg font-bold text-foreground mb-2">Préférences</h2>
-          <div className="rounded-2xl bg-card border border-border overflow-hidden">
-            <div className="flex items-center gap-3 p-3">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><Sparkles className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Langue</p>
-                <p className="text-xs text-muted-foreground">Français · interface anglaise plus tard</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="border-t border-border" />
-            <div className="flex items-center gap-3 p-3">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><Sparkles className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Ville préférée</p>
-                <p className="text-xs text-muted-foreground">Kinshasa</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-bold text-foreground mb-2">Sécurité et données</h2>
-          <div className="rounded-2xl bg-card border border-border overflow-hidden">
-            <button onClick={() => setEditing(true)} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Changer le mot de passe</p>
-                <p className="text-xs text-muted-foreground">Utilisez votre compte WhatHouse / Zwandako commun</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-bold text-foreground mb-2">Aide et informations</h2>
-          <div className="rounded-2xl bg-card border border-border overflow-hidden">
-            <button onClick={() => navigate('/legal/confidentialite')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Politique de confidentialité</p>
-                <p className="text-xs text-muted-foreground">WhatHouse protège les contacts, annonces et groupes.</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-            <div className="border-t border-border" />
-            <button onClick={() => navigate('/legal/cgu')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><FileText className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Conditions d'utilisation</p>
-                <p className="text-xs text-muted-foreground">Publiez des annonces réelles et respectez les règles Zwandako.</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-            <div className="border-t border-border" />
-            <button onClick={() => navigate('/legal/a-propos')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><BookOpen className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">À propos de WhatHouse</p>
-                <p className="text-xs text-muted-foreground">Un outil pro pour agents, agences, propriétaires et promoteurs immobiliers.</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
-        </section>
       </div>
+
 
 
       {editing && (
@@ -660,7 +593,127 @@ function ProfilLogged() {
             )}
           </>
         ) : activeTab === 'infos' ? (
-          <div className="space-y-1">
+          <div className="space-y-6">
+            {/* Préférences */}
+            <section>
+              <h2 className="text-base font-bold text-foreground mb-2">Préférences</h2>
+              <p className="text-[11px] text-muted-foreground mb-3">Personnalisez l'apparence de WhatHouse, votre langue et votre ville de travail par défaut afin d'accélérer la publication d'annonces et le filtrage des demandes.</p>
+              <div className="rounded-2xl bg-card border border-border overflow-hidden divide-y divide-border">
+                <div className="flex items-center gap-3 p-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><Sparkles className="h-5 w-5 text-primary" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Langue</p>
+                    <p className="text-xs text-muted-foreground">Français (par défaut). L'anglais et le lingala arrivent bientôt.</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex items-center gap-3 p-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><Sparkles className="h-5 w-5 text-primary" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Ville préférée</p>
+                    <p className="text-xs text-muted-foreground">Kinshasa — utilisée par défaut pour cibler les demandes et vos annonces.</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+            </section>
+
+            {/* Sécurité et données */}
+            <section>
+              <h2 className="text-base font-bold text-foreground mb-2">Sécurité et données</h2>
+              <p className="text-[11px] text-muted-foreground mb-3">Votre compte WhatHouse est le même que votre compte Zwandako. Protégez-le avec un mot de passe fort et gardez le contrôle sur vos données personnelles.</p>
+              <div className="rounded-2xl bg-card border border-border overflow-hidden divide-y divide-border">
+                <button onClick={() => setEditing(true)} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-5 w-5 text-primary" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Changer le mot de passe</p>
+                    <p className="text-xs text-muted-foreground">Le même mot de passe fonctionne sur www.whathouse.com et zwandako.com.</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+                <div className="flex items-start gap-3 p-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"><EyeOff className="h-5 w-5 text-primary" /></div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Mode fantôme</p>
+                    <p className="text-xs text-muted-foreground">Masque votre statut en ligne, votre dernière connexion et les accusés de lecture dans les groupes.</p>
+                  </div>
+                  <Switch
+                    checked={(profile as any)?.ghost_mode ?? false}
+                    onCheckedChange={(checked) => user && updateProfile.mutate({ userId: user.id, ghost_mode: checked } as any)}
+                  />
+                </div>
+                <button onClick={logout} className="w-full flex items-center gap-3 p-3 hover:bg-destructive/5 transition text-left">
+                  <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center"><LogOut className="h-5 w-5 text-destructive" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-destructive">Se déconnecter</p>
+                    <p className="text-xs text-muted-foreground">Vous pourrez vous reconnecter avec votre téléphone ou votre email.</p>
+                  </div>
+                </button>
+              </div>
+            </section>
+
+            {/* Aide et informations */}
+            <section>
+              <h2 className="text-base font-bold text-foreground mb-2">Aide et informations</h2>
+              <p className="text-[11px] text-muted-foreground mb-3">Retrouvez le mode d'emploi de l'application, nos engagements et les documents légaux qui encadrent l'usage de WhatHouse et de Zwandako.</p>
+              <div className="rounded-2xl bg-card border border-border overflow-hidden divide-y divide-border">
+                <Link to="/legal/tuto" className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><BookOpen className="h-5 w-5 text-primary" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Tuto — Comment ça marche</p>
+                    <p className="text-xs text-muted-foreground">Publier, prendre une demande client, générer votre carte de visite pro.</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+                <Link to="/legal/avantages" className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><Sparkles className="h-5 w-5 text-primary" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Avantages de l'application</p>
+                    <p className="text-xs text-muted-foreground">Répertoire pro, groupes privés, matches automatiques et visibilité sur Zwandako.</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+                <button onClick={() => navigate('/legal/confidentialite')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-5 w-5 text-primary" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Politique de confidentialité</p>
+                    <p className="text-xs text-muted-foreground">WhatHouse protège vos contacts, annonces, groupes et échanges professionnels.</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+                <button onClick={() => navigate('/legal/cgu')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><FileText className="h-5 w-5 text-primary" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Conditions d'utilisation</p>
+                    <p className="text-xs text-muted-foreground">Publiez des annonces réelles et respectez les règles Zwandako et WhatHouse.</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+                <button onClick={() => navigate('/legal/a-propos')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><BookOpen className="h-5 w-5 text-primary" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">À propos de WhatHouse</p>
+                    <p className="text-xs text-muted-foreground">Un outil pro pour agents, agences, propriétaires et promoteurs immobiliers.</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+                <Link to="/legal/terms" className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-5 w-5 text-primary" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Termes & Confidentialité</p>
+                    <p className="text-xs text-muted-foreground">Version consolidée des conditions générales et de la charte de confidentialité.</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              </div>
+            </section>
+
+            {/* Apparence & Notifications (existant) */}
+            {/* Apparence & Notifications */}
+            <section className="rounded-2xl bg-card border border-border p-2 space-y-1">
+              <h2 className="text-base font-bold text-foreground mb-1 px-1">Apparence & Notifications</h2>
+
+
             {themeStyle !== 'mocha' && (
               <div className="w-full flex items-center gap-3 py-3 border-b border-border">
                 <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
@@ -781,7 +834,9 @@ function ProfilLogged() {
               <div className="h-9 w-9 rounded-full bg-destructive/10 flex items-center justify-center"><LogOut className="h-4 w-4 text-destructive" /></div>
               <span className="text-sm text-destructive flex-1 text-left">Se déconnecter</span>
             </button>
+            </section>
           </div>
+
         ) : (
           /* Admin tab */
           <div className="space-y-6">
