@@ -83,6 +83,8 @@ export default function Affaires() {
   const { data: myFavs } = useMyFavorites();
   const { data: myGroups } = useMyGroups();
   const { data: profile } = useProfile(user?.id || '');
+  const { data: takeNotifs } = useMyTakeNotifications();
+  useRealtimeTakeNotifications();
   const [tab, setTab] = useState<Tab>('tableau');
   const [requests, setRequests] = useState<SearchRequest[]>([]);
   const [taken, setTaken] = useState<TakenListing[]>([]);
