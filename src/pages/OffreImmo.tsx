@@ -158,13 +158,13 @@ export default function OffreImmo() {
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-foreground leading-tight">Offre Immo</h1>
-          <p className="text-xs text-muted-foreground">Demandes clients natives</p>
+          <p className="text-xs text-muted-foreground">{loading ? 'Actualisation…' : `${source.length} demandes${wpRequests.length > 0 ? ' · Zwandako live' : ''}`}</p>
         </div>
         <button onClick={() => setSearchOpen(s => !s)} className="p-2 rounded-full hover:bg-muted transition" aria-label="Rechercher">
           <Search className="h-5 w-5 text-foreground" />
         </button>
-        <button onClick={() => setRefreshKey(k => k + 1)} className="p-2 rounded-full hover:bg-muted transition" aria-label="Rafraîchir">
-          <RefreshCw className="h-5 w-5 text-foreground" />
+        <button onClick={fetchZwandako} disabled={loading} className="p-2 rounded-full hover:bg-muted transition disabled:opacity-50" aria-label="Rafraîchir">
+          {loading ? <Loader2 className="h-5 w-5 text-foreground animate-spin" /> : <RefreshCw className="h-5 w-5 text-foreground" />}
         </button>
       </header>
 
