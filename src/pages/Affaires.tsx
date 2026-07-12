@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Plus, Trash2, Play, Pause, Share2, Download, Briefcase, Heart, Users, MessageSquare, Copy, ExternalLink, ChevronDown, ChevronUp, Send, Phone, Mail, Globe, MapPin, X } from 'lucide-react';
+import { Plus, Trash2, Play, Pause, Share2, Download, Briefcase, Heart, Users, MessageSquare, Copy, ExternalLink, ChevronDown, ChevronUp, Send, Phone, Mail, Globe, MapPin, X, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { useMyListings, useMyFavorites, useMyGroups, useProfile } from '@/hooks/
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { toPng } from 'html-to-image';
+import { useMyTakeNotifications, useRealtimeTakeNotifications, recordListingTake } from '@/hooks/use-takes';
 
 type Tab = 'tableau' | 'demandes' | 'matches' | 'carte';
 
