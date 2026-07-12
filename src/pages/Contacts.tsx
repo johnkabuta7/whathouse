@@ -134,6 +134,10 @@ export default function Contacts() {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [selectingGroups, setSelectingGroups] = useState(false);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [pinnedTick, setPinnedTick] = useState(0);
+  const longPressTimer = useRef<any>(null);
 
   const { data: groups, isLoading: groupsLoading } = useMyGroups();
   const groupIds = (groups || []).map((g: any) => g.id);
