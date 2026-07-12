@@ -422,7 +422,6 @@ export type Database = {
           updated_at: string
           user_id: string
           wp_user_id: number | null
-          wp_user_password: string | null
         }
         Insert: {
           account_type?: string
@@ -438,7 +437,6 @@ export type Database = {
           updated_at?: string
           user_id: string
           wp_user_id?: number | null
-          wp_user_password?: string | null
         }
         Update: {
           account_type?: string
@@ -454,7 +452,6 @@ export type Database = {
           updated_at?: string
           user_id?: string
           wp_user_id?: number | null
-          wp_user_password?: string | null
         }
         Relationships: []
       }
@@ -512,6 +509,24 @@ export type Database = {
         }
         Relationships: []
       }
+      wp_credentials: {
+        Row: {
+          updated_at: string
+          user_id: string
+          wp_app_password: string | null
+        }
+        Insert: {
+          updated_at?: string
+          user_id: string
+          wp_app_password?: string | null
+        }
+        Update: {
+          updated_at?: string
+          user_id?: string
+          wp_app_password?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -522,6 +537,18 @@ export type Database = {
         Returns: undefined
       }
       add_mandatory_contacts: { Args: { _user_id: string }; Returns: undefined }
+      admin_list_profiles: {
+        Args: { _limit?: number }
+        Returns: {
+          account_type: string
+          created_at: string
+          email: string
+          first_name: string
+          last_name: string
+          phone: string
+          user_id: string
+        }[]
+      }
       delete_group_cascade: { Args: { _group_id: string }; Returns: undefined }
       get_listing_like_counts: {
         Args: { _listing_ids: string[] }
@@ -530,6 +557,7 @@ export type Database = {
           listing_id: string
         }[]
       }
+      get_my_email: { Args: never; Returns: string }
       get_online_status: {
         Args: { _user_ids: string[] }
         Returns: {
