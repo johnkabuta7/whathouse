@@ -422,7 +422,6 @@ export type Database = {
           updated_at: string
           user_id: string
           wp_user_id: number | null
-          wp_user_password: string | null
         }
         Insert: {
           account_type?: string
@@ -438,7 +437,6 @@ export type Database = {
           updated_at?: string
           user_id: string
           wp_user_id?: number | null
-          wp_user_password?: string | null
         }
         Update: {
           account_type?: string
@@ -454,7 +452,6 @@ export type Database = {
           updated_at?: string
           user_id?: string
           wp_user_id?: number | null
-          wp_user_password?: string | null
         }
         Relationships: []
       }
@@ -512,9 +509,59 @@ export type Database = {
         }
         Relationships: []
       }
+      wp_credentials: {
+        Row: {
+          updated_at: string
+          user_id: string
+          wp_app_password: string | null
+        }
+        Insert: {
+          updated_at?: string
+          user_id: string
+          wp_app_password?: string | null
+        }
+        Update: {
+          updated_at?: string
+          user_id?: string
+          wp_app_password?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          account_type: string | null
+          avatar_url: string | null
+          background_url: string | null
+          first_name: string | null
+          ghost_mode: boolean | null
+          last_name: string | null
+          phone: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_type?: string | null
+          avatar_url?: string | null
+          background_url?: string | null
+          first_name?: string | null
+          ghost_mode?: boolean | null
+          last_name?: string | null
+          phone?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_type?: string | null
+          avatar_url?: string | null
+          background_url?: string | null
+          first_name?: string | null
+          ghost_mode?: boolean | null
+          last_name?: string | null
+          phone?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_collaboration_request: {
