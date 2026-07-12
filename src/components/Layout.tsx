@@ -10,9 +10,10 @@ import Index from '@/pages/Index';
 import Contacts from '@/pages/Contacts';
 import OffreImmo from '@/pages/OffreImmo';
 import Profil from '@/pages/Profil';
+import Affaires from '@/pages/Affaires';
 
-const SWIPE_ROUTES = ['/', '/contacts', '/offre-immo', '/profil'];
-const PAGES = [Index, Contacts, OffreImmo, Profil];
+const SWIPE_ROUTES = ['/', '/affaires', '/contacts', '/offre-immo', '/profil'];
+const PAGES = [Index, Affaires, Contacts, OffreImmo, Profil];
 
 export function Layout() {
   const { pathname } = useLocation();
