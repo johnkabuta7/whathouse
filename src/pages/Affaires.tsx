@@ -41,6 +41,7 @@ type MatchItem = {
   created_at: string;
   group_id?: string | null;
   zwandako_url?: string | null;
+  user_id?: string | null;
   _score: number;
 };
 
