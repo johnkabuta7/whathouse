@@ -834,7 +834,9 @@ function ProfilLogged() {
               <div className="h-9 w-9 rounded-full bg-destructive/10 flex items-center justify-center"><LogOut className="h-4 w-4 text-destructive" /></div>
               <span className="text-sm text-destructive flex-1 text-left">Se déconnecter</span>
             </button>
+            </section>
           </div>
+
         ) : (
           /* Admin tab */
           <div className="space-y-6">
