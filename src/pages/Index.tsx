@@ -59,7 +59,7 @@ function useNewSignupsCount() {
       const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const { count } = await supabase
         .from('profiles')
-        .select('*', { count: 'exact', head: true })
+        .select('user_id', { count: 'exact', head: true })
         .gte('created_at', since);
       return count || 0;
     },
