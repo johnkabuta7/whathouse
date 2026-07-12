@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
-import { Building2, Search, RefreshCw, Phone, LogIn, ChevronDown } from 'lucide-react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Building2, Search, RefreshCw, Phone, LogIn, ChevronDown, ExternalLink, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
