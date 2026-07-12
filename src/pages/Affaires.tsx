@@ -334,6 +334,58 @@ export default function Affaires() {
             </Accordion>
 
             <Accordion
+              id="notifs" title="Notifications" icon={<Bell className="h-4 w-4" />}
+              openId={openSection} setOpenId={setOpenSection}
+              summary={`${takeNotifs?.length || 0} annonce${(takeNotifs?.length || 0) > 1 ? 's' : ''} prise${(takeNotifs?.length || 0) > 1 ? 's' : ''} par des agents`}
+            >
+              {(!takeNotifs || takeNotifs.length === 0) ? (
+                <div className="rounded-2xl p-4 bg-primary/10 text-sm text-foreground">
+                  Aucune notification. Lorsqu'un agent prend une de vos annonces, vous serez averti ici avec ses coordonnées.
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {takeNotifs.map(n => {
+                    const takerName = `${n.taker?.first_name || ''} ${n.taker?.last_name || ''}`.trim() || 'Agent';
+                    const initials = takerName.split(' ').map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'A';
+                    const phone = (n.taker?.phone || '').replace(/[^0-9]/g, '');
+                    const waMsg = `Bonjour ${takerName}, merci d'avoir pris en charge mon annonce « ${n.listing_title || ''} ». Comment puis-je vous aider ?`;
+                    return (
+                      <li key={n.id} className="rounded-2xl border border-border bg-card p-3">
+                        <div className="flex items-start gap-3">
+                          <div className="h-11 w-11 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center shrink-0 ring-2 ring-primary/20">
+                            {n.taker?.avatar_url ? (
+                              <img src={n.taker.avatar_url} alt={takerName} className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-xs font-bold text-primary">{initials}</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground truncate">{takerName}</p>
+                            <p className="text-xs text-muted-foreground truncate">a pris « {n.listing_title || 'votre annonce'} »</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(n.created_at).toLocaleString('fr-FR')}</p>
+                          </div>
+                          {n.listing_image && (
+                            <img src={n.listing_image} className="h-11 w-11 rounded-lg object-cover shrink-0" alt="" />
+                          )}
+                        </div>
+                        {phone ? (
+                          <a
+                            href={`https://wa.me/${phone}?text=${encodeURIComponent(waMsg)}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="mt-3 w-full inline-flex items-center justify-center gap-2 py-2 rounded-full bg-success text-success-foreground text-xs font-semibold"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" /> Contacter sur WhatsApp
+                          </a>
+                        ) : (
+                          <p className="mt-3 text-[11px] text-muted-foreground text-center">Numéro WhatsApp indisponible</p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Accordion>
+
               id="recent" title="Activité récente" icon={<MessageSquare className="h-4 w-4" />}
               openId={openSection} setOpenId={setOpenSection}
               summary={`${myListings?.length || 0} annonces publiées`}
