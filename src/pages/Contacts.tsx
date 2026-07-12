@@ -165,6 +165,42 @@ export default function Contacts() {
     qc.invalidateQueries({ queryKey: ['repertoire'] });
   };
 
+  const startLongPress = (id: string) => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = setTimeout(() => {
+      setSelectingGroups(true);
+      setSelectedGroups(prev => prev.includes(id) ? prev : [...prev, id]);
+    }, 450);
+  };
+  const cancelLongPress = () => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } };
+  const toggleGroupSelected = (id: string) => {
+    setSelectedGroups(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const pinToHome = () => {
+    addPinnedHome(selectedGroups);
+    setPinnedTick(t => t + 1);
+    toast({ title: `${selectedGroups.length} groupe(s) ajouté(s) à l'accueil` });
+    setSelectingGroups(false); setSelectedGroups([]);
+  };
+  const unpinFromHome = () => {
+    removePinnedHome(selectedGroups);
+    setPinnedTick(t => t + 1);
+    toast({ title: `${selectedGroups.length} groupe(s) retiré(s) de l'accueil` });
+    setSelectingGroups(false); setSelectedGroups([]);
+  };
+  const deleteSelectedGroups = async () => {
+    if (!confirm(`Supprimer ${selectedGroups.length} groupe(s) ? Cette action est irréversible.`)) return;
+    for (const gid of selectedGroups) {
+      try { await supabase.rpc('delete_group_cascade' as any, { _group_id: gid }); }
+      catch { await supabase.from('groups').delete().eq('id', gid); }
+    }
+    removePinnedHome(selectedGroups);
+    setPinnedTick(t => t + 1);
+    qc.invalidateQueries({ queryKey: ['my_groups'] });
+    toast({ title: 'Groupe(s) supprimé(s)' });
+    setSelectingGroups(false); setSelectedGroups([]);
+  };
+
   const RoundBtn = ({ onClick, ariaLabel, children }: any) => (
     <button
       onClick={onClick}
