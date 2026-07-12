@@ -1,74 +1,51 @@
-## Plan d'exécution
+# Refonte UI mobile (mockups Android)
 
-Votre demande couvre 3 chantiers très différents. Voici comment je propose de les traiter, **dans l'ordre**, en restant prudent pour ne rien casser de ce qui fonctionne déjà.
+## 1. Bottom Nav — 5 onglets
+Remplacer les 4 onglets actuels par 5, ordre exact:
+1. **Accueil** (icône maison) → `/`
+2. **Affaires** (icône mallette) → `/affaires` *(nouvelle page)*
+3. **Répertoire** (icône groupe) → `/contacts` *(page renommée)*
+4. **Offre Immo** (icône immeuble) → `/offre-immo`
+5. **Profil** (icône user) → `/profil`
 
----
+Onglet actif = pilule orange remplie avec libellé sous l'icône (comme sur les mockups). Style s'applique aux 3 thèmes (classic/mocha/nature).
 
-### 1. Menu 3 points (page d'accueil)
+## 2. Page "Répertoire" (ex-Contacts)
+- Titre `Groupes` en haut à gauche (gras, grand).
+- Deux sous-onglets sous le titre: **Groupe** | **Contacts**, soulignés en orange (l'actif).
+- **Onglet Groupe**:
+  - Barre d'actions à droite: bouton rond orange **loupe** (toggle recherche) + bouton rond orange **créer groupe** (icône users+).
+  - Cliquer loupe → transforme la barre en input "Rechercher un groupe" plein largeur + bouton créer groupe à côté (image 3).
+  - Liste des groupes de l'utilisateur (déjà dispo via `useGroups`) avec avatar rond, nom, `X annonce(s) · Y membre(s)`, `Dernière activité ...`, date à droite.
+- **Onglet Contacts**:
+  - Barre d'actions à droite: 3 boutons ronds orange = **loupe**, **importer répertoire**, **ajouter contact**.
+  - Liste des contacts confirmés (logique existante conservée). Si vide: texte "Aucun contact avec compte WhatHouse détecté…".
 
-**État actuel** : le menu contient déjà **« Installer l'App »** et **« Partager l'application »** (vérifié dans `src/pages/Index.tsx` lignes 267-287).
+## 3. Page "Offre Immo"
+Remplacer les 3 liens actuels par:
+- Header: icône immeuble + titre "Offre Immo" + sous-titre "Demandes clients natives". Icônes loupe & refresh à droite.
+- Deux sous-onglets: **Toutes les demandes** | **Mes demandes**.
+- Rangée horizontale de filtres pills scrollable (Gombe, Appartement, Disponible, Achat…).
+- Liste de cartes de demandes avec: chips (Location/Disponible), date à droite, titre gras, prix orange, description, boutons **Voir détail** (outline) + **Prendre** (orange plein), puis **Contacter le client** (outline avec icône téléphone).
+- Les données seront lues depuis Zwandako via `wp-proxy` (endpoint existant à ré-utiliser) OU depuis une nouvelle table locale si dispo — je réutilise ce qui existe déjà; si aucune source dispo, j'affiche l'état vide propre.
 
-**Action** :
-- Vérifier que **Partager** partage bien `https://whathouse.pro` (lien de l'app, comme vous l'avez choisi) via le partage natif iOS/Android + fallback WhatsApp.
-- Vérifier que **Installer l'App** déclenche bien l'installation PWA directe (sans popup intermédiaire).
-- Corriger uniquement si bug constaté.
+## 4. Page "Affaires" (nouvelle)
+Nouvelle route `/affaires` avec 4 sous-onglets:
+- **Tableau**: 2 cards violet pâle (Annonces prises: 0 · Activités: 0), section Notifications (bandeau orange pâle), section Mon portefeuille (bandeau orange pâle).
+- **Demandes**: card "Avis de recherche" avec formulaire (Nom client, Téléphone client, textarea description, bouton "+ Ajouter un match"), puis liste "Aucune demande enregistrée".
+- **Matches**: titre "Résultats WhatHouse et Zwandako" + bandeau orange pâle "Activez une demande pour lancer la recherche automatique."
+- **Carte**: placeholder (vide propre).
 
----
+Stockage local (localStorage) pour les "avis de recherche" — pas de nouvelle table backend dans ce lot, l'objectif est purement UI/UX. Si tu veux persister côté Cloud, je le ferai en 2e passe.
 
-### 2. Galerie photos + mode plein écran
+## 5. Fichiers touchés
+- `src/components/BottomNav.tsx` — 5 items + libellés + pilule active.
+- `src/pages/Contacts.tsx` — sous-onglets + nouvelle barre d'actions ronds.
+- `src/pages/OffreImmo.tsx` — refonte complète en onglets/cards.
+- `src/pages/Affaires.tsx` — nouveau fichier.
+- `src/App.tsx` — ajouter route `/affaires`.
+- `src/components/Layout.tsx` — étendre `SWIPE_ROUTES`/`PAGES` à 5 pages (swipe carousel).
 
-**Investigation requise** : je vais lire `ListingPreview.tsx` et `GroupDetail.tsx` (qui contiennent l'affichage des photos) pour identifier :
-- Comment les photos sont actuellement affichées dans la galerie.
-- Comment le plein écran fonctionne (ou ne fonctionne pas).
-
-**Action** :
-- Corriger l'affichage des photos en galerie (proportion, qualité, scroll).
-- Améliorer le plein écran : swipe gauche/droite entre photos, zoom pinch, bouton fermer visible, fond noir total.
-
----
-
-### 3. Google One Tap + onboarding viral
-
-⚠️ **Avertissement important** : votre app a déjà un système d'authentification **complet et fonctionnel** :
-- Login par téléphone + mot de passe
-- Login par email + mot de passe
-- Mirror automatique vers zwandako.com (WP)
-- Profils complets
-
-Remplacer tout par **Google One Tap uniquement** casserait ce système. Je propose plutôt **d'ajouter Google comme méthode de connexion supplémentaire**, en gardant téléphone/email intacts.
-
-**Action proposée** :
-- Activer **Sign in with Google** via Lovable Cloud (managé, aucune config Google Cloud requise).
-- Ajouter un bouton **« Continuer avec Google »** sur la page Profil/Login (au-dessus des champs téléphone/email).
-- Au premier login Google : créer automatiquement le profil (first_name, last_name, email récupérés de Google).
-- Popup post-signup Google : demander **téléphone** (obligatoire pour les fonctions WhatHouse) + mot de passe optionnel.
-- **Pas de système de parrainage `?ref=` pour cette itération** — peut être ajouté plus tard si vous le souhaitez (nécessite une table `referrals`).
-- **Pas de lien `/join/ABCD123`** spécifique — le bouton Partager partage déjà `https://whathouse.pro` qui ouvre l'app, et Google One Tap s'affichera automatiquement pour les nouveaux visiteurs.
-
-**Hors scope** (à demander explicitement si besoin) :
-- Système de parrainage avec récompenses
-- Liens d'invitation personnalisés avec tracking
-- Migration complète vers OAuth-only (suppression téléphone/email)
-
----
-
-### Détails techniques
-
-- **Étape 1** : édits dans `src/pages/Index.tsx` uniquement si bug.
-- **Étape 2** : édits dans `src/pages/ListingPreview.tsx`, `src/pages/GroupDetail.tsx`, possiblement nouveau composant `FullscreenGallery.tsx`.
-- **Étape 3** :
-  - Appel `supabase--configure_social_auth` avec `providers: ["google"]` (Lovable Cloud managé, aucune clé requise).
-  - Création `src/integrations/lovable/` automatique.
-  - Ajout bouton + handler `lovable.auth.signInWithOAuth("google")` dans `Login.tsx` et `Profil.tsx`.
-  - Trigger DB `handle_new_user` existe déjà → le profil sera créé automatiquement avec l'email Google.
-  - Ajout d'une modal post-login Google qui s'affiche si `profile.phone` est vide → demande téléphone.
-
----
-
-### Confirmation demandée
-
-Validez-vous :
-1. Que je **ne touche pas au système téléphone/email existant** et que j'**ajoute Google comme option supplémentaire** ?
-2. Que le **système de parrainage / liens `/join/ref=`** est **reporté à plus tard** ?
-
-Si oui, je commence par l'étape 1 (vérif menu), puis 2 (galerie), puis 3 (Google).
+## Questions
+- **Persistance des "Avis de recherche"**: localStorage suffit pour ce lot, ou tu veux une table `search_requests` dès maintenant?
+- **Source des "demandes" Offre Immo**: je réutilise `wp-proxy` (Zwandako) — OK?
