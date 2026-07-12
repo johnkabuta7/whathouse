@@ -170,14 +170,33 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
 
   const handleShare = () => setShareOpen(true);
 
-  const handleWhatsApp = () => {
+  const handleTake = () => {
+    try {
+      const key = 'wh_taken_listings';
+      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+      const already = arr.find((x: any) => x.id === listing.id);
+      if (already) {
+        toast({ title: 'Déjà pris', description: 'Cette annonce est dans vos affaires en cours.' });
+      } else {
+        const entry = {
+          id: listing.id,
+          title: listing.title,
+          description: listing.description || '',
+          image: (listing.images || [])[0] || null,
+          group_id: listing.group_id,
+          takenAt: Date.now(),
+          source: 'whathouse' as const,
+          zwandako_url: listing.zwandako_url || null,
+        };
+        localStorage.setItem(key, JSON.stringify([entry, ...arr]));
+        toast({ title: 'Annonce prise', description: 'Ajoutée à Affaires > Affaire en cours.' });
+      }
+    } catch { /* ignore */ }
     const ownerPhone = ownerProfile?.phone?.replace(/[^0-9]/g, '');
-    if (!ownerPhone) {
-      toast({ title: 'Numéro indisponible', description: "Le propriétaire n'a pas renseigné son numéro.", variant: 'destructive' });
-      return;
+    if (ownerPhone) {
+      const msg = `Bonjour, je prends en charge votre annonce "${listing.title}" : ${listingLink}`;
+      window.open(`https://wa.me/${ownerPhone}?text=${encodeURIComponent(msg)}`, '_blank');
     }
-    const message = `Bonjour, je vous contacte au sujet de votre annonce "${listing.title}" : ${listingLink}`;
-    window.open(`https://wa.me/${ownerPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const images: string[] = listing.images || [];
