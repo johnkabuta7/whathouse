@@ -294,7 +294,21 @@ export default function Index() {
   useRealtimeJoinRequests();
 
   const isSearching = search.trim().length >= 2;
-  const displayGroups = isSearching ? searchResults : myGroups;
+  const [pinnedTick, setPinnedTick] = useState(0);
+  useEffect(() => {
+    const h = () => setPinnedTick(t => t + 1);
+    window.addEventListener('wh_home_groups_changed', h);
+    window.addEventListener('storage', h);
+    return () => {
+      window.removeEventListener('wh_home_groups_changed', h);
+      window.removeEventListener('storage', h);
+    };
+  }, []);
+  const pinnedIds = useMemo(() => new Set(getHomeGroupIds()), [pinnedTick, myGroups]);
+  const filteredMy = pinnedIds.size > 0
+    ? (myGroups || []).filter((g: any) => pinnedIds.has(g.id))
+    : (myGroups || []);
+  const displayGroups = isSearching ? searchResults : filteredMy;
   const totalRequests = requestCounts?.total || 0;
   const totalUnread = Object.values(unreadCounts || {}).reduce((sum, n) => sum + (Number(n) || 0), 0);
   const totalNotifications = totalRequests + totalUnread;
