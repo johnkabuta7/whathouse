@@ -529,39 +529,7 @@ export type Database = {
       }
     }
     Views: {
-      public_profiles: {
-        Row: {
-          account_type: string | null
-          avatar_url: string | null
-          background_url: string | null
-          first_name: string | null
-          ghost_mode: boolean | null
-          last_name: string | null
-          phone: string | null
-          user_id: string | null
-        }
-        Insert: {
-          account_type?: string | null
-          avatar_url?: string | null
-          background_url?: string | null
-          first_name?: string | null
-          ghost_mode?: boolean | null
-          last_name?: string | null
-          phone?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          account_type?: string | null
-          avatar_url?: string | null
-          background_url?: string | null
-          first_name?: string | null
-          ghost_mode?: boolean | null
-          last_name?: string | null
-          phone?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_collaboration_request: {
@@ -569,6 +537,18 @@ export type Database = {
         Returns: undefined
       }
       add_mandatory_contacts: { Args: { _user_id: string }; Returns: undefined }
+      admin_list_profiles: {
+        Args: { _limit?: number }
+        Returns: {
+          account_type: string
+          created_at: string
+          email: string
+          first_name: string
+          last_name: string
+          phone: string
+          user_id: string
+        }[]
+      }
       delete_group_cascade: { Args: { _group_id: string }; Returns: undefined }
       get_listing_like_counts: {
         Args: { _listing_ids: string[] }
@@ -577,6 +557,7 @@ export type Database = {
           listing_id: string
         }[]
       }
+      get_my_email: { Args: never; Returns: string }
       get_online_status: {
         Args: { _user_ids: string[] }
         Returns: {
