@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, Users, Trash2, BookUser, Sparkles, Inbox, Handshake } from 'lucide-react';
+import { Search, UserPlus, Users, Trash2, BookUser, Sparkles, Inbox, Handshake, Home, Pin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,7 @@ import { SelectGroupModal } from '@/components/SelectGroupModal';
 import { ImportContactsModal } from '@/components/ImportContactsModal';
 import { useIncomingCollabRequests } from '@/pages/CollaborationInbox';
 import { toast } from '@/hooks/use-toast';
+import { getHomeGroupIds, addPinnedHome, removePinnedHome, isPinnedHome } from '@/hooks/use-home-groups';
 
 type Tab = 'groupe' | 'contacts';
 
@@ -133,6 +134,10 @@ export default function Contacts() {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [selectingGroups, setSelectingGroups] = useState(false);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [pinnedTick, setPinnedTick] = useState(0);
+  const longPressTimer = useRef<any>(null);
 
   const { data: groups, isLoading: groupsLoading } = useMyGroups();
   const groupIds = (groups || []).map((g: any) => g.id);
@@ -158,6 +163,42 @@ export default function Contacts() {
   const removeImport = async (importId: string) => {
     await supabase.from('imported_contacts').delete().eq('id', importId);
     qc.invalidateQueries({ queryKey: ['repertoire'] });
+  };
+
+  const startLongPress = (id: string) => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = setTimeout(() => {
+      setSelectingGroups(true);
+      setSelectedGroups(prev => prev.includes(id) ? prev : [...prev, id]);
+    }, 450);
+  };
+  const cancelLongPress = () => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } };
+  const toggleGroupSelected = (id: string) => {
+    setSelectedGroups(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const pinToHome = () => {
+    addPinnedHome(selectedGroups);
+    setPinnedTick(t => t + 1);
+    toast({ title: `${selectedGroups.length} groupe(s) ajouté(s) à l'accueil` });
+    setSelectingGroups(false); setSelectedGroups([]);
+  };
+  const unpinFromHome = () => {
+    removePinnedHome(selectedGroups);
+    setPinnedTick(t => t + 1);
+    toast({ title: `${selectedGroups.length} groupe(s) retiré(s) de l'accueil` });
+    setSelectingGroups(false); setSelectedGroups([]);
+  };
+  const deleteSelectedGroups = async () => {
+    if (!confirm(`Supprimer ${selectedGroups.length} groupe(s) ? Cette action est irréversible.`)) return;
+    for (const gid of selectedGroups) {
+      try { await supabase.rpc('delete_group_cascade' as any, { _group_id: gid }); }
+      catch { await supabase.from('groups').delete().eq('id', gid); }
+    }
+    removePinnedHome(selectedGroups);
+    setPinnedTick(t => t + 1);
+    qc.invalidateQueries({ queryKey: ['my_groups'] });
+    toast({ title: 'Groupe(s) supprimé(s)' });
+    setSelectingGroups(false); setSelectedGroups([]);
   };
 
   const RoundBtn = ({ onClick, ariaLabel, children }: any) => (
@@ -249,6 +290,26 @@ export default function Contacts() {
         </div>
       )}
 
+      {selectingGroups && tab === 'groupe' && (
+        <div className="px-4 py-2 bg-primary/10 flex items-center gap-2 flex-wrap">
+          <p className="text-xs font-medium text-primary flex-1 min-w-full sm:min-w-0">{selectedGroups.length} groupe(s) sélectionné(s)</p>
+          <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => { setSelectingGroups(false); setSelectedGroups([]); }}>Annuler</Button>
+          {selectedGroups.some(id => !isPinnedHome(id)) && (
+            <Button size="sm" className="rounded-full text-xs" onClick={pinToHome}>
+              <Home className="h-3 w-3 mr-1" /> Ajouter à l'accueil
+            </Button>
+          )}
+          {selectedGroups.some(id => isPinnedHome(id)) && (
+            <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={unpinFromHome}>
+              <Pin className="h-3 w-3 mr-1" /> Retirer de l'accueil
+            </Button>
+          )}
+          <Button size="sm" variant="destructive" className="rounded-full text-xs" onClick={deleteSelectedGroups}>
+            <Trash2 className="h-3 w-3 mr-1" /> Supprimer
+          </Button>
+        </div>
+      )}
+
       {/* Body */}
       <div className="flex-1 overflow-y-auto pb-4">
         {tab === 'groupe' ? (
@@ -265,18 +326,38 @@ export default function Contacts() {
               {filteredGroups.map((g: any) => {
                 const memberCount = stats?.members?.[g.id] || 0;
                 const listingCount = stats?.listings?.[g.id] || 0;
+                const pinned = isPinnedHome(g.id);
+                const isSel = selectedGroups.includes(g.id);
+                const onClick = () => {
+                  if (selectingGroups) toggleGroupSelected(g.id);
+                  else navigate(`/group/${g.id}`);
+                };
                 return (
-                  <li key={g.id}>
-                    <button onClick={() => navigate(`/group/${g.id}`)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition text-left">
-                      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
-                        {g.avatar_url ? (
+                  <li
+                    key={g.id + ':' + pinnedTick}
+                    onContextMenu={(e) => { e.preventDefault(); setSelectingGroups(true); setSelectedGroups(prev => prev.includes(g.id) ? prev : [...prev, g.id]); }}
+                    onTouchStart={() => startLongPress(g.id)}
+                    onTouchEnd={cancelLongPress}
+                    onTouchMove={cancelLongPress}
+                    onMouseDown={() => startLongPress(g.id)}
+                    onMouseUp={cancelLongPress}
+                    onMouseLeave={cancelLongPress}
+                  >
+                    <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition text-left ${isSel ? 'bg-primary/10' : ''}`}>
+                      <div className={`h-12 w-12 rounded-full flex items-center justify-center overflow-hidden shrink-0 ${isSel ? 'bg-primary text-primary-foreground ring-2 ring-primary' : 'bg-primary/10'}`}>
+                        {isSel ? (
+                          <span className="text-lg font-bold">✓</span>
+                        ) : g.avatar_url ? (
                           <img src={g.avatar_url} alt={g.name} className="h-full w-full object-cover" />
                         ) : (
                           <Users className="h-6 w-6 text-primary" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0 border-b border-border pb-3">
-                        <p className="text-base font-semibold text-foreground truncate">{g.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-base font-semibold text-foreground truncate">{g.name}</p>
+                          {pinned && <Home className="h-3 w-3 text-primary shrink-0" aria-label="Épinglé à l'accueil" />}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">{listingCount} annonce(s) · {memberCount} membre(s)</p>
                         {g.updated_at && <p className="text-[11px] text-muted-foreground truncate">Dernière activité {formatDateTime(g.updated_at)}</p>}
                       </div>

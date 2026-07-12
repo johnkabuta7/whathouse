@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Plus, Trash2, Play, Pause, Share2, Download, Briefcase, Heart, Users, MessageSquare, Copy, ExternalLink, ChevronDown, ChevronUp, Send, Phone, Mail, Globe, MapPin, X } from 'lucide-react';
+import { Plus, Trash2, Play, Pause, Share2, Download, Briefcase, Heart, Users, MessageSquare, Copy, ExternalLink, ChevronDown, ChevronUp, Send, Phone, Mail, Globe, MapPin, X, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { useMyListings, useMyFavorites, useMyGroups, useProfile } from '@/hooks/
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { toPng } from 'html-to-image';
+import { useMyTakeNotifications, useRealtimeTakeNotifications, recordListingTake } from '@/hooks/use-takes';
 
 type Tab = 'tableau' | 'demandes' | 'matches' | 'carte';
 
@@ -41,6 +42,7 @@ type MatchItem = {
   created_at: string;
   group_id?: string | null;
   zwandako_url?: string | null;
+  user_id?: string | null;
   _score: number;
 };
 
@@ -81,6 +83,8 @@ export default function Affaires() {
   const { data: myFavs } = useMyFavorites();
   const { data: myGroups } = useMyGroups();
   const { data: profile } = useProfile(user?.id || '');
+  const { data: takeNotifs } = useMyTakeNotifications();
+  useRealtimeTakeNotifications();
   const [tab, setTab] = useState<Tab>('tableau');
   const [requests, setRequests] = useState<SearchRequest[]>([]);
   const [taken, setTaken] = useState<TakenListing[]>([]);
@@ -114,7 +118,7 @@ export default function Affaires() {
     try {
       const { data: dbListings } = await supabase
         .from('listings')
-        .select('id, title, description, images, created_at, group_id, zwandako_url')
+        .select('id, title, description, images, created_at, group_id, zwandako_url, user_id')
         .order('created_at', { ascending: false })
         .limit(300);
       for (const l of dbListings || []) {
@@ -124,7 +128,8 @@ export default function Affaires() {
             key: `${req.id}:wh:${l.id}`, requestId: req.id, source: 'whathouse',
             id: l.id, title: l.title, description: l.description || '',
             images: l.images || [], created_at: l.created_at,
-            group_id: l.group_id, zwandako_url: l.zwandako_url, _score: score,
+            group_id: l.group_id, zwandako_url: l.zwandako_url,
+            user_id: (l as any).user_id, _score: score,
           });
         }
       }
@@ -221,6 +226,9 @@ export default function Affaires() {
     };
     const next = [entry, ...arr];
     saveTaken(next); setTaken(next);
+    if (m.source === 'whathouse' && m.user_id && user) {
+      recordListingTake({ listingId: m.id, ownerId: m.user_id, takerId: user.id, title: m.title, image: m.images[0] || null });
+    }
     toast({ title: 'Annonce prise', description: 'Ajoutée à Affaire en cours.' });
   };
   const untake = (id: string) => {
@@ -323,6 +331,59 @@ export default function Affaires() {
                 <StatCard icon={<Heart className="h-5 w-5" />} value={totalLikes} label="Likes reçus" />
                 <StatCard icon={<Briefcase className="h-5 w-5" />} value={activeRequests.length} label="Recherches actives" />
               </div>
+            </Accordion>
+
+            <Accordion
+              id="notifs" title="Notifications" icon={<Bell className="h-4 w-4" />}
+              openId={openSection} setOpenId={setOpenSection}
+              summary={`${takeNotifs?.length || 0} annonce${(takeNotifs?.length || 0) > 1 ? 's' : ''} prise${(takeNotifs?.length || 0) > 1 ? 's' : ''} par des agents`}
+            >
+              {(!takeNotifs || takeNotifs.length === 0) ? (
+                <div className="rounded-2xl p-4 bg-primary/10 text-sm text-foreground">
+                  Aucune notification. Lorsqu'un agent prend une de vos annonces, vous serez averti ici avec ses coordonnées.
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {takeNotifs.map(n => {
+                    const takerName = `${n.taker?.first_name || ''} ${n.taker?.last_name || ''}`.trim() || 'Agent';
+                    const initials = takerName.split(' ').map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'A';
+                    const phone = (n.taker?.phone || '').replace(/[^0-9]/g, '');
+                    const waMsg = `Bonjour ${takerName}, merci d'avoir pris en charge mon annonce « ${n.listing_title || ''} ». Comment puis-je vous aider ?`;
+                    return (
+                      <li key={n.id} className="rounded-2xl border border-border bg-card p-3">
+                        <div className="flex items-start gap-3">
+                          <div className="h-11 w-11 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center shrink-0 ring-2 ring-primary/20">
+                            {n.taker?.avatar_url ? (
+                              <img src={n.taker.avatar_url} alt={takerName} className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-xs font-bold text-primary">{initials}</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground truncate">{takerName}</p>
+                            <p className="text-xs text-muted-foreground truncate">a pris « {n.listing_title || 'votre annonce'} »</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(n.created_at).toLocaleString('fr-FR')}</p>
+                          </div>
+                          {n.listing_image && (
+                            <img src={n.listing_image} className="h-11 w-11 rounded-lg object-cover shrink-0" alt="" />
+                          )}
+                        </div>
+                        {phone ? (
+                          <a
+                            href={`https://wa.me/${phone}?text=${encodeURIComponent(waMsg)}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="mt-3 w-full inline-flex items-center justify-center gap-2 py-2 rounded-full bg-success text-success-foreground text-xs font-semibold"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" /> Contacter sur WhatsApp
+                          </a>
+                        ) : (
+                          <p className="mt-3 text-[11px] text-muted-foreground text-center">Numéro WhatsApp indisponible</p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </Accordion>
 
             <Accordion

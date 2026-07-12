@@ -192,6 +192,16 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
         toast({ title: 'Annonce prise', description: 'Ajoutée à Affaires > Affaire en cours.' });
       }
     } catch { /* ignore */ }
+    // Notify the owner via realtime notification
+    import('@/hooks/use-takes').then(({ recordListingTake }) => {
+      recordListingTake({
+        listingId: listing.id,
+        ownerId: listing.user_id,
+        takerId: userId,
+        title: listing.title,
+        image: (listing.images || [])[0] || null,
+      });
+    });
     const ownerPhone = ownerProfile?.phone?.replace(/[^0-9]/g, '');
     if (ownerPhone) {
       const msg = `Bonjour, je prends en charge votre annonce "${listing.title}" : ${listingLink}`;

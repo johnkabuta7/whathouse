@@ -300,6 +300,36 @@ export type Database = {
           },
         ]
       }
+      listing_takes: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          listing_image: string | null
+          listing_title: string | null
+          owner_id: string
+          taker_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          listing_image?: string | null
+          listing_title?: string | null
+          owner_id: string
+          taker_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          listing_image?: string | null
+          listing_title?: string | null
+          owner_id?: string
+          taker_id?: string
+        }
+        Relationships: []
+      }
       listings: {
         Row: {
           created_at: string

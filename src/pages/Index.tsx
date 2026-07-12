@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2, X, PenSquare, MapPin, Zap } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { useZwandakoLeads, leadTitle, leadCity, leadPrice, leadTxType } from '@/hooks/use-zwandako-leads';
+import { getHomeGroupIds } from '@/hooks/use-home-groups';
 
 
 function normPhone(p: string): string {
@@ -202,9 +203,23 @@ function FeaturedProperties() {
   );
 }
 
+function useConseils() {
+  return useQuery({
+    queryKey: ['zwandako_conseils'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('https://zwandako.com/wp-json/wp/v2/posts?_embed&per_page=15&categories=840&orderby=date&order=desc');
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch { return []; }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 function PostImmobilierCarousel() {
-  const { data: leads, isLoading } = useZwandakoLeads(20);
-  const navigate = useNavigate();
+  const { data: posts, isLoading } = useConseils();
   if (isLoading) {
     return (
       <div className="py-3">
@@ -215,45 +230,44 @@ function PostImmobilierCarousel() {
       </div>
     );
   }
-  if (!leads || leads.length === 0) return null;
+  if (!posts || posts.length === 0) return null;
   return (
     <div className="py-3" data-no-swipe>
       <div className="px-4 flex items-center justify-between mb-2">
         <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Post Immobilier</h2>
-        <button onClick={() => navigate('/offre-immo')} className="text-[10px] font-semibold text-primary">Voir tout →</button>
+        <a href="https://zwandako.com/conseil-sur-limmobilier-en-rdc/" target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold text-primary">Voir tout →</a>
       </div>
       <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1 touch-pan-x">
-        {leads.map(l => {
-          const tx = leadTxType(l);
+        {posts.map((p: any) => {
+          const img = p._embedded?.['wp:featuredmedia']?.[0]?.source_url || p.jetpack_featured_media_url;
+          const title = (p.title?.rendered || '').replace(/<[^>]+>/g, '');
+          const excerpt = (p.excerpt?.rendered || '').replace(/<[^>]+>/g, '').trim();
           return (
-            <button
-              key={l.lead_id}
-              onClick={() => navigate('/offre-immo')}
-              className="shrink-0 w-56 text-left rounded-2xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition"
+            <a
+              key={p.id}
+              href={p.link}
+              target="_blank" rel="noopener noreferrer"
+              className="shrink-0 w-56 rounded-2xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition"
             >
-              <div className="p-3 flex flex-col gap-1.5">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold capitalize">{tx}</span>
-                  {l.urgency && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold inline-flex items-center gap-0.5">
-                      <Zap className="h-2.5 w-2.5" />Urgent
-                    </span>
-                  )}
+              {img && (
+                <div className="h-28 w-full overflow-hidden bg-muted">
+                  <img src={img} alt={title} className="h-full w-full object-cover" loading="lazy" />
                 </div>
-                <p className="text-sm font-bold text-foreground line-clamp-2 leading-tight">{leadTitle(l)}</p>
-                <p className="text-xs text-muted-foreground inline-flex items-center gap-1 truncate">
-                  <MapPin className="h-3 w-3" />{leadCity(l)}
-                </p>
-                <p className="text-sm font-bold text-primary">{leadPrice(l)}</p>
-                {l.message && <p className="text-[11px] text-foreground/70 line-clamp-2">{l.message}</p>}
+              )}
+              <div className="p-3 flex flex-col gap-1">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold self-start">Conseil</span>
+                <p className="text-sm font-bold text-foreground line-clamp-2 leading-tight">{title}</p>
+                {excerpt && <p className="text-[11px] text-foreground/70 line-clamp-2">{excerpt}</p>}
+                <p className="text-[10px] text-primary font-bold mt-1">Lire l'article →</p>
               </div>
-            </button>
+            </a>
           );
         })}
       </div>
     </div>
   );
 }
+
 
 // FAB rendered globally by Layout to avoid showing on inactive carousel panels.
 
@@ -280,7 +294,21 @@ export default function Index() {
   useRealtimeJoinRequests();
 
   const isSearching = search.trim().length >= 2;
-  const displayGroups = isSearching ? searchResults : myGroups;
+  const [pinnedTick, setPinnedTick] = useState(0);
+  useEffect(() => {
+    const h = () => setPinnedTick(t => t + 1);
+    window.addEventListener('wh_home_groups_changed', h);
+    window.addEventListener('storage', h);
+    return () => {
+      window.removeEventListener('wh_home_groups_changed', h);
+      window.removeEventListener('storage', h);
+    };
+  }, []);
+  const pinnedIds = useMemo(() => new Set(getHomeGroupIds()), [pinnedTick, myGroups]);
+  const filteredMy = pinnedIds.size > 0
+    ? (myGroups || []).filter((g: any) => pinnedIds.has(g.id))
+    : (myGroups || []);
+  const displayGroups = isSearching ? searchResults : filteredMy;
   const totalRequests = requestCounts?.total || 0;
   const totalUnread = Object.values(unreadCounts || {}).reduce((sum, n) => sum + (Number(n) || 0), 0);
   const totalNotifications = totalRequests + totalUnread;
