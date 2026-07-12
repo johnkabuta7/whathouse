@@ -709,9 +709,10 @@ function ProfilLogged() {
             </section>
 
             {/* Apparence & Notifications (existant) */}
-            <section>
-              <h2 className="text-base font-bold text-foreground mb-2">Apparence & Notifications</h2>
-              <div className="rounded-2xl bg-card border border-border p-1 space-y-1">
+            {/* Apparence & Notifications */}
+            <section className="rounded-2xl bg-card border border-border p-2 space-y-1">
+              <h2 className="text-base font-bold text-foreground mb-1 px-1">Apparence & Notifications</h2>
+
 
             {themeStyle !== 'mocha' && (
               <div className="w-full flex items-center gap-3 py-3 border-b border-border">
