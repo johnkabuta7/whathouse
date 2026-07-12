@@ -538,6 +538,7 @@ export type Database = {
         }[]
       }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
+      normalize_phone_tail: { Args: { _phone: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

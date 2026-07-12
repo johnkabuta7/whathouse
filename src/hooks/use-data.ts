@@ -202,7 +202,10 @@ export function useCreateGroup() {
     mutationFn: async (group: { name: string; description?: string; image_url?: string; created_by: string }) => {
       const { data, error } = await supabase.from('groups').insert(group).select().single();
       if (error) throw error;
-      await supabase.from('group_members').insert({ group_id: data.id, user_id: group.created_by });
+      // DB trigger auto-adds the creator; upsert here is idempotent belt-and-suspenders.
+      await supabase
+        .from('group_members')
+        .upsert({ group_id: data.id, user_id: group.created_by }, { onConflict: 'group_id,user_id' });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['my_groups'] }),
