@@ -367,75 +367,8 @@ function ProfilLogged() {
           </div>
         </section>
 
-        <section>
-          <h2 className="text-lg font-bold text-foreground mb-2">Préférences</h2>
-          <div className="rounded-2xl bg-card border border-border overflow-hidden">
-            <div className="flex items-center gap-3 p-3">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><Sparkles className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Langue</p>
-                <p className="text-xs text-muted-foreground">Français · interface anglaise plus tard</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="border-t border-border" />
-            <div className="flex items-center gap-3 p-3">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><Sparkles className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Ville préférée</p>
-                <p className="text-xs text-muted-foreground">Kinshasa</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-bold text-foreground mb-2">Sécurité et données</h2>
-          <div className="rounded-2xl bg-card border border-border overflow-hidden">
-            <button onClick={() => setEditing(true)} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Changer le mot de passe</p>
-                <p className="text-xs text-muted-foreground">Utilisez votre compte WhatHouse / Zwandako commun</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-bold text-foreground mb-2">Aide et informations</h2>
-          <div className="rounded-2xl bg-card border border-border overflow-hidden">
-            <button onClick={() => navigate('/legal/confidentialite')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Politique de confidentialité</p>
-                <p className="text-xs text-muted-foreground">WhatHouse protège les contacts, annonces et groupes.</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-            <div className="border-t border-border" />
-            <button onClick={() => navigate('/legal/cgu')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><FileText className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Conditions d'utilisation</p>
-                <p className="text-xs text-muted-foreground">Publiez des annonces réelles et respectez les règles Zwandako.</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-            <div className="border-t border-border" />
-            <button onClick={() => navigate('/legal/a-propos')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><BookOpen className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">À propos de WhatHouse</p>
-                <p className="text-xs text-muted-foreground">Un outil pro pour agents, agences, propriétaires et promoteurs immobiliers.</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
-        </section>
       </div>
+
 
 
       {editing && (
