@@ -236,12 +236,34 @@ export default function OffreImmo() {
               <p className="text-primary font-bold text-lg mt-1">{r.price}</p>
               <p className="text-sm text-foreground/80 mt-2">{r.description}</p>
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <a href={r.zwandakoUrl} target="_blank" rel="noopener noreferrer" className="py-2.5 rounded-full border border-border text-primary text-sm font-semibold text-center">Voir détail</a>
-                <a href={r.zwandakoUrl} target="_blank" rel="noopener noreferrer" className="py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold text-center">Prendre</a>
+                <a href={r.zwandakoUrl} target="_blank" rel="noopener noreferrer" className="py-2.5 rounded-full border border-border text-primary text-sm font-semibold text-center inline-flex items-center justify-center gap-1">
+                  Voir détail <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+                <button
+                  onClick={() => {
+                    try {
+                      const key = 'wh_taken_listings';
+                      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+                      if (arr.find((x: any) => x.id === r.id)) { toast({ title: 'Déjà pris' }); return; }
+                      const entry = { id: r.id, title: r.title, description: r.description, image: null, group_id: null, takenAt: Date.now(), source: 'zwandako', zwandako_url: r.zwandakoUrl };
+                      localStorage.setItem(key, JSON.stringify([entry, ...arr]));
+                      toast({ title: 'Demande prise', description: 'Ajoutée à Affaires > Affaire en cours.' });
+                    } catch { /* ignore */ }
+                  }}
+                  className="py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold text-center"
+                >
+                  Prendre
+                </button>
               </div>
-              <a href={`tel:${r.phone}`} className="mt-2 flex items-center justify-center gap-2 py-2.5 rounded-full border border-border text-foreground text-sm font-semibold">
-                <Phone className="h-4 w-4 text-primary" /> Contacter le client
-              </a>
+              {r.phone ? (
+                <a href={`tel:${r.phone}`} className="mt-2 flex items-center justify-center gap-2 py-2.5 rounded-full border border-border text-foreground text-sm font-semibold">
+                  <Phone className="h-4 w-4 text-primary" /> Contacter le client
+                </a>
+              ) : (
+                <a href={r.zwandakoUrl} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center gap-2 py-2.5 rounded-full border border-border text-foreground text-sm font-semibold">
+                  <ExternalLink className="h-4 w-4 text-primary" /> Coordonnées sur Zwandako
+                </a>
+              )}
             </article>
           ))
         )}
