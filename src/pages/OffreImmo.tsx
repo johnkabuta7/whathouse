@@ -1,54 +1,71 @@
 import { useMemo, useState } from 'react';
-import { Building2, Search, RefreshCw, Phone, LogIn } from 'lucide-react';
+import { Building2, Search, RefreshCw, Phone, LogIn, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 type SubTab = 'all' | 'mine';
+type TxType = 'acheter' | 'louer' | 'vendre';
 
-const FILTERS = ['Gombe', 'Appartement', 'Disponible', 'Achat', 'Location'];
+const TX_FILTERS: { key: TxType; label: string }[] = [
+  { key: 'acheter', label: 'Acheter' },
+  { key: 'louer', label: 'Louer' },
+  { key: 'vendre', label: 'Vendre' },
+];
 
-// Placeholder demo data — remplacer par un fetch Zwandako plus tard.
-const DEMO_REQUESTS = [
-  {
-    id: '1',
-    tags: ['Location', 'Disponible'],
-    date: "Aujourd'hui",
-    title: 'Appartement meublé · Gombe',
-    price: '1 000 - 1 500 $',
-    description: 'Client cherche un appartement 2 chambres, sécurisé, proche boulevard du 30 Juin.',
-    phone: '+243900000000',
-    zwandakoUrl: 'https://zwandako.com/demandes-immobilieres/',
-  },
-  {
-    id: '2',
-    tags: ['Achat', 'Disponible'],
-    date: 'Hier',
-    title: 'Maison · Limete',
-    price: '120 000 $ max',
-    description: 'Recherche maison avec cour, minimum 3 chambres.',
-    phone: '+243900000001',
-    zwandakoUrl: 'https://zwandako.com/demandes-immobilieres/',
-  },
+type Request = {
+  id: string;
+  type: TxType;
+  city: string;
+  status: 'Disponible' | 'Réservé';
+  date: string;
+  title: string;
+  price: string;
+  description: string;
+  phone: string;
+  zwandakoUrl: string;
+  mine?: boolean;
+};
+
+const DEMO_REQUESTS: Request[] = [
+  { id: '1', type: 'louer', city: 'Kinshasa', status: 'Disponible', date: "Aujourd'hui", title: 'Appartement meublé · Gombe', price: '1 000 - 1 500 $', description: 'Client cherche un appartement 2 chambres, sécurisé, proche boulevard du 30 Juin.', phone: '+243900000000', zwandakoUrl: 'https://zwandako.com/demandes-immobilieres/' },
+  { id: '2', type: 'acheter', city: 'Kinshasa', status: 'Disponible', date: 'Hier', title: 'Maison · Limete', price: '120 000 $ max', description: 'Recherche maison avec cour, minimum 3 chambres.', phone: '+243900000001', zwandakoUrl: 'https://zwandako.com/demandes-immobilieres/' },
+  { id: '3', type: 'vendre', city: 'Lubumbashi', status: 'Disponible', date: 'Il y a 2 j', title: 'Villa à vendre · Golf', price: '250 000 $', description: 'Villa 5 chambres, piscine, terrain 1000 m².', phone: '+243900000002', zwandakoUrl: 'https://zwandako.com/demandes-immobilieres/' },
+  { id: '4', type: 'louer', city: 'Goma', status: 'Disponible', date: 'Il y a 3 j', title: 'Studio meublé · Himbi', price: '500 $', description: 'Studio pour expat, court/long séjour.', phone: '+243900000003', zwandakoUrl: 'https://zwandako.com/demandes-immobilieres/' },
+  { id: '5', type: 'acheter', city: 'Kinshasa', status: 'Disponible', date: 'Il y a 4 j', title: 'Parcelle · Ngaliema', price: '80 000 $', description: 'Parcelle 500 m² avec titre foncier.', phone: '+243900000004', zwandakoUrl: 'https://zwandako.com/demandes-immobilieres/' },
 ];
 
 export default function OffreImmo() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<SubTab>('all');
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [activeTx, setActiveTx] = useState<TxType | null>(null);
+  const [activeCity, setActiveCity] = useState<string | null>(null);
+  const [cityOpen, setCityOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const source = DEMO_REQUESTS;
+
+  const cities = useMemo(() => {
+    const set = new Set<string>();
+    source.forEach(r => r.city && set.add(r.city));
+    return Array.from(set).sort();
+  }, [source]);
+
   const requests = useMemo(() => {
-    let r = DEMO_REQUESTS;
-    if (tab === 'mine') r = [];
-    if (activeFilter) r = r.filter(x => x.tags.includes(activeFilter) || x.title.includes(activeFilter));
-    if (search) r = r.filter(x => x.title.toLowerCase().includes(search.toLowerCase()) || x.description.toLowerCase().includes(search.toLowerCase()));
+    let r = source;
+    if (tab === 'mine') r = r.filter(x => x.mine);
+    if (activeTx) r = r.filter(x => x.type === activeTx);
+    if (activeCity) r = r.filter(x => x.city === activeCity);
+    if (search) {
+      const q = search.toLowerCase();
+      r = r.filter(x => x.title.toLowerCase().includes(q) || x.description.toLowerCase().includes(q) || x.city.toLowerCase().includes(q));
+    }
     return r;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, activeFilter, search, refreshKey]);
+  }, [tab, activeTx, activeCity, search, refreshKey]);
 
   if (!user) {
     return (
@@ -80,13 +97,7 @@ export default function OffreImmo() {
 
       {searchOpen && (
         <div className="px-4 pb-2" data-no-swipe>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher une demande…"
-            autoFocus
-            className="w-full px-4 py-2.5 rounded-full border border-border bg-background text-sm"
-          />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une demande…" autoFocus className="w-full px-4 py-2.5 rounded-full border border-border bg-background text-sm" />
         </div>
       )}
 
@@ -95,45 +106,56 @@ export default function OffreImmo() {
           { key: 'all', label: 'Toutes les demandes' },
           { key: 'mine', label: 'Mes demandes' },
         ].map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key as SubTab)}
-            className={`flex-1 py-3 text-sm font-semibold transition-colors relative ${tab === t.key ? 'text-primary' : 'text-primary/60'}`}
-          >
+          <button key={t.key} onClick={() => setTab(t.key as SubTab)} className={`flex-1 py-3 text-sm font-semibold transition-colors relative ${tab === t.key ? 'text-primary' : 'text-primary/60'}`}>
             {t.label}
             {tab === t.key && <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-primary rounded-full" />}
           </button>
         ))}
       </div>
 
-      <div className="shrink-0 px-4 py-3 overflow-x-auto flex gap-2 no-scrollbar" data-no-swipe>
-        {FILTERS.map(f => {
-          const active = activeFilter === f;
-          return (
-            <button
-              key={f}
-              onClick={() => setActiveFilter(active ? null : f)}
-              className={`shrink-0 px-4 py-1.5 rounded-full border text-sm font-medium transition ${active ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-border'}`}
-            >
-              {f}
-            </button>
-          );
-        })}
+      <div className="shrink-0 px-4 py-3 flex items-center gap-2" data-no-swipe>
+        <div className="flex-1 flex gap-2 overflow-x-auto no-scrollbar">
+          {TX_FILTERS.map(f => {
+            const active = activeTx === f.key;
+            return (
+              <button key={f.key} onClick={() => setActiveTx(active ? null : f.key)} className={`shrink-0 px-4 py-1.5 rounded-full border text-sm font-medium transition ${active ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-border'}`}>
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="relative shrink-0">
+          <button onClick={() => setCityOpen(o => !o)} className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-sm font-medium ${activeCity ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-border'}`}>
+            {activeCity || 'Ville'} <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+          {cityOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setCityOpen(false)} />
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] bg-card border border-border rounded-xl shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+                <button onClick={() => { setActiveCity(null); setCityOpen(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-muted">Toutes les villes</button>
+                {cities.map(c => (
+                  <button key={c} onClick={() => { setActiveCity(c); setCityOpen(false); }} className={`w-full text-left px-3 py-2 text-sm hover:bg-muted ${activeCity === c ? 'text-primary font-semibold' : 'text-foreground'}`}>{c}</button>
+                ))}
+                {cities.length === 0 && <p className="px-3 py-2 text-xs text-muted-foreground">Aucune ville</p>}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3" data-no-swipe>
         {requests.length === 0 ? (
           <div className="rounded-2xl p-6 bg-primary/10 text-sm text-foreground text-center">
-            {tab === 'mine' ? 'Aucune demande prise pour le moment.' : 'Aucune demande trouvée.'}
+            {tab === 'mine' ? 'Aucune demande prise pour le moment.' : 'Aucune demande trouvée pour ces filtres.'}
           </div>
         ) : (
           requests.map(r => (
             <article key={r.id} className="rounded-2xl bg-card border border-border p-4 shadow-sm">
               <div className="flex items-start gap-2 mb-3">
                 <div className="flex flex-wrap gap-2 flex-1">
-                  {r.tags.map(t => (
-                    <span key={t} className="px-3 py-1 rounded-full border border-border text-xs font-medium text-foreground">{t}</span>
-                  ))}
+                  <span className="px-3 py-1 rounded-full border border-border text-xs font-medium text-foreground capitalize">{r.type}</span>
+                  <span className="px-3 py-1 rounded-full border border-border text-xs font-medium text-foreground">{r.city}</span>
+                  <span className="px-3 py-1 rounded-full border border-border text-xs font-medium text-foreground">{r.status}</span>
                 </div>
                 <span className="text-xs text-muted-foreground shrink-0">{r.date}</span>
               </div>
