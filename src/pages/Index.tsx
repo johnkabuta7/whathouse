@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { useZwandakoLeads, leadTitle, leadCity, leadPrice, leadTxType } from '@/hooks/use-zwandako-leads';
+import { getHomeGroupIds } from '@/hooks/use-home-groups';
 
 
 function normPhone(p: string): string {
