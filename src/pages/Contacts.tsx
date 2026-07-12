@@ -32,7 +32,7 @@ function useRepertoire() {
       const all = imported || [];
       const phones = all.map(i => i.contact_phone).filter(Boolean);
       if (phones.length === 0) return { confirmed: [], pending: [] };
-      const { data: profiles } = await supabase.from('profiles').select('*').in('phone', phones);
+      const { data: profiles } = await supabase.from('profiles').select('user_id, first_name, last_name, phone, avatar_url, background_url, account_type, ghost_mode').in('phone', phones);
       const byPhone = new Map<string, any>();
       (profiles || []).forEach((p: any) => p.phone && byPhone.set(normalizePhone(p.phone), p));
       const userIds = (profiles || []).map((p: any) => p.user_id).filter(Boolean);

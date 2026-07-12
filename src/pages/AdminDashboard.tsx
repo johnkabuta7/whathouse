@@ -214,12 +214,12 @@ function DataTablesSection() {
   const { data } = useQuery({
     queryKey: ['admin_data_tables'],
     queryFn: async () => {
-      const [users, listings, groups] = await Promise.all([
-        supabase.from('profiles').select('user_id, first_name, last_name, phone, email, account_type, created_at').order('created_at', { ascending: false }).limit(50),
+      const [usersRpc, listings, groups] = await Promise.all([
+        supabase.rpc('admin_list_profiles' as any, { _limit: 50 }),
         supabase.from('listings').select('id, title, description, created_at, user_id').order('created_at', { ascending: false }).limit(30),
         supabase.from('groups').select('id, name, created_at, created_by, visibility_stars').order('created_at', { ascending: false }).limit(50),
       ]);
-      return { users: users.data || [], listings: listings.data || [], groups: groups.data || [] };
+      return { users: (usersRpc.data as any[]) || [], listings: listings.data || [], groups: groups.data || [] };
     },
     refetchInterval: 60_000,
   });

@@ -252,7 +252,7 @@ export function useGroupMembers(groupId: string) {
       const { data, error } = await supabase.from('group_members').select('*').eq('group_id', groupId);
       if (error) throw error;
       const userIds = data.map(m => m.user_id);
-      const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', userIds);
+      const { data: profiles } = await supabase.from('profiles').select('user_id, first_name, last_name, phone, avatar_url, background_url, wp_user_id, account_type, ghost_mode').in('user_id', userIds);
       return data.map(m => ({ ...m, profiles: profiles?.find(p => p.user_id === m.user_id) || null }));
     },
     enabled: !!groupId,
@@ -311,7 +311,7 @@ export function useJoinRequests(groupId: string) {
       if (error) throw error;
       if (!data?.length) return [];
       const userIds = data.map(r => r.user_id);
-      const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', userIds);
+      const { data: profiles } = await supabase.from('profiles').select('user_id, first_name, last_name, phone, avatar_url, background_url, account_type').in('user_id', userIds);
       return data.map(r => ({ ...r, profile: profiles?.find(p => p.user_id === r.user_id) || null }));
     },
     enabled: !!groupId,
@@ -716,7 +716,7 @@ export function useProfile(userId: string) {
     queryKey: ['profile', userId],
     queryFn: async () => {
       if (!userId) return null;
-      const { data, error } = await supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle();
+      const { data, error } = await supabase.from('profiles').select('id, user_id, first_name, last_name, phone, avatar_url, background_url, wp_user_id, account_type, ghost_mode, created_at, updated_at').eq('user_id', userId).maybeSingle();
       if (error) throw error;
       return data;
     },

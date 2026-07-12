@@ -25,7 +25,7 @@ function useRepertoireProfiles() {
       if (!user) return [] as any[];
       const [{ data: imported }, { data: profiles }] = await Promise.all([
         supabase.from('imported_contacts').select('contact_phone, contact_name, status').eq('user_id', user.id),
-        supabase.from('profiles').select('*'),
+        supabase.from('profiles').select('user_id, first_name, last_name, phone, avatar_url, background_url, account_type, ghost_mode'),
       ]);
       const importedSet = new Set((imported || []).map((i: any) => normPhone(i.contact_phone)));
       const profilePhones = new Set((profiles || []).map((p: any) => normPhone(p.phone || '')).filter(Boolean));
