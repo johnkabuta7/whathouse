@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, Users, Trash2, BookUser, Sparkles, Inbox, Handshake } from 'lucide-react';
+import { Search, UserPlus, Users, Trash2, BookUser, Sparkles, Inbox, Handshake, Home, Pin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,7 @@ import { SelectGroupModal } from '@/components/SelectGroupModal';
 import { ImportContactsModal } from '@/components/ImportContactsModal';
 import { useIncomingCollabRequests } from '@/pages/CollaborationInbox';
 import { toast } from '@/hooks/use-toast';
+import { getHomeGroupIds, addPinnedHome, removePinnedHome, isPinnedHome } from '@/hooks/use-home-groups';
 
 type Tab = 'groupe' | 'contacts';
 
