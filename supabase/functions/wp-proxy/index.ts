@@ -1013,8 +1013,11 @@ Deno.serve(async (req) => {
     if (action === "list_posts") {
       const page = payload?.page || 1;
       const perPage = payload?.per_page || 20;
+      const search = payload?.search ? `&search=${encodeURIComponent(payload.search)}` : "";
+      const categories = payload?.categories ? `&categories=${encodeURIComponent(payload.categories)}` : "";
+      const orderby = payload?.orderby ? `&orderby=${encodeURIComponent(payload.orderby)}` : "";
       const { res, json, text } = await fetchWpJson(
-        `/posts?_embed&per_page=${perPage}&page=${page}`,
+        `/posts?_embed&per_page=${perPage}&page=${page}${search}${categories}${orderby}`,
         {
           headers: { Authorization: adminAuthHeader() },
         },
@@ -1025,6 +1028,42 @@ Deno.serve(async (req) => {
       }
 
       return jsonResponse({ ok: true, posts: json || [] });
+    }
+
+    if (action === "list_demandes") {
+      // Fetch demandes immobilières from Zwandako.
+      // Try common approaches: category slug then search fallback.
+      const page = payload?.page || 1;
+      const perPage = payload?.per_page || 30;
+      const search = payload?.search ? `&search=${encodeURIComponent(payload.search)}` : "";
+
+      // Attempt 1: resolve category "demandes-immobilieres"
+      let posts: any[] = [];
+      try {
+        const catRes = await fetchWpJson(
+          `/categories?slug=demandes-immobilieres`,
+          { headers: { Authorization: adminAuthHeader() } },
+        );
+        const catId = Array.isArray(catRes.json) && catRes.json[0]?.id;
+        if (catId) {
+          const { res, json } = await fetchWpJson(
+            `/posts?_embed&per_page=${perPage}&page=${page}&categories=${catId}${search}`,
+            { headers: { Authorization: adminAuthHeader() } },
+          );
+          if (res.ok && Array.isArray(json)) posts = json;
+        }
+      } catch (_) { /* fall through */ }
+
+      // Fallback: keyword search
+      if (posts.length === 0) {
+        const { res, json } = await fetchWpJson(
+          `/posts?_embed&per_page=${perPage}&page=${page}&search=${encodeURIComponent(payload?.search || "recherche")}`,
+          { headers: { Authorization: adminAuthHeader() } },
+        );
+        if (res.ok && Array.isArray(json)) posts = json;
+      }
+
+      return jsonResponse({ ok: true, posts });
     }
 
     if (action === "debug_admin") {
