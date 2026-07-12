@@ -386,6 +386,7 @@ export default function Affaires() {
               )}
             </Accordion>
 
+            <Accordion
               id="recent" title="Activité récente" icon={<MessageSquare className="h-4 w-4" />}
               openId={openSection} setOpenId={setOpenSection}
               summary={`${myListings?.length || 0} annonces publiées`}
