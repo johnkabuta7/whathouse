@@ -57,8 +57,16 @@ function isSyntheticEmail(email: string) {
 }
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
-  const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
-  return data as Profile | null;
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, user_id, first_name, last_name, phone, avatar_url, background_url, wp_user_id, account_type, ghost_mode, created_at, updated_at')
+    .eq('user_id', userId)
+    .single();
+  if (!data) return null;
+  // email column is column-revoked from authenticated for privacy;
+  // owners fetch their own email via SECURITY DEFINER rpc.
+  const { data: myEmail } = await supabase.rpc('get_my_email' as any);
+  return { ...(data as any), email: (myEmail as any) || null } as Profile | null;
 }
 
 async function upsertProfile(input: { userId: string; firstName?: string; lastName?: string; phone?: string; email?: string; wpUserId?: number }) {

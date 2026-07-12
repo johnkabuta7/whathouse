@@ -32,7 +32,7 @@ function useOnlineContacts() {
         .eq('status', 'confirmed');
       const phones = (imported || []).map((i: any) => i.contact_phone);
       if (phones.length === 0) return [];
-      const { data: profiles } = await supabase.from('profiles').select('*').in('phone', phones);
+      const { data: profiles } = await supabase.from('profiles').select('user_id, first_name, last_name, phone, avatar_url, background_url, account_type, ghost_mode').in('phone', phones);
       const others = (profiles || []).filter((p: any) => p.user_id !== user.id);
       const userIds = others.map((p: any) => p.user_id).filter(Boolean);
       const { data: sessions } = userIds.length

@@ -14,7 +14,7 @@ function useAllProfiles() {
   return useQuery({
     queryKey: ['all_profiles_members'],
     queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('*');
+      const { data } = await supabase.from('profiles').select('user_id, first_name, last_name, phone, avatar_url, background_url, account_type, ghost_mode');
       return data || [];
     },
   });
