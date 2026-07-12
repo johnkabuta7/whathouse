@@ -226,6 +226,9 @@ export default function Affaires() {
     };
     const next = [entry, ...arr];
     saveTaken(next); setTaken(next);
+    if (m.source === 'whathouse' && m.user_id && user) {
+      recordListingTake({ listingId: m.id, ownerId: m.user_id, takerId: user.id, title: m.title, image: m.images[0] || null });
+    }
     toast({ title: 'Annonce prise', description: 'Ajoutée à Affaire en cours.' });
   };
   const untake = (id: string) => {
