@@ -333,9 +333,11 @@ async function mirrorAuthUserFromWp(
     phone: phone || null,
     email,
     wp_user_id: input.wpUserId,
-    ...(input.wpAppPassword ? { wp_user_password: input.wpAppPassword } : {}),
   }, { onConflict: "user_id" });
   if (profileError) throw new Error(`Profile mirror failed: ${profileError.message}`);
+  if (input.wpAppPassword) {
+    await setWpAppPassword(supabase, authUser.id, input.wpAppPassword);
+  }
 
   return authUser;
 }
@@ -345,13 +347,14 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "user_id, first_name, last_name, phone, email, wp_user_id, wp_user_password",
+      "user_id, first_name, last_name, phone, email, wp_user_id",
     )
     .eq("user_id", userId)
     .single();
 
   const profile = data as ProfileRow | null;
   if (error || !profile) throw new Error("Profile not found");
+  profile.wp_user_password = await getWpAppPassword(supabase, userId);
 
   // Resolve the user's real auth email (may be the synthetic phone_xxx@whathouse.app).
   const { data: authUser } = await supabase.auth.admin.getUserById(userId);
@@ -370,7 +373,7 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
     if (!profile.wp_user_password) {
       try {
         const appPassword = await createWpApplicationPassword(profile.wp_user_id);
-        await supabase.from("profiles").update({ wp_user_password: appPassword }).eq("user_id", userId);
+        await setWpAppPassword(supabase, userId, appPassword);
         profile.wp_user_password = appPassword;
       } catch (e) {
         console.warn("WP app-password create for existing actor failed, using admin auth:", e);
@@ -380,7 +383,7 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
     return {
       userId: profile.wp_user_id,
       username,
-      authHeader: userAuthHeader(username, profile.wp_user_password),
+      authHeader: userAuthHeader(username, profile.wp_user_password!),
       mode: "user",
     };
   }
@@ -466,12 +469,13 @@ async function ensureWpActor(supabase: any, userId: string): Promise<WpActor> {
 
   const { error: updateError } = await supabase
     .from("profiles")
-    .update({ wp_user_id: wpUserId, wp_user_password: appPassword })
+    .update({ wp_user_id: wpUserId })
     .eq("user_id", userId);
 
   if (updateError) {
     throw new Error(`Profile update failed: ${updateError.message}`);
   }
+  await setWpAppPassword(supabase, userId, appPassword);
 
   return {
     userId: wpUserId,
@@ -676,7 +680,7 @@ Deno.serve(async (req) => {
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, first_name, last_name, phone, email, wp_user_id, wp_user_password")
+        .select("user_id, first_name, last_name, phone, email, wp_user_id")
         .eq("phone", phone)
         .maybeSingle();
       if (profileError || !profile?.email) {
@@ -691,6 +695,7 @@ Deno.serve(async (req) => {
       const wpUser = profile.wp_user_id ? { id: profile.wp_user_id } : await lookupExistingWpUserByEmail(email).catch(() => null);
       if (!wpUser?.id) return jsonResponse({ ok: false, error: "wp account not found" }, 401);
 
+      const wpAppPassword = await getWpAppPassword(supabase, profile.user_id);
       await mirrorAuthUserFromWp(supabase, {
         email,
         password,
@@ -698,7 +703,7 @@ Deno.serve(async (req) => {
         lastName: profile.last_name || "",
         phone,
         wpUserId: wpUser.id,
-        wpAppPassword: profile.wp_user_password || null,
+        wpAppPassword: wpAppPassword || null,
       });
 
       return jsonResponse({ ok: true, email });
@@ -774,11 +779,12 @@ Deno.serve(async (req) => {
 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, first_name, last_name, phone, email, wp_user_id, wp_user_password")
+        .select("user_id, first_name, last_name, phone, email, wp_user_id")
         .eq("user_id", uid)
         .single();
       if (profileError || !profileData) throw new Error("Profile not found");
       const profile = profileData as ProfileRow;
+      profile.wp_user_password = await getWpAppPassword(supabase, uid);
       const wpActor = await ensureWpActor(supabase, uid);
       const mediaIds: number[] = [];
       let featured: number | null = null;
