@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
-import { Building2, Search, RefreshCw, Phone, LogIn, ChevronDown } from 'lucide-react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Building2, Search, RefreshCw, Phone, LogIn, ChevronDown, ExternalLink, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -35,22 +37,94 @@ const DEMO_REQUESTS: Request[] = [
   { id: '5', type: 'acheter', city: 'Kinshasa', status: 'Disponible', date: 'Il y a 4 j', title: 'Parcelle · Ngaliema', price: '80 000 $', description: 'Parcelle 500 m² avec titre foncier.', phone: '+243900000004', zwandakoUrl: 'https://zwandako.com/demandes-immobilieres/' },
 ];
 
+function detectType(text: string): TxType {
+  const t = text.toLowerCase();
+  if (/(vend|à vendre|a vendre)/.test(t)) return 'vendre';
+  if (/(lou|à louer|a louer|loyer|bail)/.test(t)) return 'louer';
+  return 'acheter';
+}
+function detectCity(text: string): string {
+  const cities = ['Kinshasa', 'Lubumbashi', 'Goma', 'Bukavu', 'Matadi', 'Kolwezi', 'Kisangani', 'Mbuji-Mayi', 'Bruxelles', 'Paris'];
+  for (const c of cities) if (new RegExp(c, 'i').test(text)) return c;
+  return '—';
+}
+function extractPhone(text: string): string {
+  const m = text.match(/(\+?\d[\d\s().-]{7,})/);
+  return m ? m[1].replace(/[^\d+]/g, '') : '';
+}
+function extractPrice(text: string): string {
+  const m = text.match(/(\d[\d\s.,]{1,})\s?(\$|USD|EUR|€|FC|CDF)/i);
+  return m ? m[0].trim() : '—';
+}
+function timeAgo(iso: string): string {
+  const d = new Date(iso).getTime();
+  const diff = Date.now() - d;
+  const h = Math.floor(diff / 3600000);
+  if (h < 1) return "À l'instant";
+  if (h < 24) return `Il y a ${h}h`;
+  const days = Math.floor(h / 24);
+  if (days === 1) return 'Hier';
+  if (days < 7) return `Il y a ${days} j`;
+  return new Date(iso).toLocaleDateString('fr-FR');
+}
+
 export default function OffreImmo() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [tab, setTab] = useState<SubTab>('all');
   const [activeTx, setActiveTx] = useState<TxType | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
   const [cityOpen, setCityOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [wpRequests, setWpRequests] = useState<Request[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const source = DEMO_REQUESTS;
+  const fetchZwandako = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('wp-proxy', {
+        body: { action: 'list_demandes', per_page: 40 },
+      });
+      if (error) throw error;
+      const posts = (data?.posts || []) as any[];
+      const mapped: Request[] = posts.map(p => {
+        const title = (p.title?.rendered || '').replace(/<[^>]*>/g, '');
+        const desc = (p.excerpt?.rendered || p.content?.rendered || '').replace(/<[^>]*>/g, '').trim().slice(0, 300);
+        const full = `${title} ${desc}`;
+        return {
+          id: `wp_${p.id}`,
+          type: detectType(full),
+          city: detectCity(full),
+          status: 'Disponible',
+          date: timeAgo(p.date),
+          title: title || 'Demande immobilière',
+          price: extractPrice(full),
+          description: desc || title,
+          phone: extractPhone(full),
+          zwandakoUrl: p.link,
+        };
+      });
+      setWpRequests(mapped);
+    } catch (e: any) {
+      // Fallback to demo silently on first load; show toast on manual refresh
+      if (wpRequests.length > 0) toast({ title: 'Actualisation impossible', description: e?.message || '', variant: 'destructive' });
+    } finally { setLoading(false); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetchZwandako();
+    const iv = setInterval(fetchZwandako, 60000); // real-time-ish refresh every 60s
+    return () => clearInterval(iv);
+  }, [fetchZwandako]);
+
+  const source = wpRequests.length > 0 ? wpRequests : DEMO_REQUESTS;
 
   const cities = useMemo(() => {
     const set = new Set<string>();
-    source.forEach(r => r.city && set.add(r.city));
+    source.forEach(r => r.city && r.city !== '—' && set.add(r.city));
     return Array.from(set).sort();
   }, [source]);
 
@@ -64,8 +138,7 @@ export default function OffreImmo() {
       r = r.filter(x => x.title.toLowerCase().includes(q) || x.description.toLowerCase().includes(q) || x.city.toLowerCase().includes(q));
     }
     return r;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, activeTx, activeCity, search, refreshKey]);
+  }, [source, tab, activeTx, activeCity, search]);
 
   if (!user) {
     return (
@@ -85,13 +158,13 @@ export default function OffreImmo() {
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-foreground leading-tight">Offre Immo</h1>
-          <p className="text-xs text-muted-foreground">Demandes clients natives</p>
+          <p className="text-xs text-muted-foreground">{loading ? 'Actualisation…' : `${source.length} demandes${wpRequests.length > 0 ? ' · Zwandako live' : ''}`}</p>
         </div>
         <button onClick={() => setSearchOpen(s => !s)} className="p-2 rounded-full hover:bg-muted transition" aria-label="Rechercher">
           <Search className="h-5 w-5 text-foreground" />
         </button>
-        <button onClick={() => setRefreshKey(k => k + 1)} className="p-2 rounded-full hover:bg-muted transition" aria-label="Rafraîchir">
-          <RefreshCw className="h-5 w-5 text-foreground" />
+        <button onClick={fetchZwandako} disabled={loading} className="p-2 rounded-full hover:bg-muted transition disabled:opacity-50" aria-label="Rafraîchir">
+          {loading ? <Loader2 className="h-5 w-5 text-foreground animate-spin" /> : <RefreshCw className="h-5 w-5 text-foreground" />}
         </button>
       </header>
 
@@ -163,12 +236,34 @@ export default function OffreImmo() {
               <p className="text-primary font-bold text-lg mt-1">{r.price}</p>
               <p className="text-sm text-foreground/80 mt-2">{r.description}</p>
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <a href={r.zwandakoUrl} target="_blank" rel="noopener noreferrer" className="py-2.5 rounded-full border border-border text-primary text-sm font-semibold text-center">Voir détail</a>
-                <a href={r.zwandakoUrl} target="_blank" rel="noopener noreferrer" className="py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold text-center">Prendre</a>
+                <a href={r.zwandakoUrl} target="_blank" rel="noopener noreferrer" className="py-2.5 rounded-full border border-border text-primary text-sm font-semibold text-center inline-flex items-center justify-center gap-1">
+                  Voir détail <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+                <button
+                  onClick={() => {
+                    try {
+                      const key = 'wh_taken_listings';
+                      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+                      if (arr.find((x: any) => x.id === r.id)) { toast({ title: 'Déjà pris' }); return; }
+                      const entry = { id: r.id, title: r.title, description: r.description, image: null, group_id: null, takenAt: Date.now(), source: 'zwandako', zwandako_url: r.zwandakoUrl };
+                      localStorage.setItem(key, JSON.stringify([entry, ...arr]));
+                      toast({ title: 'Demande prise', description: 'Ajoutée à Affaires > Affaire en cours.' });
+                    } catch { /* ignore */ }
+                  }}
+                  className="py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold text-center"
+                >
+                  Prendre
+                </button>
               </div>
-              <a href={`tel:${r.phone}`} className="mt-2 flex items-center justify-center gap-2 py-2.5 rounded-full border border-border text-foreground text-sm font-semibold">
-                <Phone className="h-4 w-4 text-primary" /> Contacter le client
-              </a>
+              {r.phone ? (
+                <a href={`tel:${r.phone}`} className="mt-2 flex items-center justify-center gap-2 py-2.5 rounded-full border border-border text-foreground text-sm font-semibold">
+                  <Phone className="h-4 w-4 text-primary" /> Contacter le client
+                </a>
+              ) : (
+                <a href={r.zwandakoUrl} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center gap-2 py-2.5 rounded-full border border-border text-foreground text-sm font-semibold">
+                  <ExternalLink className="h-4 w-4 text-primary" /> Coordonnées sur Zwandako
+                </a>
+              )}
             </article>
           ))
         )}

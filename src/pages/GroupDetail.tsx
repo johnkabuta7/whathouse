@@ -170,14 +170,33 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
 
   const handleShare = () => setShareOpen(true);
 
-  const handleWhatsApp = () => {
+  const handleTake = () => {
+    try {
+      const key = 'wh_taken_listings';
+      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+      const already = arr.find((x: any) => x.id === listing.id);
+      if (already) {
+        toast({ title: 'Déjà pris', description: 'Cette annonce est dans vos affaires en cours.' });
+      } else {
+        const entry = {
+          id: listing.id,
+          title: listing.title,
+          description: listing.description || '',
+          image: (listing.images || [])[0] || null,
+          group_id: listing.group_id,
+          takenAt: Date.now(),
+          source: 'whathouse' as const,
+          zwandako_url: listing.zwandako_url || null,
+        };
+        localStorage.setItem(key, JSON.stringify([entry, ...arr]));
+        toast({ title: 'Annonce prise', description: 'Ajoutée à Affaires > Affaire en cours.' });
+      }
+    } catch { /* ignore */ }
     const ownerPhone = ownerProfile?.phone?.replace(/[^0-9]/g, '');
-    if (!ownerPhone) {
-      toast({ title: 'Numéro indisponible', description: "Le propriétaire n'a pas renseigné son numéro.", variant: 'destructive' });
-      return;
+    if (ownerPhone) {
+      const msg = `Bonjour, je prends en charge votre annonce "${listing.title}" : ${listingLink}`;
+      window.open(`https://wa.me/${ownerPhone}?text=${encodeURIComponent(msg)}`, '_blank');
     }
-    const message = `Bonjour, je vous contacte au sujet de votre annonce "${listing.title}" : ${listingLink}`;
-    window.open(`https://wa.me/${ownerPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const images: string[] = listing.images || [];
@@ -240,8 +259,8 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           <button onClick={handleShare} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-muted text-muted-foreground">
             <Share2 className="h-3.5 w-3.5" />
           </button>
-          <button onClick={handleWhatsApp} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-success text-success-foreground">
-            <Send className="h-3.5 w-3.5" />Message
+          <button onClick={handleTake} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-success text-success-foreground">
+            <Send className="h-3.5 w-3.5" />Prendre
           </button>
           <a href={zwandakoHref} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full ml-auto bg-primary text-primary-foreground">
