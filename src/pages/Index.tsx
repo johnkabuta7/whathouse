@@ -202,7 +202,61 @@ function FeaturedProperties() {
   );
 }
 
+function PostImmobilierCarousel() {
+  const { data: leads, isLoading } = useZwandakoLeads(20);
+  const navigate = useNavigate();
+  if (isLoading) {
+    return (
+      <div className="py-3">
+        <div className="px-4 mb-2"><Skeleton className="h-4 w-40" /></div>
+        <div className="flex gap-3 overflow-x-auto no-scrollbar px-3">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-36 w-56 rounded-2xl shrink-0" />)}
+        </div>
+      </div>
+    );
+  }
+  if (!leads || leads.length === 0) return null;
+  return (
+    <div className="py-3" data-no-swipe>
+      <div className="px-4 flex items-center justify-between mb-2">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Post Immobilier</h2>
+        <button onClick={() => navigate('/offre-immo')} className="text-[10px] font-semibold text-primary">Voir tout →</button>
+      </div>
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1 touch-pan-x">
+        {leads.map(l => {
+          const tx = leadTxType(l);
+          return (
+            <button
+              key={l.lead_id}
+              onClick={() => navigate('/offre-immo')}
+              className="shrink-0 w-56 text-left rounded-2xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition"
+            >
+              <div className="p-3 flex flex-col gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold capitalize">{tx}</span>
+                  {l.urgency && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold inline-flex items-center gap-0.5">
+                      <Zap className="h-2.5 w-2.5" />Urgent
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm font-bold text-foreground line-clamp-2 leading-tight">{leadTitle(l)}</p>
+                <p className="text-xs text-muted-foreground inline-flex items-center gap-1 truncate">
+                  <MapPin className="h-3 w-3" />{leadCity(l)}
+                </p>
+                <p className="text-sm font-bold text-primary">{leadPrice(l)}</p>
+                {l.message && <p className="text-[11px] text-foreground/70 line-clamp-2">{l.message}</p>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // FAB rendered globally by Layout to avoid showing on inactive carousel panels.
+
 
 export default function Index() {
   const { user } = useAuth();
