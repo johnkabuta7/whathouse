@@ -26,6 +26,7 @@ import Publish from "./pages/Publish";
 import CollaborationRequest from "./pages/CollaborationRequest";
 import CollaborationInbox from "./pages/CollaborationInbox";
 import AdminDashboard from "./pages/AdminDashboard";
+import Affaires from "./pages/Affaires";
 
 
 const queryClient = new QueryClient();
@@ -63,6 +64,7 @@ function AppRoutes() {
       <Route element={<Layout />}>
         <Route path="/" element={<Index />} />
         <Route path="/contacts" element={<Contacts />} />
+        <Route path="/affaires" element={<ProtectedRoute><Affaires /></ProtectedRoute>} />
         <Route path="/offre-immo" element={<OffreImmo />} />
         <Route path="/profil" element={<Profil />} />
         <Route path="/contact/:userId" element={<ContactDetail />} />
