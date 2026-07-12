@@ -436,12 +436,16 @@ export default function Index() {
         </div>
       )}
 
+      {/* Post Immobilier — live client requests from Zwandako */}
+      {!isSearching && <PostImmobilierCarousel />}
+
       {/* Section title */}
       {!isSearching && (
         <div className="px-4 pt-3 pb-1">
           <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Liste des groupes</h2>
         </div>
       )}
+
       {isSearching && <p className="px-4 py-2 text-xs font-semibold text-muted-foreground">Résultats de recherche</p>}
 
       {/* Merged search results: groups + Zwandako properties, sorted by most recent */}
