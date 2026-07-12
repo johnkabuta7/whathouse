@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2, X, PenSquare } from 'lucide-react';
+import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2, X, PenSquare, MapPin, Zap } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts, useUnreadCounts, normalizeSearch } from '@/hooks/use-data';
@@ -8,6 +8,8 @@ import { useRealtimeListings, useRealtimeJoinRequests } from '@/hooks/use-notifi
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { useZwandakoLeads, leadTitle, leadCity, leadPrice, leadTxType } from '@/hooks/use-zwandako-leads';
+
 
 function normPhone(p: string): string {
   if (!p) return '';
