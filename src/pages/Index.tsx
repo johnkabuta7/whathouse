@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2, X, PenSquare, MapPin, Zap } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
