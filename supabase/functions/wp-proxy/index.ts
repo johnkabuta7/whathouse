@@ -23,8 +23,23 @@ type ProfileRow = {
   phone: string | null;
   email?: string | null;
   wp_user_id: number | null;
-  wp_user_password: string | null;
+  wp_user_password: string | null; // hydrated from wp_credentials via getWpAppPassword()
 };
+
+async function getWpAppPassword(supabase: any, userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("wp_credentials")
+    .select("wp_app_password")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data as any)?.wp_app_password || null;
+}
+
+async function setWpAppPassword(supabase: any, userId: string, password: string): Promise<void> {
+  await supabase
+    .from("wp_credentials")
+    .upsert({ user_id: userId, wp_app_password: password, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+}
 
 type WpActor = {
   userId: number;
