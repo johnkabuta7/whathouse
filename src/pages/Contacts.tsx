@@ -290,6 +290,26 @@ export default function Contacts() {
         </div>
       )}
 
+      {selectingGroups && tab === 'groupe' && (
+        <div className="px-4 py-2 bg-primary/10 flex items-center gap-2 flex-wrap">
+          <p className="text-xs font-medium text-primary flex-1 min-w-full sm:min-w-0">{selectedGroups.length} groupe(s) sélectionné(s)</p>
+          <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => { setSelectingGroups(false); setSelectedGroups([]); }}>Annuler</Button>
+          {selectedGroups.some(id => !isPinnedHome(id)) && (
+            <Button size="sm" className="rounded-full text-xs" onClick={pinToHome}>
+              <Home className="h-3 w-3 mr-1" /> Ajouter à l'accueil
+            </Button>
+          )}
+          {selectedGroups.some(id => isPinnedHome(id)) && (
+            <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={unpinFromHome}>
+              <Pin className="h-3 w-3 mr-1" /> Retirer de l'accueil
+            </Button>
+          )}
+          <Button size="sm" variant="destructive" className="rounded-full text-xs" onClick={deleteSelectedGroups}>
+            <Trash2 className="h-3 w-3 mr-1" /> Supprimer
+          </Button>
+        </div>
+      )}
+
       {/* Body */}
       <div className="flex-1 overflow-y-auto pb-4">
         {tab === 'groupe' ? (
@@ -306,18 +326,38 @@ export default function Contacts() {
               {filteredGroups.map((g: any) => {
                 const memberCount = stats?.members?.[g.id] || 0;
                 const listingCount = stats?.listings?.[g.id] || 0;
+                const pinned = isPinnedHome(g.id);
+                const isSel = selectedGroups.includes(g.id);
+                const onClick = () => {
+                  if (selectingGroups) toggleGroupSelected(g.id);
+                  else navigate(`/group/${g.id}`);
+                };
                 return (
-                  <li key={g.id}>
-                    <button onClick={() => navigate(`/group/${g.id}`)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition text-left">
-                      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
-                        {g.avatar_url ? (
+                  <li
+                    key={g.id + ':' + pinnedTick}
+                    onContextMenu={(e) => { e.preventDefault(); setSelectingGroups(true); setSelectedGroups(prev => prev.includes(g.id) ? prev : [...prev, g.id]); }}
+                    onTouchStart={() => startLongPress(g.id)}
+                    onTouchEnd={cancelLongPress}
+                    onTouchMove={cancelLongPress}
+                    onMouseDown={() => startLongPress(g.id)}
+                    onMouseUp={cancelLongPress}
+                    onMouseLeave={cancelLongPress}
+                  >
+                    <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition text-left ${isSel ? 'bg-primary/10' : ''}`}>
+                      <div className={`h-12 w-12 rounded-full flex items-center justify-center overflow-hidden shrink-0 ${isSel ? 'bg-primary text-primary-foreground ring-2 ring-primary' : 'bg-primary/10'}`}>
+                        {isSel ? (
+                          <span className="text-lg font-bold">✓</span>
+                        ) : g.avatar_url ? (
                           <img src={g.avatar_url} alt={g.name} className="h-full w-full object-cover" />
                         ) : (
                           <Users className="h-6 w-6 text-primary" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0 border-b border-border pb-3">
-                        <p className="text-base font-semibold text-foreground truncate">{g.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-base font-semibold text-foreground truncate">{g.name}</p>
+                          {pinned && <Home className="h-3 w-3 text-primary shrink-0" aria-label="Épinglé à l'accueil" />}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">{listingCount} annonce(s) · {memberCount} membre(s)</p>
                         {g.updated_at && <p className="text-[11px] text-muted-foreground truncate">Dernière activité {formatDateTime(g.updated_at)}</p>}
                       </div>
