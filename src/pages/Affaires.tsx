@@ -116,7 +116,7 @@ export default function Affaires() {
     try {
       const { data: dbListings } = await supabase
         .from('listings')
-        .select('id, title, description, images, created_at, group_id, zwandako_url')
+        .select('id, title, description, images, created_at, group_id, zwandako_url, user_id')
         .order('created_at', { ascending: false })
         .limit(300);
       for (const l of dbListings || []) {
@@ -126,7 +126,8 @@ export default function Affaires() {
             key: `${req.id}:wh:${l.id}`, requestId: req.id, source: 'whathouse',
             id: l.id, title: l.title, description: l.description || '',
             images: l.images || [], created_at: l.created_at,
-            group_id: l.group_id, zwandako_url: l.zwandako_url, _score: score,
+            group_id: l.group_id, zwandako_url: l.zwandako_url,
+            user_id: (l as any).user_id, _score: score,
           });
         }
       }
