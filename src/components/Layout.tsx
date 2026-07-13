@@ -86,21 +86,24 @@ export function Layout() {
       const dx = t.clientX - startRef.current.x;
       const dy = t.clientY - startRef.current.y;
 
-      // Stricter lock: require clear horizontal intent and a meaningful distance
+      // Lock direction quickly to keep vertical scroll fluid on the home feed.
       if (!startRef.current.locked) {
-        if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
-        // Only lock horizontal if dx is dominant by 2x AND clearly large
-        if (Math.abs(dx) > Math.abs(dy) * 2 && Math.abs(dx) > 18) {
+        // Lock vertical as soon as any vertical intent is detected — prevents jank while scrolling.
+        if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx)) {
+          startRef.current.locked = 'v';
+          return;
+        }
+        // Require clearly dominant horizontal intent to lock horizontal.
+        if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 2.5) {
           startRef.current.locked = 'h';
         } else {
-          startRef.current.locked = 'v';
+          return;
         }
       }
       if (startRef.current.locked !== 'h') return;
 
-      // Subtract the activation distance so the page doesn't "peek" at edges on quick swipes
       const sign = dx >= 0 ? 1 : -1;
-      let next = dx - sign * 18;
+      let next = dx - sign * 14;
       if (swipeIdx === 0 && next > 0) next = next * 0.25;
       if (swipeIdx === SWIPE_ROUTES.length - 1 && next < 0) next = next * 0.25;
       setDragX(next);
@@ -113,14 +116,14 @@ export function Layout() {
         return;
       }
       const w = widthRef.current;
-      const threshold = w * 0.25;
+      const threshold = w * 0.22;
       setAnimating(true);
       if (dragX < -threshold && swipeIdx < SWIPE_ROUTES.length - 1) {
         setDragX(-w);
-        setTimeout(() => navigate(SWIPE_ROUTES[swipeIdx + 1]), 220);
+        setTimeout(() => navigate(SWIPE_ROUTES[swipeIdx + 1]), 180);
       } else if (dragX > threshold && swipeIdx > 0) {
         setDragX(w);
-        setTimeout(() => navigate(SWIPE_ROUTES[swipeIdx - 1]), 220);
+        setTimeout(() => navigate(SWIPE_ROUTES[swipeIdx - 1]), 180);
       } else {
         setDragX(0);
       }
@@ -150,7 +153,7 @@ export function Layout() {
             className="flex h-full w-full"
             style={{
               transform: `translate3d(${translateX}, 0, 0)`,
-              transition: animating ? 'transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none',
+              transition: animating ? 'transform 180ms cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none',
               willChange: 'transform',
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden' as any,
@@ -183,7 +186,7 @@ export function Layout() {
             onClick={(e) => { if (!requireAuth(e)) return; }}
             title="Partager une annonce"
             aria-label="Partager une annonce"
-            className="fixed right-4 lg:right-8 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition"
+            className="fixed right-4 lg:right-8 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 active:scale-95 transition"
             style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
           >
             <Share2 className="h-6 w-6" />
