@@ -175,9 +175,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
       const key = 'wh_taken_listings';
       const arr = JSON.parse(localStorage.getItem(key) || '[]');
       const already = arr.find((x: any) => x.id === listing.id);
-      if (already) {
-        toast({ title: 'Déjà pris', description: 'Cette annonce est dans vos affaires en cours.' });
-      } else {
+      if (!already) {
         const entry = {
           id: listing.id,
           title: listing.title,
@@ -189,7 +187,6 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           zwandako_url: listing.zwandako_url || null,
         };
         localStorage.setItem(key, JSON.stringify([entry, ...arr]));
-        toast({ title: 'Annonce prise', description: 'Ajoutée à Affaires > Affaire en cours.' });
       }
     } catch { /* ignore */ }
     // Notify the owner via realtime notification
@@ -202,11 +199,8 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
         image: (listing.images || [])[0] || null,
       });
     });
-    const ownerPhone = ownerProfile?.phone?.replace(/[^0-9]/g, '');
-    if (ownerPhone) {
-      const msg = `Bonjour, je prends en charge votre annonce "${listing.title}" : ${listingLink}`;
-      window.open(`https://wa.me/${ownerPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-    }
+    toast({ title: 'Annonce prise', description: 'Ouverture de vos affaires…' });
+    window.location.href = '/affaires?tab=tableau&sub=notifs';
   };
 
   const images: string[] = listing.images || [];
@@ -351,16 +345,39 @@ function GroupEditHeader({ group, onClose }: { group: any; onClose: () => void }
 function GridListingCard({ listing }: { listing: any }) {
   const img = (listing.images && listing.images[0]) || '';
   const { data: ownerProfile } = useProfile(listing.user_id);
+  const { user } = useAuth();
+  const { toast } = useToast();
   const agentName = `${ownerProfile?.first_name || ''} ${ownerProfile?.last_name || ''}`.trim() || 'Agent';
   const agentInitials = agentName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'A';
   const zwandakoHref = listing.zwandako_url || (listing.wp_post_id ? `https://zwandako.com/?p=${listing.wp_post_id}` : `https://zwandako.com/?s=${encodeURIComponent(listing.title || '')}`);
+
+  const handleTake = (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!user) return;
+    try {
+      const key = 'wh_taken_listings';
+      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+      if (!arr.find((x: any) => x.id === listing.id)) {
+        arr.unshift({
+          id: listing.id, title: listing.title, description: listing.description || '',
+          image: img || null, group_id: listing.group_id, takenAt: Date.now(),
+          source: 'whathouse', zwandako_url: listing.zwandako_url || null,
+        });
+        localStorage.setItem(key, JSON.stringify(arr));
+      }
+    } catch {}
+    import('@/hooks/use-takes').then(({ recordListingTake }) => {
+      recordListingTake({
+        listingId: listing.id, ownerId: listing.user_id, takerId: user.id,
+        title: listing.title, image: img || null,
+      });
+    });
+    toast({ title: 'Annonce prise', description: 'Ouverture du tableau…' });
+    window.location.href = '/affaires?tab=tableau&sub=notifs';
+  };
+
   return (
-    <a href={`#listing-${listing.id}`}
-      onClick={(e) => {
-        e.preventDefault();
-        const el = document.getElementById(`listing-${listing.id}`);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }}
+    <a href={`/listing/${listing.id}`}
       className="block bg-card rounded-xl overflow-hidden border border-border shadow-sm hover:shadow-md transition">
       <div className="relative aspect-square w-full bg-muted overflow-hidden">
         {img ? <img src={img} alt={listing.title} className="h-full w-full object-cover" loading="lazy" /> : null}
@@ -371,20 +388,6 @@ function GridListingCard({ listing }: { listing: any }) {
             <span className="text-[10px] font-bold text-primary">{agentInitials}</span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault(); e.stopPropagation();
-            const url = `${window.location.origin}/listing/${listing.id}`;
-            const text = `🏠 ${listing.title}\n${url}`;
-            if ((navigator as any).share) (navigator as any).share({ title: listing.title, text, url }).catch(() => {});
-            else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-          }}
-          aria-label="Partager"
-          className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-card/90 backdrop-blur flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition"
-        >
-          <Share2 className="h-3.5 w-3.5" />
-        </button>
       </div>
       <div className="p-2">
         <p className="text-xs font-bold text-foreground line-clamp-2 leading-tight">{listing.title}</p>
@@ -394,16 +397,10 @@ function GridListingCard({ listing }: { listing: any }) {
             className="text-[10px] text-primary font-bold inline-block">Voir →</a>
           <button
             type="button"
-            onClick={(e) => {
-              e.preventDefault(); e.stopPropagation();
-              const url = `${window.location.origin}/listing/${listing.id}`;
-              const text = `🏠 ${listing.title}\n${url}`;
-              if ((navigator as any).share) (navigator as any).share({ title: listing.title, text, url }).catch(() => {});
-              else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-            }}
-            className="text-[10px] font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition"
+            onClick={handleTake}
+            className="text-[10px] font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success text-success-foreground hover:opacity-90 transition"
           >
-            <Share2 className="h-2.5 w-2.5" />Partager
+            <Send className="h-2.5 w-2.5" />Prendre
           </button>
         </div>
       </div>

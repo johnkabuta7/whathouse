@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Plus, Trash2, Play, Pause, Share2, Download, Briefcase, Heart, Users, MessageSquare, Copy, ExternalLink, ChevronDown, ChevronUp, Send, Phone, Mail, Globe, MapPin, X, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMyListings, useMyFavorites, useMyGroups, useProfile } from '@/hooks/use-data';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -85,15 +85,18 @@ export default function Affaires() {
   const { data: profile } = useProfile(user?.id || '');
   const { data: takeNotifs } = useMyTakeNotifications();
   useRealtimeTakeNotifications();
-  const [tab, setTab] = useState<Tab>('tableau');
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as Tab) || 'tableau';
+  const initialSub = (searchParams.get('sub') as any) || 'stats';
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [requests, setRequests] = useState<SearchRequest[]>([]);
   const [taken, setTaken] = useState<TakenListing[]>([]);
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [description, setDescription] = useState('');
   const [matches, setMatches] = useState<MatchItem[]>([]);
-  type SubTab = 'stats' | 'notifs' | 'recent' | 'ongoing' | 'portfolio';
-  const [subTab, setSubTab] = useState<SubTab>('stats');
+  type SubTab = 'stats' | 'notifs' | 'ongoing' | 'portfolio';
+  const [subTab, setSubTab] = useState<SubTab>(['stats','notifs','ongoing','portfolio'].includes(initialSub) ? initialSub : 'stats');
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardTitle, setCardTitle] = useState('Agent immobilier');
   const [cardAgency, setCardAgency] = useState('Immobilier de Luxe');
@@ -325,8 +328,7 @@ export default function Affaires() {
             <div className="flex mb-3 relative overflow-x-auto no-scrollbar">
               {([
                 { key: 'stats', label: 'Statistiques' },
-                { key: 'notifs', label: 'Notifications' },
-                { key: 'recent', label: 'Activité' },
+                { key: 'notifs', label: 'Notifications & activité' },
                 { key: 'ongoing', label: 'En cours' },
                 { key: 'portfolio', label: 'Portefeuille' },
               ] as { key: SubTab; label: string }[]).map(s => (
@@ -399,18 +401,20 @@ export default function Affaires() {
               )
             )}
 
-            {subTab === 'recent' && (
-              <div className="rounded-2xl p-3 bg-primary/10 space-y-2">
-                {(myListings || []).slice(0, 5).map((l: any) => (
-                  <button key={l.id} onClick={() => navigate(`/listing/${l.id}`)} className="w-full flex items-center gap-3 text-sm text-left">
-                    {l.images?.[0] ? <img src={l.images[0]} className="h-10 w-10 rounded-lg object-cover" /> : <div className="h-10 w-10 rounded-lg bg-muted" />}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">{l.title}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(l.created_at).toLocaleDateString('fr-FR')}</p>
-                    </div>
-                  </button>
-                ))}
-                {(!myListings || myListings.length === 0) && <p className="text-sm text-foreground">Aucune activité.</p>}
+            {subTab === 'notifs' && (myListings && myListings.length > 0) && (
+              <div className="mt-4">
+                <h4 className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Activité récente — Mes annonces</h4>
+                <div className="rounded-2xl p-3 bg-primary/10 space-y-2">
+                  {myListings.slice(0, 5).map((l: any) => (
+                    <button key={l.id} onClick={() => navigate(`/listing/${l.id}`)} className="w-full flex items-center gap-3 text-sm text-left">
+                      {l.images?.[0] ? <img src={l.images[0]} className="h-10 w-10 rounded-lg object-cover" /> : <div className="h-10 w-10 rounded-lg bg-muted" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground truncate">{l.title}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(l.created_at).toLocaleDateString('fr-FR')}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -573,9 +577,17 @@ export default function Affaires() {
                         ) : (
                           <button onClick={() => navigate(`/listing/${m.id}`)} className="py-2 rounded-full border border-border text-primary text-xs font-semibold">Voir</button>
                         )}
-                        <button onClick={() => takeMatch(m)} className="py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center justify-center gap-1">
-                          <Send className="h-3 w-3" /> Prendre
-                        </button>
+                        {(() => {
+                          const zwLink = m.zwandako_url || (m.source === 'whathouse' ? `${window.location.origin}/listing/${m.id}` : '');
+                          const waMsg = `Bonjour, je suis intéressé par cette annonce : ${m.title}\n${zwLink}`;
+                          const waUrl = `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
+                          return (
+                            <a href={waUrl} target="_blank" rel="noopener noreferrer"
+                              className="py-2 rounded-full bg-success text-success-foreground text-xs font-semibold inline-flex items-center justify-center gap-1">
+                              <MessageSquare className="h-3 w-3" /> Contacter
+                            </a>
+                          );
+                        })()}
                       </div>
                     </li>
                   );

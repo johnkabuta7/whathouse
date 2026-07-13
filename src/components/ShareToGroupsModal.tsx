@@ -28,9 +28,10 @@ export function ShareToGroupsModal({ open, onClose, listing }: Props) {
   const toggle = (id: string) =>
     setSelected(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
 
-  const listingUrl = `${window.location.origin}/listing/${listing.id}`;
+  const zwandakoUrl = (listing as any).zwandako_url
+    || ((listing as any).wp_post_id ? `https://zwandako.com/?p=${(listing as any).wp_post_id}` : `${window.location.origin}/listing/${listing.id}`);
   const firstImage = (listing.images && listing.images[0]) || '';
-  const waText = `🏠 ${listing.title}\n\n${(listing.description || '').slice(0, 200)}${(listing.description || '').length > 200 ? '…' : ''}\n\n${firstImage ? firstImage + '\n\n' : ''}👉 Voir l'annonce : ${listingUrl}`;
+  const waText = `🏠 ${listing.title}\n\n${(listing.description || '').slice(0, 200)}${(listing.description || '').length > 200 ? '…' : ''}\n\n${firstImage ? firstImage + '\n\n' : ''}👉 Voir sur Zwandako : ${zwandakoUrl}`;
 
   const openWhatsApp = () => {
     const url = `https://wa.me/?text=${encodeURIComponent(waText)}`;
@@ -105,28 +106,23 @@ export function ShareToGroupsModal({ open, onClose, listing }: Props) {
           )}
         </div>
 
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 flex items-center gap-2">
           <Button onClick={handleShare} disabled={sharing}
-            className="w-full rounded-full bg-primary text-primary-foreground">
+            className="flex-1 h-9 rounded-full bg-primary text-primary-foreground text-xs font-semibold px-3">
             {sharing ? (
-              <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
+              <div className="h-3.5 w-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-1.5" />
             ) : (
-              <Send className="h-4 w-4 mr-1" />
+              <Send className="h-3.5 w-3.5 mr-1" />
             )}
-            {selected.length > 0
-              ? `Partager dans ${selected.length} groupe${selected.length > 1 ? 's' : ''} puis WhatsApp`
-              : 'Partager directement sur WhatsApp'}
+            {selected.length > 0 ? `${selected.length} groupes` : 'Groupes'}
           </Button>
           <button
             onClick={() => { openWhatsApp(); onClose(); }}
-            className="w-full rounded-full bg-success text-success-foreground font-semibold py-2.5 flex items-center justify-center gap-2 active:scale-[0.98] transition"
+            className="flex-1 h-9 rounded-full bg-success text-success-foreground font-semibold text-xs px-3 inline-flex items-center justify-center gap-1 active:scale-[0.98] transition"
           >
-            <MessageCircle className="h-4 w-4" />
-            Envoyer le lien sur WhatsApp
+            <MessageCircle className="h-3.5 w-3.5" />
+            WhatsApp
           </button>
-          <p className="text-[10px] text-muted-foreground text-center">
-            Vos contacts ouvrent le lien et voient l'annonce directement dans WhatHouse.
-          </p>
         </div>
       </div>
     </div>

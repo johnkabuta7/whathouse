@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2, X, PenSquare, MapPin, Zap } from 'lucide-react';
+import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical, UserPlus, Settings, Share2, X, PenSquare, MapPin, Zap, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts, useUnreadCounts, normalizeSearch } from '@/hooks/use-data';
 import { useRealtimeListings, useRealtimeJoinRequests } from '@/hooks/use-notifications';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { useZwandakoLeads, leadTitle, leadCity, leadPrice, leadTxType } from '@/hooks/use-zwandako-leads';
 import { getHomeGroupIds } from '@/hooks/use-home-groups';
@@ -45,7 +45,10 @@ function useOnlineContacts() {
           ?.filter((s: any) => new Date(s.updated_at).getTime() > cutoff)
           .map((s: any) => s.user_id) || []
       );
-      return others.map((p: any) => ({ ...p, online: p.ghost_mode ? false : onlineSet.has(p.user_id) }));
+      const withStatus = others.map((p: any) => ({ ...p, online: p.ghost_mode ? false : onlineSet.has(p.user_id) }));
+      // Sort: online contacts first
+      withStatus.sort((a: any, b: any) => (b.online ? 1 : 0) - (a.online ? 1 : 0));
+      return withStatus;
     },
     enabled: !!user,
     refetchInterval: 60_000,
@@ -177,7 +180,7 @@ function FeaturedProperties() {
         <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">À la une sur Zwandako</h2>
         <a href="https://zwandako.com" target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold text-primary">Voir tout →</a>
       </div>
-      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1 touch-pan-x">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1">
         {properties.map((p: any) => {
           const img = p._embedded?.['wp:featuredmedia']?.[0]?.source_url
             || p.jetpack_featured_media_url
@@ -237,7 +240,7 @@ function PostImmobilierCarousel() {
         <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Post Immobilier</h2>
         <a href="https://zwandako.com/conseil-sur-limmobilier-en-rdc/" target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold text-primary">Voir tout →</a>
       </div>
-      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1 touch-pan-x">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1">
         {posts.map((p: any) => {
           const img = p._embedded?.['wp:featuredmedia']?.[0]?.source_url || p.jetpack_featured_media_url;
           const title = (p.title?.rendered || '').replace(/<[^>]+>/g, '');
@@ -275,8 +278,18 @@ function PostImmobilierCarousel() {
 export default function Index() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshSearch = () => {
+    setRefreshing(true);
+    queryClient.invalidateQueries({ queryKey: ['wp_search_properties'] });
+    queryClient.invalidateQueries({ queryKey: ['search_groups'] });
+    queryClient.invalidateQueries({ queryKey: ['wp_featured_properties'] });
+    queryClient.invalidateQueries({ queryKey: ['zwandako_conseils'] });
+    setTimeout(() => setRefreshing(false), 700);
+  };
   const [showMenu, setShowMenu] = useState(false);
   const [showInstall, setShowInstall] = useState(false);
   const { data: myGroups, isLoading } = useMyGroups();
@@ -384,17 +397,29 @@ export default function Index() {
         </div>
         {showSearch && (
           <div className="px-3 pb-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une annonce, un groupe..."
-                className="w-full pl-9 pr-10 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" autoFocus />
+            <div className="relative flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une annonce, un groupe..."
+                  className="w-full pl-9 pr-10 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" autoFocus />
+                <button
+                  type="button"
+                  onClick={() => { setSearch(''); setShowSearch(false); }}
+                  aria-label="Fermer la recherche"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground flex items-center justify-center transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => { setSearch(''); setShowSearch(false); }}
-                aria-label="Fermer la recherche"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground flex items-center justify-center transition"
+                onClick={refreshSearch}
+                aria-label="Actualiser la recherche"
+                title="Actualiser"
+                className="h-9 w-9 rounded-full bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center shrink-0 transition disabled:opacity-50"
+                disabled={refreshing}
               >
-                <X className="h-4 w-4" />
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
@@ -404,7 +429,7 @@ export default function Index() {
       {/* Contact carousel — Messenger style online indicator */}
       {contacts && contacts.length > 0 && !isSearching && (
         <div className="px-4 pt-[5mm] pb-3" data-no-swipe>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 touch-pan-x">
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
             {contacts.slice(0, 30).map(c => {
               const name = `${c.first_name} ${c.last_name}`.trim() || '?';
               const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
