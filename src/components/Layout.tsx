@@ -86,21 +86,24 @@ export function Layout() {
       const dx = t.clientX - startRef.current.x;
       const dy = t.clientY - startRef.current.y;
 
-      // Stricter lock: require clear horizontal intent and a meaningful distance
+      // Lock direction quickly to keep vertical scroll fluid on the home feed.
       if (!startRef.current.locked) {
-        if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
-        // Only lock horizontal if dx is dominant by 2x AND clearly large
-        if (Math.abs(dx) > Math.abs(dy) * 2 && Math.abs(dx) > 18) {
+        // Lock vertical as soon as any vertical intent is detected — prevents jank while scrolling.
+        if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx)) {
+          startRef.current.locked = 'v';
+          return;
+        }
+        // Require clearly dominant horizontal intent to lock horizontal.
+        if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 2.5) {
           startRef.current.locked = 'h';
         } else {
-          startRef.current.locked = 'v';
+          return;
         }
       }
       if (startRef.current.locked !== 'h') return;
 
-      // Subtract the activation distance so the page doesn't "peek" at edges on quick swipes
       const sign = dx >= 0 ? 1 : -1;
-      let next = dx - sign * 18;
+      let next = dx - sign * 14;
       if (swipeIdx === 0 && next > 0) next = next * 0.25;
       if (swipeIdx === SWIPE_ROUTES.length - 1 && next < 0) next = next * 0.25;
       setDragX(next);
