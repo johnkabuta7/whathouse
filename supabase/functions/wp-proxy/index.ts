@@ -563,7 +563,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Public actions: no Supabase auth required (used during login/signup flow).
-    const PUBLIC_ACTIONS = new Set(["wp_login_check", "phone_login_check", "signup_mirror"]);
+    const PUBLIC_ACTIONS = new Set(["wp_login_check", "phone_login_check", "signup_mirror", "list_posts"]);
 
     let uid = "";
     if (!PUBLIC_ACTIONS.has(action)) {
