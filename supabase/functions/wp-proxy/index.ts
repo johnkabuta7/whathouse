@@ -1045,10 +1045,11 @@ Deno.serve(async (req) => {
       );
 
       if (!res.ok) {
-        throw new Error(`WP post list failed [${res.status}]: ${text}`);
+        console.warn(`WP post list failed [${res.status}] — returning empty fallback`);
+        return jsonResponse({ ok: true, posts: [], fallback: true, status: res.status });
       }
 
-      return jsonResponse({ ok: true, posts: json || [] });
+      return jsonResponse({ ok: true, posts: Array.isArray(json) ? json : [] });
     }
 
     if (action === "list_demandes") {
