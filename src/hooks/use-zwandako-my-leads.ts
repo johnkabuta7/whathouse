@@ -8,7 +8,7 @@ export function useZwandakoAccess() {
   return useQuery({
     queryKey: ['zwandako_access'],
     queryFn: async () => {
-      const { data } = await supabase.functions.invoke('wp-proxy', { body: { action: 'me_access' } });
+      const { data } = await supabase.functions.invoke('wp-proxy', { body: { action: 'me_access', payload: {} } });
       return data?.access || null;
     },
     staleTime: 30_000,
