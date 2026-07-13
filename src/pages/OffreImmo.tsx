@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Building2, Search, RefreshCw, LogIn, ChevronDown, ExternalLink, Loader2, MapPin, Zap, EyeOff } from 'lucide-react';
+import { Building2, Search, RefreshCw, LogIn, ChevronDown, ExternalLink, Loader2, MapPin, Zap, EyeOff, Phone, MessageCircle, Mail, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useZwandakoLeads, leadPrice, leadTitle, leadCity, leadTxType, type ZwandakoLead } from '@/hooks/use-zwandako-leads';
+import { useZwandakoAccess, useMyZwandakoLeads, useTakeLead, useMarkContacted } from '@/hooks/use-zwandako-my-leads';
 import { useQueryClient } from '@tanstack/react-query';
 
 type SubTab = 'all' | 'mine';
