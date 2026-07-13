@@ -354,19 +354,37 @@ function ProfilLogged() {
           </div>
         </section>
 
-        <section>
-          <h2 className="text-lg font-bold text-foreground mb-2">Espace Professionnel</h2>
-          <div className="rounded-2xl bg-card border border-border overflow-hidden">
-            <button onClick={() => setActiveTab('annonces')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><BookOpen className="h-5 w-5 text-primary" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Statistiques</p>
-                <p className="text-xs text-muted-foreground">Agents, annonces, groupes et activité</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
-        </section>
+        {isAdmin && (
+          <section>
+            <h2 className="text-lg font-bold text-foreground mb-2">Espace Professionnel</h2>
+            <div className="rounded-2xl bg-card border border-border overflow-hidden divide-y divide-border">
+              <Link to="/admin/dashboard" className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-5 w-5 text-primary" /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Tableau de bord admin</p>
+                  <p className="text-xs text-muted-foreground">Statistiques, utilisateurs, annonces, groupes et sliders.</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+              <button onClick={() => setActiveTab('admin')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><ImageIcon className="h-5 w-5 text-primary" /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Sliders d'accueil</p>
+                  <p className="text-xs text-muted-foreground">Gérer les bannières visibles par tous les utilisateurs.</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <button onClick={() => setActiveTab('annonces')} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><BookOpen className="h-5 w-5 text-primary" /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Statistiques rapides</p>
+                  <p className="text-xs text-muted-foreground">Vue d'ensemble de vos annonces et groupes.</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+          </section>
+        )}
 
       </div>
 
