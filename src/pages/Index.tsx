@@ -278,8 +278,18 @@ function PostImmobilierCarousel() {
 export default function Index() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshSearch = () => {
+    setRefreshing(true);
+    queryClient.invalidateQueries({ queryKey: ['wp_search_properties'] });
+    queryClient.invalidateQueries({ queryKey: ['search_groups'] });
+    queryClient.invalidateQueries({ queryKey: ['wp_featured_properties'] });
+    queryClient.invalidateQueries({ queryKey: ['zwandako_conseils'] });
+    setTimeout(() => setRefreshing(false), 700);
+  };
   const [showMenu, setShowMenu] = useState(false);
   const [showInstall, setShowInstall] = useState(false);
   const { data: myGroups, isLoading } = useMyGroups();
