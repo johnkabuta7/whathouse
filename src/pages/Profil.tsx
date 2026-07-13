@@ -732,11 +732,19 @@ function ProfilLogged() {
                 </Link>
               </div>
             </section>
+              )}
+            </div>
 
-            {/* Apparence & Notifications (existant) */}
             {/* Apparence & Notifications */}
-            <section className="rounded-2xl bg-card border border-border p-2 space-y-1">
-              <h2 className="text-base font-bold text-foreground mb-1 px-1">Apparence & Notifications</h2>
+            <div className="border-b border-border">
+              <button onClick={() => setSettingsSection(s => s === 'appearance' ? null : 'appearance')} className="w-full flex items-center gap-3 py-3 text-left">
+                <Bell className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground flex-1">Apparence et notifications</span>
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${settingsSection === 'appearance' ? 'rotate-90' : ''}`} />
+              </button>
+              {settingsSection === 'appearance' && (
+            <section className="pb-3 space-y-1 animate-fade-in">
+
 
 
             {themeStyle !== 'mocha' && (
