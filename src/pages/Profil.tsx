@@ -668,11 +668,19 @@ function ProfilLogged() {
                 </button>
               </div>
             </section>
+              )}
+            </div>
 
             {/* Aide et informations */}
-            <section>
-              <h2 className="text-base font-bold text-foreground mb-2">Aide et informations</h2>
-              <p className="text-[11px] text-muted-foreground mb-3">Retrouvez le mode d'emploi de l'application, nos engagements et les documents légaux qui encadrent l'usage de WhatHouse et de Zwandako.</p>
+            <div className="border-b border-border">
+              <button onClick={() => setSettingsSection(s => s === 'help' ? null : 'help')} className="w-full flex items-center gap-3 py-3 text-left">
+                <BookOpen className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground flex-1">Aide et informations</span>
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${settingsSection === 'help' ? 'rotate-90' : ''}`} />
+              </button>
+              {settingsSection === 'help' && (
+            <section className="pb-3 animate-fade-in">
+              <p className="text-[11px] text-muted-foreground mb-2">Mode d'emploi, engagements et documents légaux.</p>
               <div className="rounded-2xl bg-card border border-border overflow-hidden divide-y divide-border">
                 <Link to="/legal/tuto" className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><BookOpen className="h-5 w-5 text-primary" /></div>
