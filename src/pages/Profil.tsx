@@ -626,11 +626,19 @@ function ProfilLogged() {
                 </div>
               </div>
             </section>
+              )}
+            </div>
 
             {/* Sécurité et données */}
-            <section>
-              <h2 className="text-base font-bold text-foreground mb-2">Sécurité et données</h2>
-              <p className="text-[11px] text-muted-foreground mb-3">Votre compte WhatHouse est le même que votre compte Zwandako. Protégez-le avec un mot de passe fort et gardez le contrôle sur vos données personnelles.</p>
+            <div className="border-b border-border">
+              <button onClick={() => setSettingsSection(s => s === 'security' ? null : 'security')} className="w-full flex items-center gap-3 py-3 text-left">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground flex-1">Sécurité et données</span>
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${settingsSection === 'security' ? 'rotate-90' : ''}`} />
+              </button>
+              {settingsSection === 'security' && (
+            <section className="pb-3 animate-fade-in">
+              <p className="text-[11px] text-muted-foreground mb-2">Votre compte WhatHouse est le même que votre compte Zwandako.</p>
               <div className="rounded-2xl bg-card border border-border overflow-hidden divide-y divide-border">
                 <button onClick={() => setEditing(true)} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-5 w-5 text-primary" /></div>
