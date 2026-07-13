@@ -33,7 +33,7 @@ export function useTakeLead() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async (lead_id: number) => {
-      const { data, error } = await supabase.functions.invoke('wp-proxy', { body: { action: 'take_lead', lead_id } });
+      const { data, error } = await supabase.functions.invoke('wp-proxy', { body: { action: 'take_lead', payload: { lead_id } } });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error || 'Erreur de prise');
       return data;
