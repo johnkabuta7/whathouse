@@ -333,14 +333,13 @@ export default function Affaires() {
             <div className="flex mb-3 relative overflow-x-auto no-scrollbar">
               {([
                 { key: 'stats', label: 'Statistiques' },
-                { key: 'notifs', label: 'Notifications & activité' },
+                { key: 'notifs', label: 'Notifications & Activité' },
                 { key: 'ongoing', label: 'En cours' },
-                { key: 'portfolio', label: 'Portefeuille' },
               ] as { key: SubTab; label: string }[]).map(s => (
                 <button
                   key={s.key}
                   onClick={() => setSubTab(s.key)}
-                  className={`flex-1 min-w-[80px] py-2 text-xs font-semibold text-center transition relative ${subTab === s.key ? 'text-primary' : 'text-muted-foreground'}`}
+                  className={`flex-1 min-w-[80px] py-2 text-xs font-semibold text-center transition relative whitespace-nowrap ${subTab === s.key ? 'text-primary' : 'text-muted-foreground'}`}
                 >
                   {s.label}
                   {subTab === s.key && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-1/4 bg-primary rounded-full" />}
