@@ -20,7 +20,7 @@ export function useMyZwandakoLeads() {
   return useQuery({
     queryKey: ['zwandako_my_leads'],
     queryFn: async (): Promise<MyLead[]> => {
-      const { data } = await supabase.functions.invoke('wp-proxy', { body: { action: 'list_my_leads', per_page: 50 } });
+      const { data } = await supabase.functions.invoke('wp-proxy', { body: { action: 'list_my_leads', payload: { per_page: 50 } } });
       return (data?.items || []) as MyLead[];
     },
     refetchInterval: 60_000,
