@@ -33,7 +33,7 @@ export default function ListingPreview() {
       if (error || !data) { setNotFound(true); setLoading(false); return; }
       setListing(data);
       const [{ data: prof }, { data: grp }] = await Promise.all([
-        data.user_id ? supabase.from('profiles').select('first_name,last_name,avatar_url,phone').eq('id', data.user_id).maybeSingle() : Promise.resolve({ data: null } as any),
+        data.user_id ? supabase.from('profiles').select('first_name,last_name,avatar_url,phone').eq('user_id', data.user_id).maybeSingle() : Promise.resolve({ data: null } as any),
         data.group_id ? supabase.from('groups').select('id,name,image_url').eq('id', data.group_id).maybeSingle() : Promise.resolve({ data: null } as any),
       ]);
       if (cancelled) return;
@@ -69,7 +69,7 @@ export default function ListingPreview() {
 
   return (
     <div className="min-h-[100dvh] bg-background pb-24" data-no-swipe>
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border flex items-center gap-2 px-3 py-2">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border flex items-center gap-2 px-3 py-2" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}>
         <button onClick={() => navigate(-1)} className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-muted">
           <ArrowLeft className="h-5 w-5 text-foreground" />
         </button>

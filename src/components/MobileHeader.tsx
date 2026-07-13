@@ -6,7 +6,7 @@ export function MobileHeader() {
   const totalRequests = requestCounts?.total || 0;
 
   return (
-    <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-md">
+    <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-md" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4px)' }}>
       <div className="px-4 py-3 flex items-center gap-3">
         <h1 className="text-lg font-bold leading-tight flex-1">WhatHouse <span className="block text-[10px] font-medium opacity-80">Pro Immobilier</span></h1>
         <div className="relative">
