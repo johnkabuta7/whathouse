@@ -175,9 +175,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
       const key = 'wh_taken_listings';
       const arr = JSON.parse(localStorage.getItem(key) || '[]');
       const already = arr.find((x: any) => x.id === listing.id);
-      if (already) {
-        toast({ title: 'Déjà pris', description: 'Cette annonce est dans vos affaires en cours.' });
-      } else {
+      if (!already) {
         const entry = {
           id: listing.id,
           title: listing.title,
@@ -189,7 +187,6 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           zwandako_url: listing.zwandako_url || null,
         };
         localStorage.setItem(key, JSON.stringify([entry, ...arr]));
-        toast({ title: 'Annonce prise', description: 'Ajoutée à Affaires > Affaire en cours.' });
       }
     } catch { /* ignore */ }
     // Notify the owner via realtime notification
@@ -202,11 +199,8 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
         image: (listing.images || [])[0] || null,
       });
     });
-    const ownerPhone = ownerProfile?.phone?.replace(/[^0-9]/g, '');
-    if (ownerPhone) {
-      const msg = `Bonjour, je prends en charge votre annonce "${listing.title}" : ${listingLink}`;
-      window.open(`https://wa.me/${ownerPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-    }
+    toast({ title: 'Annonce prise', description: 'Ouverture de vos affaires…' });
+    window.location.href = '/affaires?tab=tableau&sub=notifs';
   };
 
   const images: string[] = listing.images || [];
