@@ -11,6 +11,7 @@ import Contacts from '@/pages/Contacts';
 import OffreImmo from '@/pages/OffreImmo';
 import Profil from '@/pages/Profil';
 import Affaires from '@/pages/Affaires';
+import { useRealtimeListings, useRealtimeJoinRequests } from '@/hooks/use-notifications';
 
 const SWIPE_ROUTES = ['/', '/affaires', '/contacts', '/offre-immo', '/profil'];
 const PAGES = [Index, Affaires, Contacts, OffreImmo, Profil];
