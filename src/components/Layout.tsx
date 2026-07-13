@@ -116,14 +116,14 @@ export function Layout() {
         return;
       }
       const w = widthRef.current;
-      const threshold = w * 0.25;
+      const threshold = w * 0.22;
       setAnimating(true);
       if (dragX < -threshold && swipeIdx < SWIPE_ROUTES.length - 1) {
         setDragX(-w);
-        setTimeout(() => navigate(SWIPE_ROUTES[swipeIdx + 1]), 220);
+        setTimeout(() => navigate(SWIPE_ROUTES[swipeIdx + 1]), 180);
       } else if (dragX > threshold && swipeIdx > 0) {
         setDragX(w);
-        setTimeout(() => navigate(SWIPE_ROUTES[swipeIdx - 1]), 220);
+        setTimeout(() => navigate(SWIPE_ROUTES[swipeIdx - 1]), 180);
       } else {
         setDragX(0);
       }
