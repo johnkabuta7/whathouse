@@ -200,7 +200,7 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
       });
     });
     toast({ title: 'Annonce prise', description: 'Ouverture de vos affaires…' });
-    window.location.href = '/affaires?tab=tableau&sub=notifs';
+    window.location.href = '/affaires?tab=tableau&sub=ongoing';
   };
 
   const images: string[] = listing.images || [];
@@ -373,7 +373,7 @@ function GridListingCard({ listing }: { listing: any }) {
       });
     });
     toast({ title: 'Annonce prise', description: 'Ouverture du tableau…' });
-    window.location.href = '/affaires?tab=tableau&sub=notifs';
+    window.location.href = '/affaires?tab=tableau&sub=ongoing';
   };
 
   return (
@@ -597,6 +597,16 @@ export default function GroupDetail() {
               </button>
             </div>
           </div>
+          {/* Floating share/publish FAB — opens the same publish modal directly in this group */}
+          <button
+            onClick={() => setShowPublish(true)}
+            title="Publier dans ce groupe"
+            aria-label="Publier une annonce dans ce groupe"
+            className="fixed right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition"
+            style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
+          >
+            <Share2 className="h-6 w-6" />
+          </button>
           {showPublish && (
             <div className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm flex items-end sm:items-center justify-center animate-fade-in" onClick={() => setShowPublish(false)}>
               <div
