@@ -247,7 +247,7 @@ function PostImmobilierCarousel() {
               key={p.id}
               href={p.link}
               target="_blank" rel="noopener noreferrer"
-              className="shrink-0 w-56 rounded-2xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition"
+              className="shrink-0 w-56 overflow-hidden bg-card border border-border shadow-md hover:shadow-lg transition"
             >
               {img && (
                 <div className="h-28 w-full overflow-hidden bg-muted">
