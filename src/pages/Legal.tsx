@@ -181,7 +181,7 @@ export default function Legal() {
 
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
-      <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border">
+      <header className="sticky top-0 z-50 bg-card/60 backdrop-blur-md border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4px)' }}>
         <div className="px-4 py-3 flex items-center gap-3">
           <Link to="/profil" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
           <Icon className="h-5 w-5 text-primary" />

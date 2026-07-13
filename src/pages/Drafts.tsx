@@ -27,7 +27,7 @@ export default function Drafts() {
 
   return (
     <div className="max-w-lg mx-auto animate-fade-in">
-      <div className="px-3 py-2.5 flex items-center gap-3 bg-card/60 backdrop-blur-md border-b border-border sticky top-0 z-10">
+      <div className="px-3 py-2.5 flex items-center gap-3 bg-card/60 backdrop-blur-md border-b border-border sticky top-0 z-10" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}>
         <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
         <h1 className="text-sm font-bold flex-1 text-foreground">Brouillons</h1>
         <span className="text-xs text-muted-foreground">{drafts.length}</span>
