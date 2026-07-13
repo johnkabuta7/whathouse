@@ -598,9 +598,15 @@ function ProfilLogged() {
 
 
             {/* Préférences */}
-            <section>
-              <h2 className="text-base font-bold text-foreground mb-2">Préférences</h2>
-              <p className="text-[11px] text-muted-foreground mb-3">Personnalisez l'apparence de WhatHouse, votre langue et votre ville de travail par défaut afin d'accélérer la publication d'annonces et le filtrage des demandes.</p>
+            <div className="border-b border-border">
+              <button onClick={() => setSettingsSection(s => s === 'prefs' ? null : 'prefs')} className="w-full flex items-center gap-3 py-3 text-left">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground flex-1">Préférences</span>
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${settingsSection === 'prefs' ? 'rotate-90' : ''}`} />
+              </button>
+              {settingsSection === 'prefs' && (
+            <section className="pb-3 animate-fade-in">
+              <p className="text-[11px] text-muted-foreground mb-2">Personnalisez WhatHouse, votre langue et votre ville de travail par défaut.</p>
               <div className="rounded-2xl bg-card border border-border overflow-hidden divide-y divide-border">
                 <div className="flex items-center gap-3 p-3">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><Sparkles className="h-5 w-5 text-primary" /></div>
