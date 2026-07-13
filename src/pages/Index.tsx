@@ -45,7 +45,10 @@ function useOnlineContacts() {
           ?.filter((s: any) => new Date(s.updated_at).getTime() > cutoff)
           .map((s: any) => s.user_id) || []
       );
-      return others.map((p: any) => ({ ...p, online: p.ghost_mode ? false : onlineSet.has(p.user_id) }));
+      const withStatus = others.map((p: any) => ({ ...p, online: p.ghost_mode ? false : onlineSet.has(p.user_id) }));
+      // Sort: online contacts first
+      withStatus.sort((a: any, b: any) => (b.online ? 1 : 0) - (a.online ? 1 : 0));
+      return withStatus;
     },
     enabled: !!user,
     refetchInterval: 60_000,
