@@ -92,7 +92,8 @@ export default function Affaires() {
   const [clientPhone, setClientPhone] = useState('');
   const [description, setDescription] = useState('');
   const [matches, setMatches] = useState<MatchItem[]>([]);
-  const [openSection, setOpenSection] = useState<string | null>('stats');
+  type SubTab = 'stats' | 'notifs' | 'recent' | 'ongoing' | 'portfolio';
+  const [subTab, setSubTab] = useState<SubTab>('stats');
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardTitle, setCardTitle] = useState('Agent immobilier');
   const [cardAgency, setCardAgency] = useState('Immobilier de Luxe');
