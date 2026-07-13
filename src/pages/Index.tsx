@@ -4,7 +4,7 @@ import { Plus, Users, Search, Phone, MessageSquare, Bell, Download, MoreVertical
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyGroups, useSearchGroups, useSliderBanners, useIsAppAdmin, useAllGroups, useMyGroupJoinRequestCounts, useUnreadCounts, normalizeSearch } from '@/hooks/use-data';
-import { useRealtimeListings, useRealtimeJoinRequests } from '@/hooks/use-notifications';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { InstallPrompt } from '@/components/InstallPrompt';
@@ -303,8 +303,8 @@ export default function Index() {
   const { data: newSignups } = useNewSignupsCount();
   const [selectedContact, setSelectedContact] = useState<any>(null);
 
-  useRealtimeListings();
-  useRealtimeJoinRequests();
+
+
 
   const isSearching = search.trim().length >= 2;
   const [pinnedTick, setPinnedTick] = useState(0);

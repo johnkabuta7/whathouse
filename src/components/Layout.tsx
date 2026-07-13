@@ -11,6 +11,7 @@ import Contacts from '@/pages/Contacts';
 import OffreImmo from '@/pages/OffreImmo';
 import Profil from '@/pages/Profil';
 import Affaires from '@/pages/Affaires';
+import { useRealtimeListings, useRealtimeJoinRequests } from '@/hooks/use-notifications';
 
 const SWIPE_ROUTES = ['/', '/affaires', '/contacts', '/offre-immo', '/profil'];
 const PAGES = [Index, Affaires, Contacts, OffreImmo, Profil];
@@ -21,6 +22,8 @@ export function Layout() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  useRealtimeListings();
+  useRealtimeJoinRequests();
   const requireAuth = (e?: React.MouseEvent | React.SyntheticEvent) => {
     if (user) return true;
     e?.preventDefault();

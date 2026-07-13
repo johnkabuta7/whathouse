@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Building2, Search, RefreshCw, LogIn, ChevronDown, ExternalLink, Loader2, MapPin, Zap, EyeOff } from 'lucide-react';
+import { Building2, Search, RefreshCw, LogIn, ChevronDown, ExternalLink, Loader2, MapPin, Zap, EyeOff, Phone, MessageCircle, Mail, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useZwandakoLeads, leadPrice, leadTitle, leadCity, leadTxType, type ZwandakoLead } from '@/hooks/use-zwandako-leads';
+import { useZwandakoAccess, useMyZwandakoLeads, useTakeLead, useMarkContacted } from '@/hooks/use-zwandako-my-leads';
 import { useQueryClient } from '@tanstack/react-query';
 
 type SubTab = 'all' | 'mine';
@@ -28,6 +29,10 @@ export default function OffreImmo() {
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const { data: leads, isLoading, isFetching } = useZwandakoLeads(60);
+  const { data: access } = useZwandakoAccess();
+  const { data: myLeads = [], isLoading: myLoading, refetch: refetchMy } = useMyZwandakoLeads();
+  const takeMut = useTakeLead();
+  const contactMut = useMarkContacted();
 
   const source = leads || [];
 
@@ -40,14 +45,10 @@ export default function OffreImmo() {
     return Array.from(set).sort();
   }, [source]);
 
-  const myTakenIds = useMemo(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('wh_taken_listings') || '[]').map((x: any) => x.id)); }
-    catch { return new Set(); }
-  }, [tab]);
+  const myLeadIds = useMemo(() => new Set<number>((myLeads as any[]).map(l => Number(l.lead_id || l.id)).filter(Boolean)), [myLeads]);
 
-  const filtered = useMemo(() => {
+  const filteredAll = useMemo(() => {
     let r = source;
-    if (tab === 'mine') r = r.filter(l => myTakenIds.has(`lead_${l.lead_id}`));
     if (activeTx) r = r.filter(l => leadTxType(l) === activeTx);
     if (activeCity) r = r.filter(l => (l.city_label || l.province_label) === activeCity);
     if (search) {
@@ -59,9 +60,13 @@ export default function OffreImmo() {
       );
     }
     return r;
-  }, [source, tab, activeTx, activeCity, search, myTakenIds]);
+  }, [source, activeTx, activeCity, search]);
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['zwandako_leads'] });
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['zwandako_leads'] });
+    queryClient.invalidateQueries({ queryKey: ['zwandako_my_leads'] });
+    queryClient.invalidateQueries({ queryKey: ['zwandako_access'] });
+  };
 
   if (!user) {
     return (
@@ -74,29 +79,12 @@ export default function OffreImmo() {
   }
 
   const takeLead = (l: ZwandakoLead) => {
-    try {
-      const key = 'wh_taken_listings';
-      const arr = JSON.parse(localStorage.getItem(key) || '[]');
-      const id = `lead_${l.lead_id}`;
-      if (arr.find((x: any) => x.id === id)) { toast({ title: 'Déjà pris' }); return; }
-      const entry = {
-        id,
-        title: leadTitle(l),
-        description: l.message || '',
-        image: null,
-        group_id: null,
-        takenAt: Date.now(),
-        source: 'zwandako_lead',
-        lead_id: l.lead_id,
-        city: leadCity(l),
-        price: leadPrice(l),
-        intent: l.intent,
-      };
-      localStorage.setItem(key, JSON.stringify([entry, ...arr]));
-      toast({ title: 'Demande prise', description: 'Retrouvez-la dans « Mes demandes ».' });
-      setTab('mine');
-    } catch { /* ignore */ }
+    if (myLeadIds.has(l.lead_id)) { toast({ title: 'Déjà pris' }); return; }
+    takeMut.mutate(l.lead_id, { onSuccess: () => setTab('mine') });
   };
+
+  const quotaLeft = access?.leads_left ?? access?.remaining ?? access?.quota_remaining;
+  const quotaTotal = access?.leads_quota ?? access?.quota ?? access?.total;
 
   return (
     <div className="h-full w-full flex flex-col bg-background">
@@ -166,15 +154,21 @@ export default function OffreImmo() {
         </div>
       </div>
 
+      {tab === 'mine' && (quotaLeft != null || quotaTotal != null) && (
+        <div className="px-4 pb-2 text-xs text-muted-foreground" data-no-swipe>
+          Quota : <span className="font-semibold text-foreground">{quotaLeft ?? '—'}{quotaTotal ? ` / ${quotaTotal}` : ''}</span> demandes restantes
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3" data-no-swipe>
-        {filtered.length === 0 ? (
-          <div className="rounded-2xl p-6 bg-primary/10 text-sm text-foreground text-center">
-            {isLoading ? 'Chargement des demandes clients…' :
-              tab === 'mine' ? 'Aucune demande prise pour le moment.' : 'Aucune demande trouvée pour ces filtres.'}
-          </div>
-        ) : (
-          filtered.map(l => {
+        {tab === 'all' ? (
+          filteredAll.length === 0 ? (
+            <div className="rounded-2xl p-6 bg-primary/10 text-sm text-foreground text-center">
+              {isLoading ? 'Chargement des demandes clients…' : 'Aucune demande trouvée pour ces filtres.'}
+            </div>
+          ) : filteredAll.map(l => {
             const tx = leadTxType(l);
+            const taken = myLeadIds.has(l.lead_id);
             return (
               <article key={l.lead_id} className="rounded-2xl bg-card border border-border p-4 shadow-sm">
                 <div className="flex items-start gap-2 mb-3">
@@ -183,16 +177,8 @@ export default function OffreImmo() {
                     <span className="px-3 py-1 rounded-full border border-border text-xs font-medium text-foreground inline-flex items-center gap-1">
                       <MapPin className="h-3 w-3" />{leadCity(l)}
                     </span>
-                    {l.urgency && (
-                      <span className="px-3 py-1 rounded-full bg-destructive/10 border border-destructive/30 text-xs font-medium text-destructive inline-flex items-center gap-1">
-                        <Zap className="h-3 w-3" />Urgent
-                      </span>
-                    )}
-                    {l.discreet && (
-                      <span className="px-3 py-1 rounded-full bg-muted border border-border text-xs font-medium text-muted-foreground inline-flex items-center gap-1">
-                        <EyeOff className="h-3 w-3" />Discret
-                      </span>
-                    )}
+                    {l.urgency && <span className="px-3 py-1 rounded-full bg-destructive/10 border border-destructive/30 text-xs font-medium text-destructive inline-flex items-center gap-1"><Zap className="h-3 w-3" />Urgent</span>}
+                    {l.discreet && <span className="px-3 py-1 rounded-full bg-muted border border-border text-xs font-medium text-muted-foreground inline-flex items-center gap-1"><EyeOff className="h-3 w-3" />Discret</span>}
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0">{l.created_at_display || ''}</span>
                 </div>
@@ -205,20 +191,70 @@ export default function OffreImmo() {
                 <div className="mt-4">
                   <button
                     onClick={() => takeLead(l)}
-                    className="w-full py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold text-center"
+                    disabled={taken || takeMut.isPending}
+                    className="w-full py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold text-center disabled:opacity-60"
                   >
-                    Prendre
+                    {taken ? 'Déjà prise' : takeMut.isPending ? 'Prise en cours…' : 'Prendre'}
                   </button>
                 </div>
                 <p className="mt-2 text-[11px] text-muted-foreground text-center inline-flex items-center justify-center gap-1 w-full">
                   <ExternalLink className="h-3 w-3" />
-                  Coordonnées visibles après prise dans « Affaires »
+                  Coordonnées visibles après prise
                 </p>
+              </article>
+            );
+          })
+        ) : (
+          myLoading ? (
+            <div className="rounded-2xl p-6 bg-primary/10 text-sm text-foreground text-center">Chargement…</div>
+          ) : (myLeads as any[]).length === 0 ? (
+            <div className="rounded-2xl p-6 bg-primary/10 text-sm text-foreground text-center">Aucune demande prise pour le moment.</div>
+          ) : (myLeads as any[]).map((l: any) => {
+            const id = Number(l.lead_id || l.id);
+            const title = l.property_type_label || leadTitle(l as any) || 'Demande';
+            const city = l.city_label || l.area_label || l.province_label || '—';
+            const price = (l.budget_usd_min || l.budget_usd_max) ? leadPrice(l as any) : (l.budget || '—');
+            const phone = l.mobile || l.phone || l.client_phone;
+            const email = l.email || l.client_email;
+            const clientName = [l.first_name, l.last_name].filter(Boolean).join(' ') || l.client_name || 'Client';
+            const status = (l.claim_status || l.status || '').toLowerCase();
+            const contacted = /contact/i.test(status);
+            const waLink = phone ? `https://wa.me/${String(phone).replace(/[^0-9]/g, '')}` : null;
+            return (
+              <article key={id} className="rounded-2xl bg-card border border-border p-4 shadow-sm">
+                <div className="flex items-start gap-2 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-foreground truncate">{title}</h3>
+                    <p className="text-xs text-muted-foreground">{clientName} · {city}</p>
+                  </div>
+                  {contacted && <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-semibold inline-flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />Contactée</span>}
+                </div>
+                <p className="text-primary font-bold text-lg">{price}</p>
+                {l.message && <p className="text-sm text-foreground/80 mt-1 whitespace-pre-line">{l.message}</p>}
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <a href={phone ? `tel:${phone}` : undefined} className={`flex flex-col items-center gap-1 py-2 rounded-xl text-xs font-semibold ${phone ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground pointer-events-none'}`}>
+                    <Phone className="h-4 w-4" />Appeler
+                  </a>
+                  <a href={waLink || undefined} target="_blank" rel="noreferrer" className={`flex flex-col items-center gap-1 py-2 rounded-xl text-xs font-semibold ${waLink ? 'bg-[#25D366]/10 text-[#25D366]' : 'bg-muted text-muted-foreground pointer-events-none'}`}>
+                    <MessageCircle className="h-4 w-4" />WhatsApp
+                  </a>
+                  <a href={email ? `mailto:${email}` : undefined} className={`flex flex-col items-center gap-1 py-2 rounded-xl text-xs font-semibold ${email ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground pointer-events-none'}`}>
+                    <Mail className="h-4 w-4" />Email
+                  </a>
+                </div>
+                <button
+                  onClick={() => contactMut.mutate({ lead_id: id, status: contacted ? 'pending' : 'contacted' })}
+                  disabled={contactMut.isPending}
+                  className={`mt-3 w-full py-2.5 rounded-full text-sm font-semibold ${contacted ? 'border border-border text-foreground' : 'bg-primary text-primary-foreground'} disabled:opacity-60`}
+                >
+                  {contacted ? 'Marquer non contactée' : 'Contactée'}
+                </button>
               </article>
             );
           })
         )}
       </div>
+
     </div>
   );
 }

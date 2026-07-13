@@ -1111,6 +1111,68 @@ Deno.serve(async (req) => {
     }
 
 
+    if (action === "me_access") {
+      const actor = await ensureWpActor(supabase, uid);
+      const abs = await fetch(`https://zwandako.com/wp-json/zwandako/v1/me/access`, {
+        headers: { Authorization: actor.authHeader, Accept: 'application/json' },
+      });
+      const absText = await abs.text();
+      let absJson: any = null;
+      try { absJson = absText ? JSON.parse(absText) : null; } catch { /* ignore */ }
+      if (!abs.ok) return jsonResponse({ ok: false, error: `access [${abs.status}]: ${absText.slice(0,200)}` }, 200);
+      return jsonResponse({ ok: true, access: absJson });
+    }
+
+    if (action === "take_lead") {
+      const leadId = Number(payload?.lead_id);
+      if (!leadId) return jsonResponse({ ok: false, error: "lead_id required" }, 400);
+      const actor = await ensureWpActor(supabase, uid);
+      const res = await fetch(`https://zwandako.com/wp-json/zwandako/v1/requests/${leadId}/claim`, {
+        method: "POST",
+        headers: { Authorization: actor.authHeader, "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({}),
+      });
+      const text = await res.text();
+      let json: any = null;
+      try { json = text ? JSON.parse(text) : null; } catch { /* ignore */ }
+      if (!res.ok) return jsonResponse({ ok: false, error: json?.message || text.slice(0,300), code: json?.code, status: res.status }, 200);
+      return jsonResponse({ ok: true, claim: json });
+    }
+
+    if (action === "list_my_leads") {
+      const actor = await ensureWpActor(supabase, uid);
+      const page = payload?.page || 1;
+      const perPage = payload?.per_page || 40;
+      const status = payload?.status ? `&status=${encodeURIComponent(payload.status)}` : "";
+      const res = await fetch(`https://zwandako.com/wp-json/zwandako/v1/requests/my?per_page=${perPage}&page=${page}${status}`, {
+        headers: { Authorization: actor.authHeader, Accept: "application/json" },
+      });
+      const text = await res.text();
+      let json: any = null;
+      try { json = text ? JSON.parse(text) : null; } catch { /* ignore */ }
+      if (!res.ok) return jsonResponse({ ok: false, error: text.slice(0,300), items: [] }, 200);
+      const items = json?.data?.items || json?.items || json || [];
+      return jsonResponse({ ok: true, items });
+    }
+
+    if (action === "mark_contacted") {
+      const leadId = Number(payload?.lead_id);
+      const newStatus = (payload?.status || "contacted").toString();
+      const reason = (payload?.reason || "").toString();
+      if (!leadId) return jsonResponse({ ok: false, error: "lead_id required" }, 400);
+      const actor = await ensureWpActor(supabase, uid);
+      const res = await fetch(`https://zwandako.com/wp-json/zwandako/v1/requests/${leadId}/status`, {
+        method: "POST",
+        headers: { Authorization: actor.authHeader, "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ status: newStatus, reason }),
+      });
+      const text = await res.text();
+      let json: any = null;
+      try { json = text ? JSON.parse(text) : null; } catch { /* ignore */ }
+      if (!res.ok) return jsonResponse({ ok: false, error: text.slice(0,300) }, 200);
+      return jsonResponse({ ok: true, result: json });
+    }
+
     if (action === "debug_admin") {
       const capabilities = await getAdminCapabilities();
       return jsonResponse({ ...capabilities, request_ok: true });
