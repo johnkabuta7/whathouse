@@ -1113,10 +1113,6 @@ Deno.serve(async (req) => {
 
     if (action === "me_access") {
       const actor = await ensureWpActor(supabase, uid);
-      const { res, json, text } = await fetchWpJson(`/../../zwandako/v1/me/access`.replace('/wp/v2/../..',''), {
-        headers: { Authorization: actor.authHeader },
-      });
-      // Fallback: call absolute URL because WP_BASE prefixes /wp/v2
       const abs = await fetch(`https://zwandako.com/wp-json/zwandako/v1/me/access`, {
         headers: { Authorization: actor.authHeader, Accept: 'application/json' },
       });
