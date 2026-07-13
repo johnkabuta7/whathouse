@@ -857,13 +857,6 @@ function ProfilLogged() {
               </div>
             )}
 
-            {isAdmin && (
-              <Link to="/admin/dashboard" className="w-full flex items-center gap-3 py-3 border-b border-border">
-                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Sparkles className="h-4 w-4 text-primary" /></div>
-                <span className="text-sm text-foreground flex-1 text-left">Tableau de bord admin</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
-            )}
             </section>
               )}
             </div>
@@ -873,6 +866,7 @@ function ProfilLogged() {
               <LogOut className="h-4 w-4 text-destructive" />
               <span className="text-sm font-semibold text-destructive flex-1 text-left">Déconnexion</span>
             </button>
+            <p className="text-center text-[11px] text-muted-foreground py-2">version 1.1.2</p>
           </div>
 
 
