@@ -75,6 +75,7 @@ function ProfilLogged() {
     if (t && ['annonces', 'infos', 'admin'].includes(t)) setActiveTab(t);
   }, [searchParams]);
   const [listingSubTab, setListingSubTab] = useState<'publications' | 'favoris' | 'brouillons'>('publications');
+  const [settingsSection, setSettingsSection] = useState<'prefs' | 'security' | 'help' | 'appearance' | null>(null);
   const drafts = useAllDrafts();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
