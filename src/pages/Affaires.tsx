@@ -577,9 +577,17 @@ export default function Affaires() {
                         ) : (
                           <button onClick={() => navigate(`/listing/${m.id}`)} className="py-2 rounded-full border border-border text-primary text-xs font-semibold">Voir</button>
                         )}
-                        <button onClick={() => takeMatch(m)} className="py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center justify-center gap-1">
-                          <Send className="h-3 w-3" /> Prendre
-                        </button>
+                        {(() => {
+                          const zwLink = m.zwandako_url || (m.source === 'whathouse' ? `${window.location.origin}/listing/${m.id}` : '');
+                          const waMsg = `Bonjour, je suis intéressé par cette annonce : ${m.title}\n${zwLink}`;
+                          const waUrl = `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
+                          return (
+                            <a href={waUrl} target="_blank" rel="noopener noreferrer"
+                              className="py-2 rounded-full bg-success text-success-foreground text-xs font-semibold inline-flex items-center justify-center gap-1">
+                              <MessageSquare className="h-3 w-3" /> Contacter
+                            </a>
+                          );
+                        })()}
                       </div>
                     </li>
                   );
