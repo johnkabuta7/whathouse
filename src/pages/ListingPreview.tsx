@@ -33,7 +33,7 @@ export default function ListingPreview() {
       if (error || !data) { setNotFound(true); setLoading(false); return; }
       setListing(data);
       const [{ data: prof }, { data: grp }] = await Promise.all([
-        data.user_id ? supabase.from('profiles').select('first_name,last_name,avatar_url,phone').eq('id', data.user_id).maybeSingle() : Promise.resolve({ data: null } as any),
+        data.user_id ? supabase.from('profiles').select('first_name,last_name,avatar_url,phone').eq('user_id', data.user_id).maybeSingle() : Promise.resolve({ data: null } as any),
         data.group_id ? supabase.from('groups').select('id,name,image_url').eq('id', data.group_id).maybeSingle() : Promise.resolve({ data: null } as any),
       ]);
       if (cancelled) return;
