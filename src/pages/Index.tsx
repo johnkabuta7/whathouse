@@ -180,7 +180,7 @@ function FeaturedProperties() {
         <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">À la une sur Zwandako</h2>
         <a href="https://zwandako.com" target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold text-primary">Voir tout →</a>
       </div>
-      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1 touch-pan-x">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1">
         {properties.map((p: any) => {
           const img = p._embedded?.['wp:featuredmedia']?.[0]?.source_url
             || p.jetpack_featured_media_url
@@ -240,7 +240,7 @@ function PostImmobilierCarousel() {
         <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Post Immobilier</h2>
         <a href="https://zwandako.com/conseil-sur-limmobilier-en-rdc/" target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold text-primary">Voir tout →</a>
       </div>
-      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1 touch-pan-x">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-3 pb-1">
         {posts.map((p: any) => {
           const img = p._embedded?.['wp:featuredmedia']?.[0]?.source_url || p.jetpack_featured_media_url;
           const title = (p.title?.rendered || '').replace(/<[^>]+>/g, '');
@@ -407,7 +407,7 @@ export default function Index() {
       {/* Contact carousel — Messenger style online indicator */}
       {contacts && contacts.length > 0 && !isSearching && (
         <div className="px-4 pt-[5mm] pb-3" data-no-swipe>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 touch-pan-x">
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
             {contacts.slice(0, 30).map(c => {
               const name = `${c.first_name} ${c.last_name}`.trim() || '?';
               const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
