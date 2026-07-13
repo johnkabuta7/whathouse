@@ -22,6 +22,8 @@ export function Layout() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  useRealtimeListings();
+  useRealtimeJoinRequests();
   const requireAuth = (e?: React.MouseEvent | React.SyntheticEvent) => {
     if (user) return true;
     e?.preventDefault();
