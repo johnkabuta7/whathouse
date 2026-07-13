@@ -55,7 +55,7 @@ export function useMarkContacted() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async ({ lead_id, status = 'contacted', reason }: { lead_id: number; status?: string; reason?: string }) => {
-      const { data, error } = await supabase.functions.invoke('wp-proxy', { body: { action: 'mark_contacted', lead_id, status, reason } });
+      const { data, error } = await supabase.functions.invoke('wp-proxy', { body: { action: 'mark_contacted', payload: { lead_id, status, reason } } });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error || 'Erreur');
       return data;
