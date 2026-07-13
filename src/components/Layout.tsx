@@ -153,7 +153,7 @@ export function Layout() {
             className="flex h-full w-full"
             style={{
               transform: `translate3d(${translateX}, 0, 0)`,
-              transition: animating ? 'transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none',
+              transition: animating ? 'transform 180ms cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none',
               willChange: 'transform',
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden' as any,
