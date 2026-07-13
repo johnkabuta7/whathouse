@@ -75,6 +75,7 @@ function ProfilLogged() {
     if (t && ['annonces', 'infos', 'admin'].includes(t)) setActiveTab(t);
   }, [searchParams]);
   const [listingSubTab, setListingSubTab] = useState<'publications' | 'favoris' | 'brouillons'>('publications');
+  const [settingsSection, setSettingsSection] = useState<'prefs' | 'security' | 'help' | 'appearance' | null>(null);
   const drafts = useAllDrafts();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
@@ -593,11 +594,19 @@ function ProfilLogged() {
             )}
           </>
         ) : activeTab === 'infos' ? (
-          <div className="space-y-6">
+          <div className="space-y-1">
+
+
             {/* Préférences */}
-            <section>
-              <h2 className="text-base font-bold text-foreground mb-2">Préférences</h2>
-              <p className="text-[11px] text-muted-foreground mb-3">Personnalisez l'apparence de WhatHouse, votre langue et votre ville de travail par défaut afin d'accélérer la publication d'annonces et le filtrage des demandes.</p>
+            <div className="border-b border-border">
+              <button onClick={() => setSettingsSection(s => s === 'prefs' ? null : 'prefs')} className="w-full flex items-center gap-3 py-3 text-left">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground flex-1">Préférences</span>
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${settingsSection === 'prefs' ? 'rotate-90' : ''}`} />
+              </button>
+              {settingsSection === 'prefs' && (
+            <section className="pb-3 animate-fade-in">
+              <p className="text-[11px] text-muted-foreground mb-2">Personnalisez WhatHouse, votre langue et votre ville de travail par défaut.</p>
               <div className="rounded-2xl bg-card border border-border overflow-hidden divide-y divide-border">
                 <div className="flex items-center gap-3 p-3">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><Sparkles className="h-5 w-5 text-primary" /></div>
@@ -617,11 +626,19 @@ function ProfilLogged() {
                 </div>
               </div>
             </section>
+              )}
+            </div>
 
             {/* Sécurité et données */}
-            <section>
-              <h2 className="text-base font-bold text-foreground mb-2">Sécurité et données</h2>
-              <p className="text-[11px] text-muted-foreground mb-3">Votre compte WhatHouse est le même que votre compte Zwandako. Protégez-le avec un mot de passe fort et gardez le contrôle sur vos données personnelles.</p>
+            <div className="border-b border-border">
+              <button onClick={() => setSettingsSection(s => s === 'security' ? null : 'security')} className="w-full flex items-center gap-3 py-3 text-left">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground flex-1">Sécurité et données</span>
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${settingsSection === 'security' ? 'rotate-90' : ''}`} />
+              </button>
+              {settingsSection === 'security' && (
+            <section className="pb-3 animate-fade-in">
+              <p className="text-[11px] text-muted-foreground mb-2">Votre compte WhatHouse est le même que votre compte Zwandako.</p>
               <div className="rounded-2xl bg-card border border-border overflow-hidden divide-y divide-border">
                 <button onClick={() => setEditing(true)} className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition text-left">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-5 w-5 text-primary" /></div>
@@ -651,11 +668,19 @@ function ProfilLogged() {
                 </button>
               </div>
             </section>
+              )}
+            </div>
 
             {/* Aide et informations */}
-            <section>
-              <h2 className="text-base font-bold text-foreground mb-2">Aide et informations</h2>
-              <p className="text-[11px] text-muted-foreground mb-3">Retrouvez le mode d'emploi de l'application, nos engagements et les documents légaux qui encadrent l'usage de WhatHouse et de Zwandako.</p>
+            <div className="border-b border-border">
+              <button onClick={() => setSettingsSection(s => s === 'help' ? null : 'help')} className="w-full flex items-center gap-3 py-3 text-left">
+                <BookOpen className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground flex-1">Aide et informations</span>
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${settingsSection === 'help' ? 'rotate-90' : ''}`} />
+              </button>
+              {settingsSection === 'help' && (
+            <section className="pb-3 animate-fade-in">
+              <p className="text-[11px] text-muted-foreground mb-2">Mode d'emploi, engagements et documents légaux.</p>
               <div className="rounded-2xl bg-card border border-border overflow-hidden divide-y divide-border">
                 <Link to="/legal/tuto" className="w-full flex items-center gap-3 p-3 hover:bg-muted/40 transition">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><BookOpen className="h-5 w-5 text-primary" /></div>
@@ -707,11 +732,19 @@ function ProfilLogged() {
                 </Link>
               </div>
             </section>
+              )}
+            </div>
 
-            {/* Apparence & Notifications (existant) */}
             {/* Apparence & Notifications */}
-            <section className="rounded-2xl bg-card border border-border p-2 space-y-1">
-              <h2 className="text-base font-bold text-foreground mb-1 px-1">Apparence & Notifications</h2>
+            <div className="border-b border-border">
+              <button onClick={() => setSettingsSection(s => s === 'appearance' ? null : 'appearance')} className="w-full flex items-center gap-3 py-3 text-left">
+                <Bell className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground flex-1">Apparence et notifications</span>
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${settingsSection === 'appearance' ? 'rotate-90' : ''}`} />
+              </button>
+              {settingsSection === 'appearance' && (
+            <section className="pb-3 space-y-1 animate-fade-in">
+
 
 
             {themeStyle !== 'mocha' && (
@@ -806,22 +839,6 @@ function ProfilLogged() {
               </div>
             )}
 
-            <Link to="/legal/tuto" className="w-full flex items-center gap-3 py-3 border-b border-border">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><BookOpen className="h-4 w-4 text-primary" /></div>
-              <span className="text-sm text-foreground flex-1 text-left">Tuto — Comment ça marche</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-            <Link to="/legal/avantages" className="w-full flex items-center gap-3 py-3 border-b border-border">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Sparkles className="h-4 w-4 text-primary" /></div>
-              <span className="text-sm text-foreground flex-1 text-left">Avantages de l'application</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-            <Link to="/legal/terms" className="w-full flex items-center gap-3 py-3 border-b border-border">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-4 w-4 text-primary" /></div>
-              <span className="text-sm text-foreground flex-1 text-left">Termes & Confidentialité</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-
             {isAdmin && (
               <Link to="/admin/dashboard" className="w-full flex items-center gap-3 py-3 border-b border-border">
                 <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Sparkles className="h-4 w-4 text-primary" /></div>
@@ -829,13 +846,17 @@ function ProfilLogged() {
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </Link>
             )}
-
-            <button onClick={logout} className="w-full flex items-center gap-3 py-3">
-              <div className="h-9 w-9 rounded-full bg-destructive/10 flex items-center justify-center"><LogOut className="h-4 w-4 text-destructive" /></div>
-              <span className="text-sm text-destructive flex-1 text-left">Se déconnecter</span>
-            </button>
             </section>
+              )}
+            </div>
+
+            {/* Déconnexion (dernière ligne du menu) */}
+            <button onClick={logout} className="w-full flex items-center gap-3 py-3">
+              <LogOut className="h-4 w-4 text-destructive" />
+              <span className="text-sm font-semibold text-destructive flex-1 text-left">Déconnexion</span>
+            </button>
           </div>
+
 
         ) : (
           /* Admin tab */

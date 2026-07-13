@@ -92,7 +92,8 @@ export default function Affaires() {
   const [clientPhone, setClientPhone] = useState('');
   const [description, setDescription] = useState('');
   const [matches, setMatches] = useState<MatchItem[]>([]);
-  const [openSection, setOpenSection] = useState<string | null>('stats');
+  type SubTab = 'stats' | 'notifs' | 'recent' | 'ongoing' | 'portfolio';
+  const [subTab, setSubTab] = useState<SubTab>('stats');
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardTitle, setCardTitle] = useState('Agent immobilier');
   const [cardAgency, setCardAgency] = useState('Immobilier de Luxe');
@@ -320,25 +321,37 @@ export default function Affaires() {
       <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-32" data-no-swipe>
         {tab === 'tableau' && (
           <>
-            <Accordion
-              id="stats" title="Statistiques" icon={<Briefcase className="h-4 w-4" />}
-              openId={openSection} setOpenId={setOpenSection}
-              summary={`${myListings?.length || 0} annonces · ${totalLikes} likes`}
-            >
+            {/* Sub-tabs — même style que « Mes annonces » (soulignés) */}
+            <div className="flex mb-3 relative overflow-x-auto no-scrollbar">
+              {([
+                { key: 'stats', label: 'Statistiques' },
+                { key: 'notifs', label: 'Notifications' },
+                { key: 'recent', label: 'Activité' },
+                { key: 'ongoing', label: 'En cours' },
+                { key: 'portfolio', label: 'Portefeuille' },
+              ] as { key: SubTab; label: string }[]).map(s => (
+                <button
+                  key={s.key}
+                  onClick={() => setSubTab(s.key)}
+                  className={`flex-1 min-w-[80px] py-2 text-xs font-semibold text-center transition relative ${subTab === s.key ? 'text-primary' : 'text-muted-foreground'}`}
+                >
+                  {s.label}
+                  {subTab === s.key && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-1/4 bg-primary rounded-full" />}
+                </button>
+              ))}
+            </div>
+
+            {subTab === 'stats' && (
               <div className="grid grid-cols-2 gap-3">
                 <StatCard icon={<MessageSquare className="h-5 w-5" />} value={myListings?.length || 0} label="Mes annonces" />
                 <StatCard icon={<Users className="h-5 w-5" />} value={myGroups?.length || 0} label="Groupes" />
                 <StatCard icon={<Heart className="h-5 w-5" />} value={totalLikes} label="Likes reçus" />
                 <StatCard icon={<Briefcase className="h-5 w-5" />} value={activeRequests.length} label="Recherches actives" />
               </div>
-            </Accordion>
+            )}
 
-            <Accordion
-              id="notifs" title="Notifications" icon={<Bell className="h-4 w-4" />}
-              openId={openSection} setOpenId={setOpenSection}
-              summary={`${takeNotifs?.length || 0} annonce${(takeNotifs?.length || 0) > 1 ? 's' : ''} prise${(takeNotifs?.length || 0) > 1 ? 's' : ''} par des agents`}
-            >
-              {(!takeNotifs || takeNotifs.length === 0) ? (
+            {subTab === 'notifs' && (
+              (!takeNotifs || takeNotifs.length === 0) ? (
                 <div className="rounded-2xl p-4 bg-primary/10 text-sm text-foreground">
                   Aucune notification. Lorsqu'un agent prend une de vos annonces, vous serez averti ici avec ses coordonnées.
                 </div>
@@ -383,14 +396,10 @@ export default function Affaires() {
                     );
                   })}
                 </ul>
-              )}
-            </Accordion>
+              )
+            )}
 
-            <Accordion
-              id="recent" title="Activité récente" icon={<MessageSquare className="h-4 w-4" />}
-              openId={openSection} setOpenId={setOpenSection}
-              summary={`${myListings?.length || 0} annonces publiées`}
-            >
+            {subTab === 'recent' && (
               <div className="rounded-2xl p-3 bg-primary/10 space-y-2">
                 {(myListings || []).slice(0, 5).map((l: any) => (
                   <button key={l.id} onClick={() => navigate(`/listing/${l.id}`)} className="w-full flex items-center gap-3 text-sm text-left">
@@ -403,14 +412,10 @@ export default function Affaires() {
                 ))}
                 {(!myListings || myListings.length === 0) && <p className="text-sm text-foreground">Aucune activité.</p>}
               </div>
-            </Accordion>
+            )}
 
-            <Accordion
-              id="ongoing" title="Affaire en cours" icon={<Briefcase className="h-4 w-4" />}
-              openId={openSection} setOpenId={setOpenSection}
-              summary={`${taken.length} annonce${taken.length > 1 ? 's' : ''} prise${taken.length > 1 ? 's' : ''}`}
-            >
-              {taken.length === 0 ? (
+            {subTab === 'ongoing' && (
+              taken.length === 0 ? (
                 <div className="rounded-2xl p-4 bg-primary/10 text-sm text-foreground">
                   Aucune annonce prise. Utilisez « Prendre » sur une annonce ou un match pour l'ajouter ici.
                 </div>
@@ -439,14 +444,10 @@ export default function Affaires() {
                     </li>
                   ))}
                 </ul>
-              )}
-            </Accordion>
+              )
+            )}
 
-            <Accordion
-              id="portfolio" title="Mon portefeuille" icon={<Heart className="h-4 w-4" />}
-              openId={openSection} setOpenId={setOpenSection}
-              summary={`${myFavs?.length || 0} favoris`}
-            >
+            {subTab === 'portfolio' && (
               <div className="rounded-2xl p-3 bg-primary/10 text-sm text-foreground">
                 {myFavs && myFavs.length > 0 ? (
                   <ul className="space-y-2">
@@ -461,9 +462,10 @@ export default function Affaires() {
                   <span>Touchez ♡ sur une annonce pour l'ajouter à votre portefeuille.</span>
                 )}
               </div>
-            </Accordion>
+            )}
           </>
         )}
+
 
         {tab === 'demandes' && (
           <>
