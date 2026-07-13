@@ -28,7 +28,7 @@ export function useZwandakoLeads(perPage = 40) {
     queryKey: ['zwandako_leads', perPage],
     queryFn: async (): Promise<ZwandakoLead[]> => {
       const { data, error } = await supabase.functions.invoke('wp-proxy', {
-        body: { action: 'list_leads', per_page: perPage },
+        body: { action: 'list_leads', payload: { per_page: perPage } },
       });
       if (error) return [];
       return (data?.items || []) as ZwandakoLead[];

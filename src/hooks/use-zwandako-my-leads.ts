@@ -8,7 +8,7 @@ export function useZwandakoAccess() {
   return useQuery({
     queryKey: ['zwandako_access'],
     queryFn: async () => {
-      const { data } = await supabase.functions.invoke('wp-proxy', { body: { action: 'me_access' } });
+      const { data } = await supabase.functions.invoke('wp-proxy', { body: { action: 'me_access', payload: {} } });
       return data?.access || null;
     },
     staleTime: 30_000,
@@ -20,7 +20,7 @@ export function useMyZwandakoLeads() {
   return useQuery({
     queryKey: ['zwandako_my_leads'],
     queryFn: async (): Promise<MyLead[]> => {
-      const { data } = await supabase.functions.invoke('wp-proxy', { body: { action: 'list_my_leads', per_page: 50 } });
+      const { data } = await supabase.functions.invoke('wp-proxy', { body: { action: 'list_my_leads', payload: { per_page: 50 } } });
       return (data?.items || []) as MyLead[];
     },
     refetchInterval: 60_000,
@@ -33,7 +33,7 @@ export function useTakeLead() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async (lead_id: number) => {
-      const { data, error } = await supabase.functions.invoke('wp-proxy', { body: { action: 'take_lead', lead_id } });
+      const { data, error } = await supabase.functions.invoke('wp-proxy', { body: { action: 'take_lead', payload: { lead_id } } });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error || 'Erreur de prise');
       return data;
@@ -55,7 +55,7 @@ export function useMarkContacted() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async ({ lead_id, status = 'contacted', reason }: { lead_id: number; status?: string; reason?: string }) => {
-      const { data, error } = await supabase.functions.invoke('wp-proxy', { body: { action: 'mark_contacted', lead_id, status, reason } });
+      const { data, error } = await supabase.functions.invoke('wp-proxy', { body: { action: 'mark_contacted', payload: { lead_id, status, reason } } });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error || 'Erreur');
       return data;
