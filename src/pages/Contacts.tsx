@@ -347,8 +347,8 @@ export default function Contacts() {
                       <div className={`h-12 w-12 rounded-full flex items-center justify-center overflow-hidden shrink-0 ${isSel ? 'bg-primary text-primary-foreground ring-2 ring-primary' : 'bg-primary/10'}`}>
                         {isSel ? (
                           <span className="text-lg font-bold">✓</span>
-                        ) : g.avatar_url ? (
-                          <img src={g.avatar_url} alt={g.name} className="h-full w-full object-cover" />
+                        ) : (g.image_url || g.avatar_url) ? (
+                          <img src={g.image_url || g.avatar_url} alt={g.name} className="h-full w-full object-cover" />
                         ) : (
                           <Users className="h-6 w-6 text-primary" />
                         )}

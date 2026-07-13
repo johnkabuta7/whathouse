@@ -93,7 +93,8 @@ export default function OffreImmo() {
         intent: l.intent,
       };
       localStorage.setItem(key, JSON.stringify([entry, ...arr]));
-      toast({ title: 'Demande prise', description: 'Ajoutée à Affaires > Affaire en cours.' });
+      toast({ title: 'Demande prise', description: 'Retrouvez-la dans « Mes demandes ».' });
+      setTab('mine');
     } catch { /* ignore */ }
   };
 

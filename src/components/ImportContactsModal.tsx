@@ -148,7 +148,11 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
   const pickFromDevice = async () => {
     const nav: any = navigator;
     if (!nav.contacts || !nav.contacts.select) {
-      toast({ title: 'Indisponible', description: 'Le navigateur ne supporte pas l\'import du répertoire.', variant: 'destructive' });
+      // Info non-bloquante dans le modal, pas de toast rouge plein écran
+      toast({
+        title: 'Import auto indisponible sur ce navigateur',
+        description: "Ajoutez vos contacts un par un depuis la liste ci-dessous, ou ouvrez l'app depuis Chrome Android.",
+      });
       return;
     }
     setLoading(true);

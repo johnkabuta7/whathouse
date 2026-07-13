@@ -187,22 +187,25 @@ export default function CreateGroup() {
 
   return (
     <div className="max-w-lg mx-auto animate-fade-in flex flex-col h-[calc(100vh-3.5rem)]">
-      {/* Header */}
-      <div className="px-3 py-2.5 flex items-center gap-3 bg-card/60 backdrop-blur-md border-b border-border">
+      {/* Header — safe-area aware pour ne jamais passer sous la status-bar */}
+      <div
+        className="px-3 pb-2.5 flex items-center gap-3 bg-card/95 backdrop-blur-md border-b border-border sticky top-0 z-30"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}
+      >
         {step === 'info' ? (
-          <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
+          <Link to="/" className="text-muted-foreground p-1.5 -ml-1.5 rounded-full active:bg-muted"><ArrowLeft className="h-5 w-5" /></Link>
         ) : (
-          <button onClick={() => setStep('info')} className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></button>
+          <button onClick={() => setStep('info')} className="text-muted-foreground p-1.5 -ml-1.5 rounded-full active:bg-muted"><ArrowLeft className="h-5 w-5" /></button>
         )}
-        <h1 className="text-sm font-bold flex-1 text-foreground">
+        <h1 className="text-base font-bold flex-1 text-foreground truncate">
           {step === 'info' ? 'Nouveau groupe' : 'Ajouter des membres'}
         </h1>
         {step === 'info' ? (
-          <button onClick={() => { if (name.trim()) setStep('members'); }} className={`text-sm font-semibold ${name.trim() ? 'text-primary' : 'text-muted-foreground/30'}`}>
+          <button onClick={() => { if (name.trim()) setStep('members'); }} className={`text-sm font-semibold px-3 py-1.5 rounded-full ${name.trim() ? 'text-primary active:bg-primary/10' : 'text-muted-foreground/30'}`}>
             Suivant
           </button>
         ) : (
-          <button onClick={handleCreate} disabled={isLoading} className="text-sm font-semibold text-primary">
+          <button onClick={handleCreate} disabled={isLoading} className="text-sm font-semibold text-primary px-3 py-1.5 rounded-full active:bg-primary/10">
             {isLoading ? '...' : 'Créer'}
           </button>
         )}
