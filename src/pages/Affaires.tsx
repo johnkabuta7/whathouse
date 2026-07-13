@@ -328,8 +328,7 @@ export default function Affaires() {
             <div className="flex mb-3 relative overflow-x-auto no-scrollbar">
               {([
                 { key: 'stats', label: 'Statistiques' },
-                { key: 'notifs', label: 'Notifications' },
-                { key: 'recent', label: 'Activité' },
+                { key: 'notifs', label: 'Notifications & activité' },
                 { key: 'ongoing', label: 'En cours' },
                 { key: 'portfolio', label: 'Portefeuille' },
               ] as { key: SubTab; label: string }[]).map(s => (
@@ -402,18 +401,20 @@ export default function Affaires() {
               )
             )}
 
-            {subTab === 'recent' && (
-              <div className="rounded-2xl p-3 bg-primary/10 space-y-2">
-                {(myListings || []).slice(0, 5).map((l: any) => (
-                  <button key={l.id} onClick={() => navigate(`/listing/${l.id}`)} className="w-full flex items-center gap-3 text-sm text-left">
-                    {l.images?.[0] ? <img src={l.images[0]} className="h-10 w-10 rounded-lg object-cover" /> : <div className="h-10 w-10 rounded-lg bg-muted" />}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">{l.title}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(l.created_at).toLocaleDateString('fr-FR')}</p>
-                    </div>
-                  </button>
-                ))}
-                {(!myListings || myListings.length === 0) && <p className="text-sm text-foreground">Aucune activité.</p>}
+            {subTab === 'notifs' && (myListings && myListings.length > 0) && (
+              <div className="mt-4">
+                <h4 className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Activité récente — Mes annonces</h4>
+                <div className="rounded-2xl p-3 bg-primary/10 space-y-2">
+                  {myListings.slice(0, 5).map((l: any) => (
+                    <button key={l.id} onClick={() => navigate(`/listing/${l.id}`)} className="w-full flex items-center gap-3 text-sm text-left">
+                      {l.images?.[0] ? <img src={l.images[0]} className="h-10 w-10 rounded-lg object-cover" /> : <div className="h-10 w-10 rounded-lg bg-muted" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground truncate">{l.title}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(l.created_at).toLocaleDateString('fr-FR')}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
