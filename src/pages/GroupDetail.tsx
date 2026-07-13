@@ -590,20 +590,35 @@ export default function GroupDetail() {
             )}
           </div>
 
-          {/* Fixed publish area at bottom - never scrolls */}
+          {/* Publish trigger + popup */}
           <div className="shrink-0 z-20">
-            {showPublish ? (
-              <PublishForm groupId={group.id} userId={user?.id || ''} onDone={() => setShowPublish(false)} />
-            ) : (
-              <div className="px-3 py-2 bg-card border-t border-border">
-                <button onClick={() => setShowPublish(true)}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted text-muted-foreground text-sm hover:bg-muted/80 transition">
-                  <Plus className="h-4 w-4 text-primary" />
-                  Publier une annonce...
-                </button>
-              </div>
-            )}
+            <div className="px-3 py-2 bg-card border-t border-border">
+              <button onClick={() => setShowPublish(true)}
+                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted text-muted-foreground text-sm hover:bg-muted/80 transition">
+                <Plus className="h-4 w-4 text-primary" />
+                Publier une annonce...
+              </button>
+            </div>
           </div>
+          {showPublish && (
+            <div className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm flex items-end sm:items-center justify-center animate-fade-in" onClick={() => setShowPublish(false)}>
+              <div
+                className="relative w-full sm:max-w-lg max-h-[92dvh] bg-card border border-border shadow-2xl rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col animate-slide-up"
+                onClick={e => e.stopPropagation()}
+                data-no-swipe
+              >
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+                  <p className="text-sm font-bold text-foreground">Publier dans « {group.name} »</p>
+                  <button onClick={() => setShowPublish(false)} className="p-1.5 rounded-full hover:bg-muted" aria-label="Fermer">
+                    <X className="h-4 w-4 text-foreground" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <PublishForm groupId={group.id} userId={user?.id || ''} onDone={() => setShowPublish(false)} />
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
