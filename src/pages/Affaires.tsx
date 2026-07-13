@@ -405,23 +405,6 @@ export default function Affaires() {
               )
             )}
 
-            {subTab === 'notifs' && (myListings && myListings.length > 0) && (
-              <div className="mt-4">
-                <h4 className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Activité récente — Mes annonces</h4>
-                <div className="rounded-2xl p-3 bg-primary/10 space-y-2">
-                  {myListings.slice(0, 5).map((l: any) => (
-                    <button key={l.id} onClick={() => navigate(`/listing/${l.id}`)} className="w-full flex items-center gap-3 text-sm text-left">
-                      {l.images?.[0] ? <img src={l.images[0]} className="h-10 w-10 rounded-lg object-cover" /> : <div className="h-10 w-10 rounded-lg bg-muted" />}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground truncate">{l.title}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(l.created_at).toLocaleDateString('fr-FR')}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {subTab === 'ongoing' && (
               taken.length === 0 ? (
                 <div className="rounded-2xl p-4 bg-primary/10 text-sm text-foreground">
@@ -436,13 +419,12 @@ export default function Affaires() {
                         <p className="text-sm font-semibold text-foreground line-clamp-1">{t.title}</p>
                         <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
                         <div className="flex items-center gap-2 mt-1.5">
-                          {t.source === 'zwandako' && t.zwandako_url ? (
-                            <a href={t.zwandako_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-semibold inline-flex items-center gap-1">
-                              Zwandako <ExternalLink className="h-3 w-3" />
-                            </a>
-                          ) : t.group_id ? (
-                            <button onClick={() => navigate(`/group/${t.group_id}`)} className="text-xs text-primary font-semibold">Voir dans le groupe</button>
-                          ) : null}
+                          <button
+                            onClick={() => navigate(`/listing/${t.id}`)}
+                            className="text-xs text-primary font-semibold inline-flex items-center gap-1"
+                          >
+                            Aperçu <ExternalLink className="h-3 w-3" />
+                          </button>
                           <span className="text-[10px] text-muted-foreground ml-auto">{new Date(t.takenAt).toLocaleDateString('fr-FR')}</span>
                         </div>
                       </div>
@@ -453,23 +435,6 @@ export default function Affaires() {
                   ))}
                 </ul>
               )
-            )}
-
-            {subTab === 'portfolio' && (
-              <div className="rounded-2xl p-3 bg-primary/10 text-sm text-foreground">
-                {myFavs && myFavs.length > 0 ? (
-                  <ul className="space-y-2">
-                    {myFavs.slice(0, 6).map((l: any) => (
-                      <li key={l.id} className="flex items-center gap-3">
-                        {l.images?.[0] ? <img src={l.images[0]} className="h-10 w-10 rounded-lg object-cover" /> : <div className="h-10 w-10 rounded-lg bg-background" />}
-                        <span className="truncate">{l.title}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <span>Touchez ♡ sur une annonce pour l'ajouter à votre portefeuille.</span>
-                )}
-              </div>
             )}
           </>
         )}
