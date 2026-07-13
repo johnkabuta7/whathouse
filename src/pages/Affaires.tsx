@@ -138,28 +138,33 @@ export default function Affaires() {
         }
       }
     } catch { /* ignore */ }
-    try {
-      const { data: wp } = await supabase.functions.invoke('wp-proxy', {
-        body: { action: 'list_posts', per_page: 50, page: 1 },
-      });
-      const posts = (wp?.posts || []) as any[];
-      for (const p of posts) {
-        const title = p.title?.rendered || '';
-        const excerpt = (p.excerpt?.rendered || p.content?.rendered || '').replace(/<[^>]*>/g, '');
-        const score = scoreMatch(`${title} ${excerpt}`, needles);
-        if (score >= Math.max(1, Math.ceil(needles.length * 0.4))) {
-          const img = p._embedded?.['wp:featuredmedia']?.[0]?.source_url;
-          out.push({
-            key: `${req.id}:zw:${p.id}`, requestId: req.id, source: 'zwandako',
-            id: String(p.id), title, description: excerpt,
-            images: img ? [img] : [], created_at: p.date,
-            zwandako_url: p.link, _score: score,
-          });
+    // Only query the WP proxy when a user is authenticated — the edge function requires a session.
+    if (user) {
+      try {
+        const { data: wp, error: wpErr } = await supabase.functions.invoke('wp-proxy', {
+          body: { action: 'list_posts', per_page: 50, page: 1 },
+        });
+        if (!wpErr) {
+          const posts = (wp?.posts || []) as any[];
+          for (const p of posts) {
+            const title = p.title?.rendered || '';
+            const excerpt = (p.excerpt?.rendered || p.content?.rendered || '').replace(/<[^>]*>/g, '');
+            const score = scoreMatch(`${title} ${excerpt}`, needles);
+            if (score >= Math.max(1, Math.ceil(needles.length * 0.4))) {
+              const img = p._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+              out.push({
+                key: `${req.id}:zw:${p.id}`, requestId: req.id, source: 'zwandako',
+                id: String(p.id), title, description: excerpt,
+                images: img ? [img] : [], created_at: p.date,
+                zwandako_url: p.link, _score: score,
+              });
+            }
+          }
         }
-      }
-    } catch { /* ignore */ }
+      } catch { /* ignore — edge function unavailable */ }
+    }
     return out;
-  }, []);
+  }, [user]);
 
   // Re-run search whenever active requests change or a listing is inserted
   const runAllActiveSearches = useCallback(async () => {

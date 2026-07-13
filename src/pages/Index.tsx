@@ -349,8 +349,17 @@ export default function Index() {
       <header className="sticky top-0 z-50 bg-card border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)', position: 'sticky' as any }}>
         <div className="px-4 py-3 flex items-center gap-3">
           <h1 className="text-lg font-bold leading-tight flex-1 text-foreground">WhatHouse <span className="block text-[10px] font-medium text-muted-foreground">Pro Immobilier</span></h1>
-          <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition">
+          <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-full hover:bg-muted transition" aria-label="Rechercher">
             <Search className="h-5 w-5 text-muted-foreground" />
+          </button>
+          <button
+            onClick={refreshSearch}
+            disabled={refreshing}
+            className="p-1.5 rounded-full hover:bg-muted transition disabled:opacity-50"
+            aria-label="Actualiser la page"
+            title="Actualiser"
+          >
+            <RefreshCw className={`h-5 w-5 text-muted-foreground ${refreshing ? 'animate-spin' : ''}`} />
           </button>
           {isAdmin && (newSignups || 0) > 0 && (
             <div title="Nouveaux inscrits (7 derniers jours)" className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-bold">
