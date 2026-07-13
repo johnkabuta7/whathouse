@@ -303,8 +303,8 @@ export default function Index() {
   const { data: newSignups } = useNewSignupsCount();
   const [selectedContact, setSelectedContact] = useState<any>(null);
 
-  useRealtimeListings();
-  useRealtimeJoinRequests();
+
+
 
   const isSearching = search.trim().length >= 2;
   const [pinnedTick, setPinnedTick] = useState(0);
