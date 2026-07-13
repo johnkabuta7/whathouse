@@ -594,43 +594,8 @@ function ProfilLogged() {
             )}
           </>
         ) : activeTab === 'infos' ? (
-          <div className="space-y-2">
-            {/* Menu simple : 5 lignes ; le contenu se déploie en-dessous de la ligne cliquée */}
-            {([
-              { key: 'prefs', label: 'Préférences', icon: <Sparkles className="h-4 w-4 text-primary" /> },
-              { key: 'security', label: 'Sécurité et données', icon: <ShieldCheck className="h-4 w-4 text-primary" /> },
-              { key: 'help', label: 'Aide et informations', icon: <BookOpen className="h-4 w-4 text-primary" /> },
-              { key: 'appearance', label: 'Apparence et notifications', icon: <Bell className="h-4 w-4 text-primary" /> },
-            ] as const).map(item => {
-              const open = settingsSection === item.key;
-              return (
-                <div key={item.key} className="border-b border-border">
-                  <button
-                    onClick={() => setSettingsSection(open ? null : item.key)}
-                    className="w-full flex items-center gap-3 py-3 text-left"
-                  >
-                    {item.icon}
-                    <span className="text-sm font-semibold text-foreground flex-1">{item.label}</span>
-                    <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`} />
-                  </button>
-                  {open && (
-                    <div className="pb-4 animate-fade-in">
-                      {item.key === 'prefs' && renderPrefs()}
-                      {item.key === 'security' && renderSecurity()}
-                      {item.key === 'help' && renderHelp()}
-                      {item.key === 'appearance' && renderAppearance()}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            <button onClick={logout} className="w-full flex items-center gap-3 py-3">
-              <LogOut className="h-4 w-4 text-destructive" />
-              <span className="text-sm font-semibold text-destructive flex-1 text-left">Déconnexion</span>
-            </button>
-          </div>
-        ) : activeTab === 'infos_LEGACY' ? (
-          <div className="space-y-6">
+          <div className="space-y-1">
+
 
             {/* Préférences */}
             <section>
