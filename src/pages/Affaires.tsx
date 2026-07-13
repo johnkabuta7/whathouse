@@ -95,8 +95,8 @@ export default function Affaires() {
   const [clientPhone, setClientPhone] = useState('');
   const [description, setDescription] = useState('');
   const [matches, setMatches] = useState<MatchItem[]>([]);
-  type SubTab = 'stats' | 'notifs' | 'ongoing' | 'portfolio';
-  const [subTab, setSubTab] = useState<SubTab>(['stats','notifs','ongoing','portfolio'].includes(initialSub) ? initialSub : 'stats');
+  type SubTab = 'stats' | 'notifs' | 'ongoing';
+  const [subTab, setSubTab] = useState<SubTab>(['stats','notifs','ongoing'].includes(initialSub) ? initialSub : 'stats');
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardTitle, setCardTitle] = useState('Agent immobilier');
   const [cardAgency, setCardAgency] = useState('Immobilier de Luxe');
