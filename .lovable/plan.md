@@ -1,51 +1,50 @@
-# Refonte UI mobile (mockups Android)
+# Plan de corrections
 
-## 1. Bottom Nav — 5 onglets
-Remplacer les 4 onglets actuels par 5, ordre exact:
-1. **Accueil** (icône maison) → `/`
-2. **Affaires** (icône mallette) → `/affaires` *(nouvelle page)*
-3. **Répertoire** (icône groupe) → `/contacts` *(page renommée)*
-4. **Offre Immo** (icône immeuble) → `/offre-immo`
-5. **Profil** (icône user) → `/profil`
+Beaucoup de sujets — je regroupe par zone pour livrer proprement.
 
-Onglet actif = pilule orange remplie avec libellé sous l'icône (comme sur les mockups). Style s'applique aux 3 thèmes (classic/mocha/nature).
+## 1. Header & responsive global
+- Ajouter partout `padding-top: max(env(safe-area-inset-top), 44px)` sur les headers pour ne jamais passer sous la status-bar iOS (heure/batterie).
+- Auditer `CreateGroup`, `GroupDetail`, `Index`, `Profil`, `Affaires`, `OffreImmo`, `Contacts` pour la même règle.
+- Ajouter viewport-fit=cover dans `index.html` si absent.
 
-## 2. Page "Répertoire" (ex-Contacts)
-- Titre `Groupes` en haut à gauche (gras, grand).
-- Deux sous-onglets sous le titre: **Groupe** | **Contacts**, soulignés en orange (l'actif).
-- **Onglet Groupe**:
-  - Barre d'actions à droite: bouton rond orange **loupe** (toggle recherche) + bouton rond orange **créer groupe** (icône users+).
-  - Cliquer loupe → transforme la barre en input "Rechercher un groupe" plein largeur + bouton créer groupe à côté (image 3).
-  - Liste des groupes de l'utilisateur (déjà dispo via `useGroups`) avec avatar rond, nom, `X annonce(s) · Y membre(s)`, `Dernière activité ...`, date à droite.
-- **Onglet Contacts**:
-  - Barre d'actions à droite: 3 boutons ronds orange = **loupe**, **importer répertoire**, **ajouter contact**.
-  - Liste des contacts confirmés (logique existante conservée). Si vide: texte "Aucun contact avec compte WhatHouse détecté…".
+## 2. Image carte de visite (image 2)
+- Dans le partage carte visite (probable `Profil.tsx` ou composant dédié), afficher la photo de profil de l'utilisateur au lieu du logo orange fallback.
 
-## 3. Page "Offre Immo"
-Remplacer les 3 liens actuels par:
-- Header: icône immeuble + titre "Offre Immo" + sous-titre "Demandes clients natives". Icônes loupe & refresh à droite.
-- Deux sous-onglets: **Toutes les demandes** | **Mes demandes**.
-- Rangée horizontale de filtres pills scrollable (Gombe, Appartement, Disponible, Achat…).
-- Liste de cartes de demandes avec: chips (Location/Disponible), date à droite, titre gras, prix orange, description, boutons **Voir détail** (outline) + **Prendre** (orange plein), puis **Contacter le client** (outline avec icône téléphone).
-- Les données seront lues depuis Zwandako via `wp-proxy` (endpoint existant à ré-utiliser) OU depuis une nouvelle table locale si dispo — je réutilise ce qui existe déjà; si aucune source dispo, j'affiche l'état vide propre.
+## 3. Import contacts (image 3)
+- Le toast rouge "Le navigateur ne supporte pas l'import" apparaît en même temps que la modale — retirer le toast quand la modale reste ouverte, et faire fonctionner le bouton X.
 
-## 4. Page "Affaires" (nouvelle)
-Nouvelle route `/affaires` avec 4 sous-onglets:
-- **Tableau**: 2 cards violet pâle (Annonces prises: 0 · Activités: 0), section Notifications (bandeau orange pâle), section Mon portefeuille (bandeau orange pâle).
-- **Demandes**: card "Avis de recherche" avec formulaire (Nom client, Téléphone client, textarea description, bouton "+ Ajouter un match"), puis liste "Aucune demande enregistrée".
-- **Matches**: titre "Résultats WhatHouse et Zwandako" + bandeau orange pâle "Activez une demande pour lancer la recherche automatique."
-- **Carte**: placeholder (vide propre).
+## 4. Images des groupes (image 4)
+- Dans la liste des groupes (`Contacts.tsx`), afficher `group.avatar_url` (ou équivalent) au lieu de l'icône par défaut.
 
-Stockage local (localStorage) pour les "avis de recherche" — pas de nouvelle table backend dans ce lot, l'objectif est purement UI/UX. Si tu veux persister côté Cloud, je le ferai en 2e passe.
+## 5. Profil — restructuration
+- Regrouper "Mon activité" et "Espace professionnel" en sections dépliables comme Préférences/Sécurité.
+- Retirer bouton "Se déconnecter" dans Sécurité (il existe déjà en bas).
+- Relire/améliorer Aide & informations.
 
-## 5. Fichiers touchés
-- `src/components/BottomNav.tsx` — 5 items + libellés + pilule active.
-- `src/pages/Contacts.tsx` — sous-onglets + nouvelle barre d'actions ronds.
-- `src/pages/OffreImmo.tsx` — refonte complète en onglets/cards.
-- `src/pages/Affaires.tsx` — nouveau fichier.
-- `src/App.tsx` — ajouter route `/affaires`.
-- `src/components/Layout.tsx` — étendre `SWIPE_ROUTES`/`PAGES` à 5 pages (swipe carousel).
+## 6. Menu Affaires
+- Supprimer onglet "Portefeuille".
+- Titre "Notifications & Activité" sur une ligne, sans sous-titre "Activité récente – mes annonces".
+- Sur les annonces "En cours" : remplacer "Voir dans le groupe" par "Aperçu" (ouvre `ListingPreview` avec boutons WhatsApp).
+- Notifications temps réel via Supabase realtime.
 
-## Questions
-- **Persistance des "Avis de recherche"**: localStorage suffit pour ce lot, ou tu veux une table `search_requests` dès maintenant?
-- **Source des "demandes" Offre Immo**: je réutilise `wp-proxy` (Zwandako) — OK?
+## 7. Aperçu annonce accueil
+- Clic sur annonce accueil → route `/listing/:id` en aperçu dans l'app (pas redirection externe).
+
+## 8. Offre Immo — prise d'annonce
+- Quand on "Prend" une demande : ne pas stocker dans `wh_taken_listings` local mais l'envoyer côté zwandako via `wp-proxy` action `take_lead`, puis l'afficher dans onglet "Mes demandes" avec quota, contact Appeler/WhatsApp/Email, bouton "Contactée" — reproduire l'UI de l'image 5.
+
+## Ordre d'exécution
+1. Header responsive (rapide, transverse)
+2. Contacts : image groupe + import fix
+3. Profil : sections + cleanup
+4. Affaires : suppression portefeuille + aperçu + realtime
+5. Accueil : preview
+6. Offre Immo : take_lead + UI mes demandes
+7. Carte visite photo
+
+## Notes techniques
+- `wp-proxy` : ajouter actions `take_lead`, `list_my_leads`, `mark_contacted` côté edge function (endpoints zwandako correspondants à confirmer).
+- Realtime : `supabase.channel('notifications').on('postgres_changes', ...)`.
+- Ne pas toucher `src/integrations/supabase/client.ts` ni `types.ts`.
+
+Confirmez ou ajustez avant que je lance — c'est ~10 fichiers modifiés.
