@@ -839,22 +839,6 @@ function ProfilLogged() {
               </div>
             )}
 
-            <Link to="/legal/tuto" className="w-full flex items-center gap-3 py-3 border-b border-border">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><BookOpen className="h-4 w-4 text-primary" /></div>
-              <span className="text-sm text-foreground flex-1 text-left">Tuto — Comment ça marche</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-            <Link to="/legal/avantages" className="w-full flex items-center gap-3 py-3 border-b border-border">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Sparkles className="h-4 w-4 text-primary" /></div>
-              <span className="text-sm text-foreground flex-1 text-left">Avantages de l'application</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-            <Link to="/legal/terms" className="w-full flex items-center gap-3 py-3 border-b border-border">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><ShieldCheck className="h-4 w-4 text-primary" /></div>
-              <span className="text-sm text-foreground flex-1 text-left">Termes & Confidentialité</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-
             {isAdmin && (
               <Link to="/admin/dashboard" className="w-full flex items-center gap-3 py-3 border-b border-border">
                 <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Sparkles className="h-4 w-4 text-primary" /></div>
@@ -862,13 +846,17 @@ function ProfilLogged() {
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </Link>
             )}
-
-            <button onClick={logout} className="w-full flex items-center gap-3 py-3">
-              <div className="h-9 w-9 rounded-full bg-destructive/10 flex items-center justify-center"><LogOut className="h-4 w-4 text-destructive" /></div>
-              <span className="text-sm text-destructive flex-1 text-left">Se déconnecter</span>
-            </button>
             </section>
+              )}
+            </div>
+
+            {/* Déconnexion (dernière ligne du menu) */}
+            <button onClick={logout} className="w-full flex items-center gap-3 py-3">
+              <LogOut className="h-4 w-4 text-destructive" />
+              <span className="text-sm font-semibold text-destructive flex-1 text-left">Déconnexion</span>
+            </button>
           </div>
+
 
         ) : (
           /* Admin tab */
