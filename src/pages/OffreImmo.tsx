@@ -29,6 +29,10 @@ export default function OffreImmo() {
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const { data: leads, isLoading, isFetching } = useZwandakoLeads(60);
+  const { data: access } = useZwandakoAccess();
+  const { data: myLeads = [], isLoading: myLoading, refetch: refetchMy } = useMyZwandakoLeads();
+  const takeMut = useTakeLead();
+  const contactMut = useMarkContacted();
 
   const source = leads || [];
 
@@ -41,14 +45,10 @@ export default function OffreImmo() {
     return Array.from(set).sort();
   }, [source]);
 
-  const myTakenIds = useMemo(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('wh_taken_listings') || '[]').map((x: any) => x.id)); }
-    catch { return new Set(); }
-  }, [tab]);
+  const myLeadIds = useMemo(() => new Set<number>((myLeads as any[]).map(l => Number(l.lead_id || l.id)).filter(Boolean)), [myLeads]);
 
-  const filtered = useMemo(() => {
+  const filteredAll = useMemo(() => {
     let r = source;
-    if (tab === 'mine') r = r.filter(l => myTakenIds.has(`lead_${l.lead_id}`));
     if (activeTx) r = r.filter(l => leadTxType(l) === activeTx);
     if (activeCity) r = r.filter(l => (l.city_label || l.province_label) === activeCity);
     if (search) {
@@ -60,9 +60,13 @@ export default function OffreImmo() {
       );
     }
     return r;
-  }, [source, tab, activeTx, activeCity, search, myTakenIds]);
+  }, [source, activeTx, activeCity, search]);
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['zwandako_leads'] });
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['zwandako_leads'] });
+    queryClient.invalidateQueries({ queryKey: ['zwandako_my_leads'] });
+    queryClient.invalidateQueries({ queryKey: ['zwandako_access'] });
+  };
 
   if (!user) {
     return (
@@ -75,29 +79,12 @@ export default function OffreImmo() {
   }
 
   const takeLead = (l: ZwandakoLead) => {
-    try {
-      const key = 'wh_taken_listings';
-      const arr = JSON.parse(localStorage.getItem(key) || '[]');
-      const id = `lead_${l.lead_id}`;
-      if (arr.find((x: any) => x.id === id)) { toast({ title: 'Déjà pris' }); return; }
-      const entry = {
-        id,
-        title: leadTitle(l),
-        description: l.message || '',
-        image: null,
-        group_id: null,
-        takenAt: Date.now(),
-        source: 'zwandako_lead',
-        lead_id: l.lead_id,
-        city: leadCity(l),
-        price: leadPrice(l),
-        intent: l.intent,
-      };
-      localStorage.setItem(key, JSON.stringify([entry, ...arr]));
-      toast({ title: 'Demande prise', description: 'Retrouvez-la dans « Mes demandes ».' });
-      setTab('mine');
-    } catch { /* ignore */ }
+    if (myLeadIds.has(l.lead_id)) { toast({ title: 'Déjà pris' }); return; }
+    takeMut.mutate(l.lead_id, { onSuccess: () => setTab('mine') });
   };
+
+  const quotaLeft = access?.leads_left ?? access?.remaining ?? access?.quota_remaining;
+  const quotaTotal = access?.leads_quota ?? access?.quota ?? access?.total;
 
   return (
     <div className="h-full w-full flex flex-col bg-background">
