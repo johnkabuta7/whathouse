@@ -397,17 +397,29 @@ export default function Index() {
         </div>
         {showSearch && (
           <div className="px-3 pb-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une annonce, un groupe..."
-                className="w-full pl-9 pr-10 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" autoFocus />
+            <div className="relative flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une annonce, un groupe..."
+                  className="w-full pl-9 pr-10 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" autoFocus />
+                <button
+                  type="button"
+                  onClick={() => { setSearch(''); setShowSearch(false); }}
+                  aria-label="Fermer la recherche"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground flex items-center justify-center transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => { setSearch(''); setShowSearch(false); }}
-                aria-label="Fermer la recherche"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground flex items-center justify-center transition"
+                onClick={refreshSearch}
+                aria-label="Actualiser la recherche"
+                title="Actualiser"
+                className="h-9 w-9 rounded-full bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center shrink-0 transition disabled:opacity-50"
+                disabled={refreshing}
               >
-                <X className="h-4 w-4" />
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
