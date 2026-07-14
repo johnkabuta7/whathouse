@@ -597,6 +597,9 @@ export default function Index() {
       {/* Featured properties from Zwandako */}
       {!isSearching && <FeaturedProperties />}
 
+      {/* Featured listings from admins */}
+      {!isSearching && <EnVedette />}
+
       {/* Contact modal */}
       {selectedContact && (
         <div className="fixed inset-0 bg-foreground/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedContact(null)}>
