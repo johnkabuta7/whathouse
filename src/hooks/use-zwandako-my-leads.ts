@@ -4,9 +4,20 @@ import { useToast } from '@/hooks/use-toast';
 
 export type MyLead = any;
 
+function hasUserSubject(token?: string | null) {
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1] || ''));
+    return typeof payload?.sub === 'string' && payload.sub.length > 0 && payload.role !== 'anon';
+  } catch {
+    return false;
+  }
+}
+
 async function getAuthHeaders() {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
+  if (!hasUserSubject(token)) return null;
   return token ? { Authorization: `Bearer ${token}` } : null;
 }
 

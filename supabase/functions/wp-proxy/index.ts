@@ -83,6 +83,16 @@ function adminAuthHeader() {
   return "Basic " + btoa(`${WP_ADMIN_USER}:${WP_ADMIN_APP_PASSWORD}`);
 }
 
+function jwtHasSubject(authHeader: string) {
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1] || ""));
+    return typeof payload?.sub === "string" && payload.sub.length > 0 && payload.role !== "anon";
+  } catch {
+    return false;
+  }
+}
+
 function userAuthHeader(username: string, appPassword: string) {
   return "Basic " + btoa(`${username.trim()}:${appPassword.replace(/\s+/g, "")}`);
 }
@@ -575,7 +585,7 @@ Deno.serve(async (req) => {
     let uid = "";
     if (!PUBLIC_ACTIONS.has(action)) {
       const authHeader = req.headers.get("Authorization") || "";
-      if (!authHeader.startsWith("Bearer ")) {
+      if (!authHeader.startsWith("Bearer ") || !jwtHasSubject(authHeader)) {
         return jsonResponse({ error: "unauthorized" }, 401);
       }
       const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
