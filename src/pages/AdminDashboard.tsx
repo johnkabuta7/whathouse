@@ -308,6 +308,7 @@ function ListingAdminRow({ l, users }: { l: any; users: any[] }) {
   const qc = useQueryClient();
   const [authorId, setAuthorId] = useState<string>(l.user_id || '');
   const [saving, setSaving] = useState(false);
+  const [featured, setFeatured] = useState<boolean>(!!l.is_featured);
 
   const updateAuthor = async (val: string) => {
     setAuthorId(val);
@@ -319,25 +320,52 @@ function ListingAdminRow({ l, users }: { l: any; users: any[] }) {
     qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
   };
 
+  const toggleFeatured = async () => {
+    const next = !featured;
+    setFeatured(next);
+    const { error } = await supabase.from('listings').update({ is_featured: next }).eq('id', l.id);
+    if (error) { setFeatured(!next); toast({ title: 'Erreur', variant: 'destructive' }); return; }
+    toast({ title: next ? 'Mis en vedette' : 'Retiré de la vedette' });
+    qc.invalidateQueries({ queryKey: ['featured_listings'] });
+    qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
+  };
+
+  const copyId = () => {
+    navigator.clipboard?.writeText(l.id).then(() => toast({ title: 'ID copié' })).catch(() => {});
+  };
+
   return (
-    <div className="px-3 py-2 text-xs flex items-center gap-2">
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-foreground truncate">{l.title}</p>
-        <p className="text-[10px] text-muted-foreground truncate">{new Date(l.created_at).toLocaleString('fr-FR')}</p>
+    <div className="px-3 py-2 text-xs">
+      <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-foreground truncate">{l.title}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{new Date(l.created_at).toLocaleString('fr-FR')}</p>
+        </div>
+        <select
+          value={authorId}
+          onChange={e => updateAuthor(e.target.value)}
+          disabled={saving}
+          className="text-[10px] bg-muted rounded-md border border-border px-1 py-0.5 text-foreground max-w-[40%] truncate"
+        >
+          {!users.find(u => u.user_id === authorId) && <option value={authorId}>— Auteur inconnu —</option>}
+          {users.map(u => (
+            <option key={u.user_id} value={u.user_id}>
+              {(`${u.first_name || ''} ${u.last_name || ''}`.trim() || u.phone || u.email || u.user_id.slice(0, 8))}
+            </option>
+          ))}
+        </select>
       </div>
-      <select
-        value={authorId}
-        onChange={e => updateAuthor(e.target.value)}
-        disabled={saving}
-        className="text-[10px] bg-muted rounded-md border border-border px-1 py-0.5 text-foreground max-w-[40%] truncate"
-      >
-        {!users.find(u => u.user_id === authorId) && <option value={authorId}>— Auteur inconnu —</option>}
-        {users.map(u => (
-          <option key={u.user_id} value={u.user_id}>
-            {(`${u.first_name || ''} ${u.last_name || ''}`.trim() || u.phone || u.email || u.user_id.slice(0, 8))}
-          </option>
-        ))}
-      </select>
+      <div className="flex items-center gap-2 mt-1">
+        <button onClick={copyId} title="Copier l'ID" className="text-[10px] font-mono text-muted-foreground bg-muted rounded px-1.5 py-0.5 hover:bg-muted/70 truncate max-w-[55%]">
+          #{l.id.slice(0, 8)}
+        </button>
+        <button
+          onClick={toggleFeatured}
+          className={`ml-auto text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1 transition ${featured ? 'bg-amber-500/15 text-amber-600 border-amber-500/40' : 'bg-muted text-muted-foreground border-border'}`}
+        >
+          <Sparkles className="h-3 w-3" />{featured ? 'En vedette' : 'Mettre en vedette'}
+        </button>
+      </div>
     </div>
   );
 }
