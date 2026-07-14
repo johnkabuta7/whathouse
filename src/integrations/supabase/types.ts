@@ -337,6 +337,7 @@ export type Database = {
           group_id: string
           id: string
           images: string[] | null
+          is_featured: boolean
           title: string
           updated_at: string
           user_id: string
@@ -350,6 +351,7 @@ export type Database = {
           group_id: string
           id?: string
           images?: string[] | null
+          is_featured?: boolean
           title: string
           updated_at?: string
           user_id: string
@@ -363,6 +365,7 @@ export type Database = {
           group_id?: string
           id?: string
           images?: string[] | null
+          is_featured?: boolean
           title?: string
           updated_at?: string
           user_id?: string
@@ -449,6 +452,8 @@ export type Database = {
           id: string
           last_name: string
           phone: string | null
+          show_stars: boolean
+          stars: number
           updated_at: string
           user_id: string
           wp_user_id: number | null
@@ -464,6 +469,8 @@ export type Database = {
           id?: string
           last_name?: string
           phone?: string | null
+          show_stars?: boolean
+          stars?: number
           updated_at?: string
           user_id: string
           wp_user_id?: number | null
@@ -479,6 +486,8 @@ export type Database = {
           id?: string
           last_name?: string
           phone?: string | null
+          show_stars?: boolean
+          stars?: number
           updated_at?: string
           user_id?: string
           wp_user_id?: number | null
@@ -574,8 +583,11 @@ export type Database = {
           created_at: string
           email: string
           first_name: string
+          is_admin: boolean
           last_name: string
           phone: string
+          show_stars: boolean
+          stars: number
           user_id: string
         }[]
       }
