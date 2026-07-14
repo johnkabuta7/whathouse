@@ -608,6 +608,19 @@ export type Database = {
         }[]
       }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
+      list_discoverable_groups: {
+        Args: never
+        Returns: {
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          image_url: string
+          name: string
+          updated_at: string
+          visibility_stars: number
+        }[]
+      }
       normalize_phone_tail: { Args: { _phone: string }; Returns: string }
     }
     Enums: {
