@@ -282,12 +282,22 @@ export default function Index() {
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const refreshSearch = () => {
+  const refreshSearch = async () => {
     setRefreshing(true);
-    queryClient.invalidateQueries({ queryKey: ['wp_search_properties'] });
-    queryClient.invalidateQueries({ queryKey: ['search_groups'] });
-    queryClient.invalidateQueries({ queryKey: ['wp_featured_properties'] });
-    queryClient.invalidateQueries({ queryKey: ['zwandako_conseils'] });
+    try {
+      // Clear browser caches (SW cache storage)
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      // Update the service worker if any
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.update().catch(() => {})));
+      }
+    } catch {}
+    // Invalidate every cached query so the app refetches fresh data
+    queryClient.invalidateQueries();
     setTimeout(() => setRefreshing(false), 700);
   };
   const [showMenu, setShowMenu] = useState(false);
