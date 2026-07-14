@@ -141,12 +141,12 @@ export function useAllGroups() {
   return useQuery({
     queryKey: ['all_groups'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('groups').select('*')
-        .order('visibility_stars', { ascending: false })
-        .order('updated_at', { ascending: false });
+      const { data, error } = await (supabase as any).rpc('list_discoverable_groups');
       if (error) throw error;
-      return data;
+      return (data || []).slice().sort((a: any, b: any) => {
+        if ((b.visibility_stars || 0) !== (a.visibility_stars || 0)) return (b.visibility_stars || 0) - (a.visibility_stars || 0);
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      });
     },
   });
 }
@@ -168,14 +168,10 @@ export function useSearchGroups(search: string) {
     queryKey: ['search_groups', search],
     queryFn: async () => {
       if (!search.trim()) return [];
-      const { data, error } = await supabase
-        .from('groups').select('*')
-        .order('visibility_stars', { ascending: false })
-        .order('updated_at', { ascending: false })
-        .limit(500);
+      const { data, error } = await (supabase as any).rpc('list_discoverable_groups');
       if (error) throw error;
       const q = normalizeSearch(search);
-      return (data || []).filter(g =>
+      return (data || []).filter((g: any) =>
         normalizeSearch(g.name).includes(q) ||
         normalizeSearch(g.description || '').includes(q)
       ).slice(0, 30);
@@ -183,6 +179,7 @@ export function useSearchGroups(search: string) {
     enabled: search.trim().length >= 2,
   });
 }
+
 
 export function useGroup(id: string) {
   return useQuery({
