@@ -260,7 +260,7 @@ function DataTablesSection() {
     queryFn: async () => {
       const [usersRpc, listings, groups] = await Promise.all([
         supabase.rpc('admin_list_profiles' as any, { _limit: 50 }),
-        supabase.from('listings').select('id, title, description, created_at, user_id').order('created_at', { ascending: false }).limit(30),
+        supabase.from('listings').select('id, title, description, created_at, user_id, is_featured').order('created_at', { ascending: false }).limit(30),
         supabase.from('groups').select('id, name, created_at, created_by, visibility_stars').order('created_at', { ascending: false }).limit(50),
       ]);
       return { users: (usersRpc.data as any[]) || [], listings: listings.data || [], groups: groups.data || [] };
