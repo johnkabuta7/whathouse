@@ -4,25 +4,45 @@ import { useToast } from '@/hooks/use-toast';
 
 export type MyLead = any;
 
-export function useZwandakoAccess() {
+async function getAuthHeaders() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : null;
+}
+
+export function useZwandakoAccess(enabled = true) {
   return useQuery({
     queryKey: ['zwandako_access'],
     queryFn: async () => {
-      const { data } = await supabase.functions.invoke('wp-proxy', { body: { action: 'me_access', payload: {} } });
+      const headers = await getAuthHeaders();
+      if (!headers) return null;
+      const { data, error } = await supabase.functions.invoke('wp-proxy', {
+        body: { action: 'me_access', payload: {} },
+        headers,
+      });
+      if (error || data?.ok === false) return null;
       return data?.access || null;
     },
+    enabled,
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
 }
 
-export function useMyZwandakoLeads() {
+export function useMyZwandakoLeads(enabled = true) {
   return useQuery({
     queryKey: ['zwandako_my_leads'],
     queryFn: async (): Promise<MyLead[]> => {
-      const { data } = await supabase.functions.invoke('wp-proxy', { body: { action: 'list_my_leads', payload: { per_page: 50 } } });
+      const headers = await getAuthHeaders();
+      if (!headers) return [];
+      const { data, error } = await supabase.functions.invoke('wp-proxy', {
+        body: { action: 'list_my_leads', payload: { per_page: 50 } },
+        headers,
+      });
+      if (error || data?.ok === false) return [];
       return (data?.items || []) as MyLead[];
     },
+    enabled,
     refetchInterval: 60_000,
     staleTime: 20_000,
   });
@@ -33,7 +53,12 @@ export function useTakeLead() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async (lead_id: number) => {
-      const { data, error } = await supabase.functions.invoke('wp-proxy', { body: { action: 'take_lead', payload: { lead_id } } });
+      const headers = await getAuthHeaders();
+      if (!headers) throw new Error('Connexion requise.');
+      const { data, error } = await supabase.functions.invoke('wp-proxy', {
+        body: { action: 'take_lead', payload: { lead_id } },
+        headers,
+      });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error || 'Erreur de prise');
       return data;
@@ -55,7 +80,12 @@ export function useMarkContacted() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async ({ lead_id, status = 'contacted', reason }: { lead_id: number; status?: string; reason?: string }) => {
-      const { data, error } = await supabase.functions.invoke('wp-proxy', { body: { action: 'mark_contacted', payload: { lead_id, status, reason } } });
+      const headers = await getAuthHeaders();
+      if (!headers) throw new Error('Connexion requise.');
+      const { data, error } = await supabase.functions.invoke('wp-proxy', {
+        body: { action: 'mark_contacted', payload: { lead_id, status, reason } },
+        headers,
+      });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error || 'Erreur');
       return data;
