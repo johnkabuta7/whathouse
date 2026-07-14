@@ -222,7 +222,16 @@ function ListingCard({ listing, userId }: { listing: any; userId: string }) {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-foreground truncate leading-tight">{agentName}</p>
+          <div className="flex items-center gap-1">
+            <p className="text-xs font-semibold text-foreground truncate leading-tight">{agentName}</p>
+            {ownerProfile?.show_stars !== false && (ownerProfile?.stars || 0) > 0 && (
+              <span className="flex items-center gap-[1px] shrink-0" title={`${ownerProfile.stars} étoile${ownerProfile.stars>1?'s':''}`}>
+                {Array.from({ length: ownerProfile.stars }).map((_, i) => (
+                  <span key={i} className="text-amber-500 text-[10px] leading-none">★</span>
+                ))}
+              </span>
+            )}
+          </div>
           <p className="text-[10px] text-muted-foreground leading-tight">{dateStr}</p>
         </div>
       </div>

@@ -164,12 +164,34 @@ function UserTypeRow({ u }: { u: any }) {
   const meta = TYPE_META[current];
   const Icon = meta.icon;
   const [imp, setImp] = useState(false);
+  const [stars, setStarsState] = useState<number>(u.is_admin ? 5 : (u.account_type === 'agent_premium' ? 5 : (u.stars || 0)));
+  const [showStars, setShowStarsState] = useState<boolean>(u.show_stars !== false);
 
   const update = async (val: AccountType) => {
-    const { error } = await supabase.from('profiles').update({ account_type: val }).eq('user_id', u.user_id);
+    const patch: any = { account_type: val };
+    if (val === 'agent_premium') patch.stars = 5;
+    const { error } = await supabase.from('profiles').update(patch).eq('user_id', u.user_id);
     if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+    if (val === 'agent_premium') setStarsState(5);
     toast({ title: 'Type de compte mis à jour' });
     qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
+  };
+
+  const updateStars = async (val: number) => {
+    setStarsState(val);
+    const { error } = await supabase.from('profiles').update({ stars: val }).eq('user_id', u.user_id);
+    if (error) { toast({ title: 'Erreur', variant: 'destructive' }); return; }
+    qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
+    qc.invalidateQueries({ queryKey: ['profile'] });
+  };
+
+  const toggleShowStars = async () => {
+    const next = !showStars;
+    setShowStarsState(next);
+    const { error } = await supabase.from('profiles').update({ show_stars: next }).eq('user_id', u.user_id);
+    if (error) { setShowStarsState(!next); toast({ title: 'Erreur', variant: 'destructive' }); return; }
+    toast({ title: next ? 'Étoiles visibles' : 'Étoiles masquées' });
+    qc.invalidateQueries({ queryKey: ['profile'] });
   };
 
   const loginAs = async () => {
@@ -189,23 +211,45 @@ function UserTypeRow({ u }: { u: any }) {
   };
 
   return (
-    <div className="px-3 py-2 text-xs flex items-center gap-2">
-      <span className="font-medium text-foreground flex-1 truncate">{`${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}</span>
-      <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${meta.cls}`}>
-        <Icon className="h-3 w-3" />{meta.label}
-      </span>
-      <select
-        value={current}
-        onChange={e => update(e.target.value as AccountType)}
-        className="text-[10px] bg-muted rounded-md border border-border px-1 py-0.5 text-foreground"
-      >
-        <option value="agent">Agent</option>
-        <option value="agent_premium">Premium</option>
-        <option value="admin">Admin</option>
-      </select>
-      <button onClick={loginAs} disabled={imp} title="Se connecter en tant que" className="p-1 rounded hover:bg-primary/10 text-primary">
-        {imp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogIn className="h-3.5 w-3.5" />}
-      </button>
+    <div className="px-3 py-2 text-xs">
+      <div className="flex items-center gap-2">
+        <span className="font-medium text-foreground flex-1 truncate">{`${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}</span>
+        <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${u.is_admin ? TYPE_META.admin.cls : meta.cls}`}>
+          {u.is_admin ? <Shield className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+          {u.is_admin ? 'Admin' : meta.label}
+        </span>
+        <select
+          value={current}
+          onChange={e => update(e.target.value as AccountType)}
+          className="text-[10px] bg-muted rounded-md border border-border px-1 py-0.5 text-foreground"
+        >
+          <option value="agent">Agent</option>
+          <option value="agent_premium">Premium</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button onClick={loginAs} disabled={imp} title="Se connecter en tant que" className="p-1 rounded hover:bg-primary/10 text-primary">
+          {imp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogIn className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+      <div className="flex items-center gap-2 mt-1.5">
+        <div className="flex items-center gap-0.5">
+          {[1, 2, 3, 4, 5].map(n => (
+            <button key={n} onClick={() => updateStars(n)} title={`${n} étoile${n>1?'s':''}`} className="hover:scale-110 transition">
+              <Star className={`h-4 w-4 ${n <= stars ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground/40'}`} />
+            </button>
+          ))}
+          {stars > 0 && (
+            <button onClick={() => updateStars(0)} title="Retirer" className="ml-1 text-[10px] text-muted-foreground hover:text-destructive">✕</button>
+          )}
+        </div>
+        <button
+          onClick={toggleShowStars}
+          title={showStars ? 'Masquer les étoiles dans les groupes' : 'Afficher les étoiles dans les groupes'}
+          className={`ml-auto text-[10px] px-2 py-0.5 rounded-full border transition ${showStars ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' : 'bg-muted text-muted-foreground border-border'}`}
+        >
+          {showStars ? '★ visible' : '★ masqué'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -216,7 +260,7 @@ function DataTablesSection() {
     queryFn: async () => {
       const [usersRpc, listings, groups] = await Promise.all([
         supabase.rpc('admin_list_profiles' as any, { _limit: 50 }),
-        supabase.from('listings').select('id, title, description, created_at, user_id').order('created_at', { ascending: false }).limit(30),
+        supabase.from('listings').select('id, title, description, created_at, user_id, is_featured').order('created_at', { ascending: false }).limit(30),
         supabase.from('groups').select('id, name, created_at, created_by, visibility_stars').order('created_at', { ascending: false }).limit(50),
       ]);
       return { users: (usersRpc.data as any[]) || [], listings: listings.data || [], groups: groups.data || [] };
@@ -264,6 +308,7 @@ function ListingAdminRow({ l, users }: { l: any; users: any[] }) {
   const qc = useQueryClient();
   const [authorId, setAuthorId] = useState<string>(l.user_id || '');
   const [saving, setSaving] = useState(false);
+  const [featured, setFeatured] = useState<boolean>(!!l.is_featured);
 
   const updateAuthor = async (val: string) => {
     setAuthorId(val);
@@ -275,25 +320,52 @@ function ListingAdminRow({ l, users }: { l: any; users: any[] }) {
     qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
   };
 
+  const toggleFeatured = async () => {
+    const next = !featured;
+    setFeatured(next);
+    const { error } = await supabase.from('listings').update({ is_featured: next }).eq('id', l.id);
+    if (error) { setFeatured(!next); toast({ title: 'Erreur', variant: 'destructive' }); return; }
+    toast({ title: next ? 'Mis en vedette' : 'Retiré de la vedette' });
+    qc.invalidateQueries({ queryKey: ['featured_listings'] });
+    qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
+  };
+
+  const copyId = () => {
+    navigator.clipboard?.writeText(l.id).then(() => toast({ title: 'ID copié' })).catch(() => {});
+  };
+
   return (
-    <div className="px-3 py-2 text-xs flex items-center gap-2">
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-foreground truncate">{l.title}</p>
-        <p className="text-[10px] text-muted-foreground truncate">{new Date(l.created_at).toLocaleString('fr-FR')}</p>
+    <div className="px-3 py-2 text-xs">
+      <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-foreground truncate">{l.title}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{new Date(l.created_at).toLocaleString('fr-FR')}</p>
+        </div>
+        <select
+          value={authorId}
+          onChange={e => updateAuthor(e.target.value)}
+          disabled={saving}
+          className="text-[10px] bg-muted rounded-md border border-border px-1 py-0.5 text-foreground max-w-[40%] truncate"
+        >
+          {!users.find(u => u.user_id === authorId) && <option value={authorId}>— Auteur inconnu —</option>}
+          {users.map(u => (
+            <option key={u.user_id} value={u.user_id}>
+              {(`${u.first_name || ''} ${u.last_name || ''}`.trim() || u.phone || u.email || u.user_id.slice(0, 8))}
+            </option>
+          ))}
+        </select>
       </div>
-      <select
-        value={authorId}
-        onChange={e => updateAuthor(e.target.value)}
-        disabled={saving}
-        className="text-[10px] bg-muted rounded-md border border-border px-1 py-0.5 text-foreground max-w-[40%] truncate"
-      >
-        {!users.find(u => u.user_id === authorId) && <option value={authorId}>— Auteur inconnu —</option>}
-        {users.map(u => (
-          <option key={u.user_id} value={u.user_id}>
-            {(`${u.first_name || ''} ${u.last_name || ''}`.trim() || u.phone || u.email || u.user_id.slice(0, 8))}
-          </option>
-        ))}
-      </select>
+      <div className="flex items-center gap-2 mt-1">
+        <button onClick={copyId} title="Copier l'ID" className="text-[10px] font-mono text-muted-foreground bg-muted rounded px-1.5 py-0.5 hover:bg-muted/70 truncate max-w-[55%]">
+          #{l.id.slice(0, 8)}
+        </button>
+        <button
+          onClick={toggleFeatured}
+          className={`ml-auto text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1 transition ${featured ? 'bg-amber-500/15 text-amber-600 border-amber-500/40' : 'bg-muted text-muted-foreground border-border'}`}
+        >
+          <Sparkles className="h-3 w-3" />{featured ? 'En vedette' : 'Mettre en vedette'}
+        </button>
+      </div>
     </div>
   );
 }

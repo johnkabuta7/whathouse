@@ -716,7 +716,7 @@ export function useProfile(userId: string) {
     queryKey: ['profile', userId],
     queryFn: async () => {
       if (!userId) return null;
-      const { data, error } = await supabase.from('profiles').select('id, user_id, first_name, last_name, phone, avatar_url, background_url, wp_user_id, account_type, ghost_mode, created_at, updated_at').eq('user_id', userId).maybeSingle();
+      const { data, error } = await supabase.from('profiles').select('id, user_id, first_name, last_name, phone, avatar_url, background_url, wp_user_id, account_type, ghost_mode, created_at, updated_at, stars, show_stars').eq('user_id', userId).maybeSingle();
       if (error) throw error;
       return data;
     },

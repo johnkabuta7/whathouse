@@ -221,6 +221,123 @@ function useConseils() {
   });
 }
 
+function useFeaturedListings() {
+  return useQuery({
+    queryKey: ['featured_listings'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('listings')
+        .select('id, title, description, images, created_at, user_id, group_id')
+        .eq('is_featured', true)
+        .order('created_at', { ascending: false })
+        .limit(24);
+      return data || [];
+    },
+    staleTime: 60_000,
+  });
+}
+
+type VedetteView = 'list' | 'grid' | 'mosaic';
+
+function EnVedette() {
+  const { data: items, isLoading } = useFeaturedListings();
+  const [view, setView] = useState<VedetteView>(() => {
+    try { return (localStorage.getItem('wh_vedette_view') as VedetteView) || 'list'; } catch { return 'list'; }
+  });
+  const setV = (v: VedetteView) => {
+    setView(v);
+    try { localStorage.setItem('wh_vedette_view', v); } catch {}
+  };
+
+  if (isLoading) {
+    return (
+      <div className="py-3 px-3">
+        <Skeleton className="h-4 w-40 mb-2" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+      </div>
+    );
+  }
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="py-3" data-no-swipe>
+      <div className="px-4 flex items-center justify-between mb-2">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+          <Zap className="h-3.5 w-3.5 text-amber-500" />En vedette
+        </h2>
+        <div className="flex items-center gap-0.5 bg-muted rounded-full p-0.5">
+          {(['list','grid','mosaic'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setV(v)}
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+            >
+              {v === 'list' ? 'Liste' : v === 'grid' ? 'Grille' : 'Mosaïque'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view === 'list' && (
+        <div className="px-3 space-y-2">
+          {items.map((l: any) => {
+            const img = (l.images && l.images[0]) || '';
+            return (
+              <Link key={l.id} to={`/listing/${l.id}`} className="flex items-center gap-3 p-2 rounded-2xl bg-card border border-border hover:bg-muted/50 transition">
+                <div className="h-20 w-20 rounded-xl overflow-hidden bg-muted shrink-0">
+                  {img && <img src={img} alt={l.title} className="h-full w-full object-cover" loading="lazy" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground line-clamp-2 leading-tight">{l.title}</p>
+                  <p className="text-[11px] text-primary font-bold mt-1">Voir détail →</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{(l.images || []).length} photo(s)</p>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {view === 'grid' && (
+        <div className="px-3 grid grid-cols-2 gap-2">
+          {items.map((l: any) => {
+            const img = (l.images && l.images[0]) || '';
+            return (
+              <Link key={l.id} to={`/listing/${l.id}`} className="rounded-2xl overflow-hidden bg-card border border-border">
+                <div className="aspect-square bg-muted">
+                  {img && <img src={img} alt={l.title} className="h-full w-full object-cover" loading="lazy" />}
+                </div>
+                <div className="p-2">
+                  <p className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">{l.title}</p>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {view === 'mosaic' && (
+        <div className="px-3 grid grid-cols-3 gap-1.5">
+          {items.map((l: any, i: number) => {
+            const img = (l.images && l.images[0]) || '';
+            const span = i % 5 === 0 ? 'col-span-2 row-span-2 aspect-square' : 'aspect-square';
+            return (
+              <Link key={l.id} to={`/listing/${l.id}`} className={`relative rounded-xl overflow-hidden bg-muted ${span}`}>
+                {img && <img src={img} alt={l.title} className="h-full w-full object-cover" loading="lazy" />}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
+                  <p className="text-[10px] font-bold text-white line-clamp-1">{l.title}</p>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
 function PostImmobilierCarousel() {
   const { data: posts, isLoading } = useConseils();
   if (isLoading) {
@@ -282,12 +399,22 @@ export default function Index() {
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const refreshSearch = () => {
+  const refreshSearch = async () => {
     setRefreshing(true);
-    queryClient.invalidateQueries({ queryKey: ['wp_search_properties'] });
-    queryClient.invalidateQueries({ queryKey: ['search_groups'] });
-    queryClient.invalidateQueries({ queryKey: ['wp_featured_properties'] });
-    queryClient.invalidateQueries({ queryKey: ['zwandako_conseils'] });
+    try {
+      // Clear browser caches (SW cache storage)
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      // Update the service worker if any
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.update().catch(() => {})));
+      }
+    } catch {}
+    // Invalidate every cached query so the app refetches fresh data
+    queryClient.invalidateQueries();
     setTimeout(() => setRefreshing(false), 700);
   };
   const [showMenu, setShowMenu] = useState(false);
@@ -469,6 +596,9 @@ export default function Index() {
 
       {/* Featured properties from Zwandako */}
       {!isSearching && <FeaturedProperties />}
+
+      {/* Featured listings from admins */}
+      {!isSearching && <EnVedette />}
 
       {/* Contact modal */}
       {selectedContact && (
