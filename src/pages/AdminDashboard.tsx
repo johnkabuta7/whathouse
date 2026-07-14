@@ -164,12 +164,34 @@ function UserTypeRow({ u }: { u: any }) {
   const meta = TYPE_META[current];
   const Icon = meta.icon;
   const [imp, setImp] = useState(false);
+  const [stars, setStarsState] = useState<number>(u.is_admin ? 5 : (u.account_type === 'agent_premium' ? 5 : (u.stars || 0)));
+  const [showStars, setShowStarsState] = useState<boolean>(u.show_stars !== false);
 
   const update = async (val: AccountType) => {
-    const { error } = await supabase.from('profiles').update({ account_type: val }).eq('user_id', u.user_id);
+    const patch: any = { account_type: val };
+    if (val === 'agent_premium') patch.stars = 5;
+    const { error } = await supabase.from('profiles').update(patch).eq('user_id', u.user_id);
     if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+    if (val === 'agent_premium') setStarsState(5);
     toast({ title: 'Type de compte mis à jour' });
     qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
+  };
+
+  const updateStars = async (val: number) => {
+    setStarsState(val);
+    const { error } = await supabase.from('profiles').update({ stars: val }).eq('user_id', u.user_id);
+    if (error) { toast({ title: 'Erreur', variant: 'destructive' }); return; }
+    qc.invalidateQueries({ queryKey: ['admin_data_tables'] });
+    qc.invalidateQueries({ queryKey: ['profile'] });
+  };
+
+  const toggleShowStars = async () => {
+    const next = !showStars;
+    setShowStarsState(next);
+    const { error } = await supabase.from('profiles').update({ show_stars: next }).eq('user_id', u.user_id);
+    if (error) { setShowStarsState(!next); toast({ title: 'Erreur', variant: 'destructive' }); return; }
+    toast({ title: next ? 'Étoiles visibles' : 'Étoiles masquées' });
+    qc.invalidateQueries({ queryKey: ['profile'] });
   };
 
   const loginAs = async () => {
@@ -189,23 +211,45 @@ function UserTypeRow({ u }: { u: any }) {
   };
 
   return (
-    <div className="px-3 py-2 text-xs flex items-center gap-2">
-      <span className="font-medium text-foreground flex-1 truncate">{`${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}</span>
-      <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${meta.cls}`}>
-        <Icon className="h-3 w-3" />{meta.label}
-      </span>
-      <select
-        value={current}
-        onChange={e => update(e.target.value as AccountType)}
-        className="text-[10px] bg-muted rounded-md border border-border px-1 py-0.5 text-foreground"
-      >
-        <option value="agent">Agent</option>
-        <option value="agent_premium">Premium</option>
-        <option value="admin">Admin</option>
-      </select>
-      <button onClick={loginAs} disabled={imp} title="Se connecter en tant que" className="p-1 rounded hover:bg-primary/10 text-primary">
-        {imp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogIn className="h-3.5 w-3.5" />}
-      </button>
+    <div className="px-3 py-2 text-xs">
+      <div className="flex items-center gap-2">
+        <span className="font-medium text-foreground flex-1 truncate">{`${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}</span>
+        <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${u.is_admin ? TYPE_META.admin.cls : meta.cls}`}>
+          {u.is_admin ? <Shield className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+          {u.is_admin ? 'Admin' : meta.label}
+        </span>
+        <select
+          value={current}
+          onChange={e => update(e.target.value as AccountType)}
+          className="text-[10px] bg-muted rounded-md border border-border px-1 py-0.5 text-foreground"
+        >
+          <option value="agent">Agent</option>
+          <option value="agent_premium">Premium</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button onClick={loginAs} disabled={imp} title="Se connecter en tant que" className="p-1 rounded hover:bg-primary/10 text-primary">
+          {imp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogIn className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+      <div className="flex items-center gap-2 mt-1.5">
+        <div className="flex items-center gap-0.5">
+          {[1, 2, 3, 4, 5].map(n => (
+            <button key={n} onClick={() => updateStars(n)} title={`${n} étoile${n>1?'s':''}`} className="hover:scale-110 transition">
+              <Star className={`h-4 w-4 ${n <= stars ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground/40'}`} />
+            </button>
+          ))}
+          {stars > 0 && (
+            <button onClick={() => updateStars(0)} title="Retirer" className="ml-1 text-[10px] text-muted-foreground hover:text-destructive">✕</button>
+          )}
+        </div>
+        <button
+          onClick={toggleShowStars}
+          title={showStars ? 'Masquer les étoiles dans les groupes' : 'Afficher les étoiles dans les groupes'}
+          className={`ml-auto text-[10px] px-2 py-0.5 rounded-full border transition ${showStars ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' : 'bg-muted text-muted-foreground border-border'}`}
+        >
+          {showStars ? '★ visible' : '★ masqué'}
+        </button>
+      </div>
     </div>
   );
 }
