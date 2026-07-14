@@ -23,7 +23,7 @@ export type ZwandakoLead = {
   badges?: Array<{ key: string; label: string; tone?: string }>;
 };
 
-export function useZwandakoLeads(perPage = 40) {
+export function useZwandakoLeads(perPage = 40, enabled = true) {
   return useQuery({
     queryKey: ['zwandako_leads', perPage],
     queryFn: async (): Promise<ZwandakoLead[]> => {
@@ -33,6 +33,7 @@ export function useZwandakoLeads(perPage = 40) {
       if (error) return [];
       return (data?.items || []) as ZwandakoLead[];
     },
+    enabled,
     refetchInterval: 60_000,
     staleTime: 30_000,
   });

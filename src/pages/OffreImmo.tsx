@@ -28,9 +28,10 @@ export default function OffreImmo() {
   const [cityOpen, setCityOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const { data: leads, isLoading, isFetching } = useZwandakoLeads(60);
-  const { data: access } = useZwandakoAccess();
-  const { data: myLeads = [], isLoading: myLoading, refetch: refetchMy } = useMyZwandakoLeads();
+  const isAuthenticated = Boolean(user);
+  const { data: leads, isLoading, isFetching } = useZwandakoLeads(60, isAuthenticated);
+  const { data: access } = useZwandakoAccess(isAuthenticated);
+  const { data: myLeads = [], isLoading: myLoading } = useMyZwandakoLeads(isAuthenticated);
   const takeMut = useTakeLead();
   const contactMut = useMarkContacted();
 
