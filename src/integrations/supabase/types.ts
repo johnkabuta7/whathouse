@@ -119,13 +119,6 @@ export type Database = {
             referencedRelation: "groups"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "group_join_requests_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       group_members: {
@@ -155,13 +148,6 @@ export type Database = {
             referencedRelation: "groups"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "group_members_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       group_reads: {
@@ -189,13 +175,6 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "group_reads_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups_public"
             referencedColumns: ["id"]
           },
         ]
@@ -402,13 +381,6 @@ export type Database = {
             referencedRelation: "groups"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "listings_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       notification_settings: {
@@ -596,39 +568,7 @@ export type Database = {
       }
     }
     Views: {
-      groups_public: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          id: string | null
-          image_url: string | null
-          name: string | null
-          updated_at: string | null
-          visibility_stars: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string | null
-          image_url?: string | null
-          name?: string | null
-          updated_at?: string | null
-          visibility_stars?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string | null
-          image_url?: string | null
-          name?: string | null
-          updated_at?: string | null
-          visibility_stars?: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_collaboration_request: {
@@ -668,6 +608,19 @@ export type Database = {
         }[]
       }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
+      list_discoverable_groups: {
+        Args: never
+        Returns: {
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          image_url: string
+          name: string
+          updated_at: string
+          visibility_stars: number
+        }[]
+      }
       normalize_phone_tail: { Args: { _phone: string }; Returns: string }
     }
     Enums: {
