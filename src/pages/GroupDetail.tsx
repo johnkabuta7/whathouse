@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Users, Heart, Share2, ExternalLink, ChevronDown, ChevronUp, Search, ImagePlus, X, Send, Phone, Bookmark, Camera, Edit2, Save, LogOut, Save as SaveIcon, FileText, LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -419,6 +419,7 @@ function GridListingCard({ listing }: { listing: any }) {
 
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { data: group, isLoading: groupLoading } = useGroup(id || '');
   const { data: listings, isLoading: listingsLoading } = useListings(id || '');
@@ -480,7 +481,7 @@ export default function GroupDetail() {
     <div className="max-w-lg mx-auto">
       <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)' }}>
         <div className="px-3 py-2.5 flex items-center gap-3">
-          <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
+          <button onClick={() => navigate(-1)} className="text-muted-foreground" aria-label="Précédent"><ArrowLeft className="h-5 w-5" /></button>
           <p className="text-sm font-bold text-foreground">Chargement…</p>
         </div>
       </div>
@@ -491,7 +492,7 @@ export default function GroupDetail() {
     <div className="max-w-lg mx-auto">
       <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)' }}>
         <div className="px-3 py-2.5 flex items-center gap-3">
-          <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
+          <button onClick={() => navigate(-1)} className="text-muted-foreground" aria-label="Précédent"><ArrowLeft className="h-5 w-5" /></button>
           <p className="text-sm font-bold text-foreground">Groupe</p>
         </div>
       </div>
@@ -517,7 +518,7 @@ export default function GroupDetail() {
       {/* Header */}
       <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)' }}>
         <div className="px-3 py-2.5 flex items-center gap-3">
-          <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
+          <button onClick={() => navigate(-1)} className="text-muted-foreground" aria-label="Précédent"><ArrowLeft className="h-5 w-5" /></button>
           <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
             {group.image_url ? <img src={group.image_url} className="h-full w-full object-cover rounded-full" /> : <Users className="h-4 w-4 text-primary" />}
           </div>
