@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, UserMinus, Check, X, UserPlus, Search, Phone, Trash2, Smartphone, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ function usePendingMembers(groupId: string) {
 
 export default function GroupMembers() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { data: group } = useGroup(id || '');
   const { data: members, isLoading } = useGroupMembers(id || '');
@@ -207,7 +208,7 @@ export default function GroupMembers() {
   return (
     <div className="max-w-lg mx-auto px-4 py-4 animate-fade-in">
       <div className="flex items-center gap-3 mb-4">
-        <Link to={`/group/${id}`} className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
+        <button onClick={() => navigate(-1)} className="text-muted-foreground" aria-label="Précédent"><ArrowLeft className="h-5 w-5" /></button>
         <h1 className="text-lg font-bold text-foreground flex-1">Membres</h1>
         <span className="text-xs text-muted-foreground">{members?.length || 0} membre{(members?.length || 0) > 1 ? 's' : ''}</span>
         {isCreator && (

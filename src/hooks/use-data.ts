@@ -122,16 +122,9 @@ export function useMyGroups() {
     queryKey: ['my_groups', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data: memberships, error: mErr } = await supabase.from('group_members').select('group_id').eq('user_id', user.id);
-      if (mErr) throw mErr;
-      if (!memberships?.length) return [];
-      const groupIds = memberships.map(m => m.group_id);
-      const { data, error } = await supabase
-        .from('groups').select('*').in('id', groupIds)
-        .order('visibility_stars', { ascending: false })
-        .order('updated_at', { ascending: false });
+      const { data, error } = await (supabase as any).rpc('list_discoverable_groups');
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!user,
   });
@@ -293,7 +286,9 @@ export function useIsMember(groupId: string) {
     queryFn: async () => {
       if (!user) return false;
       const { data } = await supabase.from('group_members').select('id').eq('group_id', groupId).eq('user_id', user.id).maybeSingle();
-      return !!data;
+      if (data) return true;
+      const { data: role } = await supabase.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').maybeSingle();
+      return role?.role === 'admin';
     },
     enabled: !!groupId && !!user,
   });
