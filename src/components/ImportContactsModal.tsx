@@ -174,6 +174,8 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
+    // Don't start a drag when the pointer began on an interactive control (e.g. the X button)
+    if ((e.target as HTMLElement).closest('button, a, input')) return;
     dragRef.current = { sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
