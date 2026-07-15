@@ -476,8 +476,33 @@ export default function GroupDetail() {
     normalizeSearch(l.description || '').includes(q)
   );
 
-  if (groupLoading) return <div className="px-4 py-6 max-w-lg mx-auto"><Skeleton className="h-40 rounded-2xl" /></div>;
-  if (!group) return <div className="px-4 py-6 text-center text-sm text-muted-foreground">Groupe introuvable</div>;
+  if (groupLoading) return (
+    <div className="max-w-lg mx-auto">
+      <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)' }}>
+        <div className="px-3 py-2.5 flex items-center gap-3">
+          <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
+          <p className="text-sm font-bold text-foreground">Chargement…</p>
+        </div>
+      </div>
+      <div className="px-4 py-6"><Skeleton className="h-40 rounded-2xl" /></div>
+    </div>
+  );
+  if (!group) return (
+    <div className="max-w-lg mx-auto">
+      <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)' }}>
+        <div className="px-3 py-2.5 flex items-center gap-3">
+          <Link to="/" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
+          <p className="text-sm font-bold text-foreground">Groupe</p>
+        </div>
+      </div>
+      <div className="px-4 py-10 text-center space-y-3">
+        <Users className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+        <p className="text-sm font-medium text-foreground">Ce groupe n'est pas accessible</p>
+        <p className="text-xs text-muted-foreground">Vous devez être membre pour voir son contenu. Demandez à rejoindre depuis la recherche.</p>
+        <Link to="/" className="inline-block mt-2 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold">Retour à l'accueil</Link>
+      </div>
+    </div>
+  );
 
   const handleRequestJoin = () => {
     if (!user) return;
