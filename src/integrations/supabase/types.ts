@@ -591,6 +591,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      can_view_group: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
       delete_group_cascade: { Args: { _group_id: string }; Returns: undefined }
       get_listing_like_counts: {
         Args: { _listing_ids: string[] }
@@ -608,6 +612,14 @@ export type Database = {
         }[]
       }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_group_creator: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_group_member: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
       list_discoverable_groups: {
         Args: never
         Returns: {
