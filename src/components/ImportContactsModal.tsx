@@ -174,6 +174,8 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
+    // Don't start a drag when the pointer began on an interactive control (e.g. the X button)
+    if ((e.target as HTMLElement).closest('button, a, input')) return;
     dragRef.current = { sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -201,7 +203,15 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
             <GripHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
             <h2 className="text-sm font-bold text-foreground">Importer des contacts</h2>
           </div>
-          <button onClick={close} className="p-1 rounded-full hover:bg-muted"><X className="h-4 w-4" /></button>
+          <button
+            type="button"
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); close(); }}
+            className="p-1.5 rounded-full hover:bg-muted active:bg-muted"
+            aria-label="Fermer"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </header>
 
         <div className="p-4 space-y-3">

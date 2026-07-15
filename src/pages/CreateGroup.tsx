@@ -156,7 +156,7 @@ export default function CreateGroup() {
 
     let image_url: string | undefined;
     if (imageFile) {
-      try { image_url = await uploadListingImage(imageFile, user.id); } catch { /* ignore */ }
+      try { image_url = await uploadListingImage(imageFile, user.id); } catch { /* ignore image failure — group still creates */ }
     }
 
     const ghostPicks = selectedMembers.filter(id => id.startsWith('ghost:'));
@@ -166,21 +166,38 @@ export default function CreateGroup() {
       { name: name.trim(), created_by: user.id, image_url },
       {
         onSuccess: async (data) => {
-          for (const memberId of realPicks) {
-            await supabase.from('group_members').insert({ group_id: data.id, user_id: memberId });
-          }
-          // Add ghost invites as pending_group_members
-          for (const gid of ghostPicks) {
-            const phone = gid.replace('ghost:', '');
-            const ghost = (repertoire || []).find((r: any) => r.user_id === gid);
-            await supabase.from('pending_group_members' as any).insert({
-              group_id: data.id, phone, name: ghost?.first_name || phone, invited_by: user.id,
-            });
-          }
-          toast({ title: 'Groupe créé !' });
-          navigate(`/group/${data.id}`);
+          // Best-effort member adds — partial failures never block group creation
+          const results = await Promise.allSettled([
+            ...realPicks.map(memberId =>
+              supabase.from('group_members').upsert(
+                { group_id: data.id, user_id: memberId },
+                { onConflict: 'group_id,user_id' }
+              )
+            ),
+            ...ghostPicks.map(gid => {
+              const phone = gid.replace('ghost:', '');
+              const ghost = (repertoire || []).find((r: any) => r.user_id === gid);
+              return supabase.from('pending_group_members' as any).insert({
+                group_id: data.id, phone, name: ghost?.first_name || phone, invited_by: user.id,
+              });
+            }),
+          ]);
+          const failed = results.filter(r => r.status === 'rejected' || (r as any).value?.error).length;
+          toast({
+            title: 'Groupe créé !',
+            description: failed > 0 ? `${failed} membre(s) non ajouté(s), vous pourrez réessayer.` : undefined,
+          });
+          navigate(`/group/${data.id}`, { replace: true });
         },
-        onError: () => { toast({ title: 'Erreur', variant: 'destructive' }); setIsLoading(false); },
+        onError: (e: any) => {
+          console.error('[CreateGroup] insert failed', e);
+          toast({
+            title: 'Impossible de créer le groupe',
+            description: e?.message || e?.error_description || 'Erreur inconnue',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+        },
       }
     );
   };
@@ -192,11 +209,13 @@ export default function CreateGroup() {
         className="px-3 pb-2.5 flex items-center gap-3 bg-card/95 backdrop-blur-md border-b border-border sticky top-0 z-30"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}
       >
-        {step === 'info' ? (
-          <Link to="/" className="text-muted-foreground p-1.5 -ml-1.5 rounded-full active:bg-muted"><ArrowLeft className="h-5 w-5" /></Link>
-        ) : (
-          <button onClick={() => setStep('info')} className="text-muted-foreground p-1.5 -ml-1.5 rounded-full active:bg-muted"><ArrowLeft className="h-5 w-5" /></button>
-        )}
+        <button
+          onClick={() => (step === 'info' ? (window.history.length > 1 ? navigate(-1) : navigate('/')) : setStep('info'))}
+          className="text-muted-foreground p-1.5 -ml-1.5 rounded-full active:bg-muted"
+          aria-label="Précédent"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
         <h1 className="text-base font-bold flex-1 text-foreground truncate">
           {step === 'info' ? 'Nouveau groupe' : 'Ajouter des membres'}
         </h1>
