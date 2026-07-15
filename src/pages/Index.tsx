@@ -462,10 +462,26 @@ export default function Index() {
 
   const closeMenu = () => setShowMenu(false);
 
-  if (isLoading) {
+  const [slowLoad, setSlowLoad] = useState(false);
+  useEffect(() => {
+    if (!isLoading) { setSlowLoad(false); return; }
+    const t = setTimeout(() => setSlowLoad(true), 5000);
+    return () => clearTimeout(t);
+  }, [isLoading]);
+
+  if (isLoading && !slowLoad) {
     return (
       <div className="px-4 py-4 max-w-lg lg:max-w-5xl mx-auto space-y-2">
         {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-[72px] rounded-none" />)}
+      </div>
+    );
+  }
+  if (isLoading && slowLoad) {
+    return (
+      <div className="px-4 py-10 max-w-lg mx-auto text-center space-y-3 animate-fade-in">
+        <p className="text-sm font-semibold text-foreground">Connexion lente</p>
+        <p className="text-xs text-muted-foreground">Impossible de charger vos groupes pour l'instant. Vérifiez votre connexion.</p>
+        <button onClick={refreshSearch} className="mt-2 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold">Réessayer</button>
       </div>
     );
   }
