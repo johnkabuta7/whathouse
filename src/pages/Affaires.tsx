@@ -309,7 +309,7 @@ export default function Affaires() {
   return (
     <div className="h-full w-full flex flex-col bg-background">
       <header className="shrink-0 px-4 pt-6 pb-2" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 5mm)' }}>
-        <h1 className="text-2xl font-bold text-foreground">Affaires</h1>
+        <h1 className="text-2xl font-bold text-foreground">Business</h1>
         <p className="text-xs text-muted-foreground">Votre bureau d'agent immobilier</p>
       </header>
 
