@@ -31,7 +31,40 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Affaires from "./pages/Affaires";
 
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days — keep data available offline
+      staleTime: 1000 * 30,
+      retry: 2,
+    },
+  },
+});
+
+// Persist read-only cache to localStorage so the app shows real content offline.
+// Sensitive keys (auth/session/token) are never used as query keys in this app,
+// but we defensively strip them anyway.
+if (typeof window !== 'undefined') {
+  try {
+    const persister = createSyncStoragePersister({
+      storage: window.localStorage,
+      key: 'wh-rq-cache-v1',
+      throttleTime: 1000,
+    });
+    persistQueryClient({
+      queryClient,
+      persister,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+      dehydrateOptions: {
+        shouldDehydrateQuery: (q) => {
+          const key = JSON.stringify(q.queryKey).toLowerCase();
+          if (key.includes('token') || key.includes('session') || key.includes('auth')) return false;
+          return q.state.status === 'success';
+        },
+      },
+    });
+  } catch {}
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
