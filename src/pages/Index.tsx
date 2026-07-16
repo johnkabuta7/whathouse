@@ -445,9 +445,11 @@ export default function Index() {
     };
   }, []);
   const pinnedIds = useMemo(() => new Set(getHomeGroupIds()), [pinnedTick, myGroups]);
-  const filteredMy = pinnedIds.size > 0
-    ? (myGroups || []).filter((g: any) => pinnedIds.has(g.id))
-    : (myGroups || []);
+  // Rule: a group only appears on the home if it is pinned OR has at least one unread message.
+  // Opening the group marks it as read → it disappears from the home (unless pinned).
+  const filteredMy = (myGroups || []).filter(
+    (g: any) => pinnedIds.has(g.id) || (unreadCounts?.[g.id] || 0) > 0
+  );
   const displayGroups = isSearching ? searchResults : filteredMy;
   const totalRequests = requestCounts?.total || 0;
   const totalUnread = Object.values(unreadCounts || {}).reduce((sum, n) => sum + (Number(n) || 0), 0);
