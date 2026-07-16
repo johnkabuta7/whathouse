@@ -1,50 +1,84 @@
-# Plan de corrections
+Ce plan couvre deux chantiers demandés. Le second est très large : je le découpe en phases livrables pour éviter de casser l'existant. Chaque phase est autonome et déployable.
 
-Beaucoup de sujets — je regroupe par zone pour livrer proprement.
+---
 
-## 1. Header & responsive global
-- Ajouter partout `padding-top: max(env(safe-area-inset-top), 44px)` sur les headers pour ne jamais passer sous la status-bar iOS (heure/batterie).
-- Auditer `CreateGroup`, `GroupDetail`, `Index`, `Profil`, `Affaires`, `OffreImmo`, `Contacts` pour la même règle.
-- Ajouter viewport-fit=cover dans `index.html` si absent.
+## Partie 1 — Groupes sur la page d'accueil (règle d'affichage)
 
-## 2. Image carte de visite (image 2)
-- Dans le partage carte visite (probable `Profil.tsx` ou composant dédié), afficher la photo de profil de l'utilisateur au lieu du logo orange fallback.
+Objectif : un groupe n'apparaît sur l'accueil que dans deux cas :
+1. Il est **épinglé à l'accueil** (bouton "Ajouter à l'accueil" depuis la page du groupe → `hooks/use-home-groups.ts`, déjà en place).
+2. Il a **au moins un nouveau message/annonce non lu** pour l'utilisateur connecté. Dès que l'utilisateur ouvre le groupe (donc marque comme lu via `group_reads`), le groupe disparaît de l'accueil, sauf s'il est épinglé.
 
-## 3. Import contacts (image 3)
-- Le toast rouge "Le navigateur ne supporte pas l'import" apparaît en même temps que la modale — retirer le toast quand la modale reste ouverte, et faire fonctionner le bouton X.
+Changements :
+- `src/pages/Index.tsx` : la liste des groupes affichés = `pinnedHomeGroupIds ∪ groupsWithUnread`. Retirer l'affichage "tous mes groupes" par défaut.
+- Calcul de `groupsWithUnread` : comparer `listings.created_at` max par `group_id` avec `group_reads.last_read_at` pour l'utilisateur courant.
+- Rafraîchir la liste quand un nouveau `listing` arrive (déjà via `useRealtimeListings`) et quand on revient sur la route `/`.
+- Utilisateur non connecté : n'afficher que les groupes épinglés locaux (déjà stockés en localStorage).
 
-## 4. Images des groupes (image 4)
-- Dans la liste des groupes (`Contacts.tsx`), afficher `group.avatar_url` (ou équivalent) au lieu de l'icône par défaut.
+---
 
-## 5. Profil — restructuration
-- Regrouper "Mon activité" et "Espace professionnel" en sections dépliables comme Préférences/Sécurité.
-- Retirer bouton "Se déconnecter" dans Sécurité (il existe déjà en bas).
-- Relire/améliorer Aide & informations.
+## Partie 2 — Offline First (PWA + cache + file d'attente + sync)
 
-## 6. Menu Affaires
-- Supprimer onglet "Portefeuille".
-- Titre "Notifications & Activité" sur une ligne, sans sous-titre "Activité récente – mes annonces".
-- Sur les annonces "En cours" : remplacer "Voir dans le groupe" par "Aperçu" (ouvre `ListingPreview` avec boutons WhatsApp).
-- Notifications temps réel via Supabase realtime.
+Approche : on garde React Query comme cache lecture, on ajoute un **Service Worker** pour l'app-shell + assets + navigations (NetworkFirst pour HTML, CacheFirst pour assets hashés, StaleWhileRevalidate pour images de listings), et une **file d'attente locale IndexedDB** pour les mutations. Aucune logique métier existante n'est modifiée : on branche un wrapper autour des `mutationFn` sensibles.
 
-## 7. Aperçu annonce accueil
-- Clic sur annonce accueil → route `/listing/:id` en aperçu dans l'app (pas redirection externe).
+### Phase A — PWA & cache lecture (base technique)
+- Ajouter `vite-plugin-pwa` en mode `generateSW`, `registerType: autoUpdate`, `injectRegister: null`.
+- Wrapper d'enregistrement `src/pwa/register.ts` avec toutes les gardes Lovable preview / iframe / `?sw=off` (skill PWA).
+- Retirer / remplacer l'actuel `public/sw.js` manuel via la stratégie kill-switch (une release), puis laisser `vite-plugin-pwa` prendre la main.
+- Runtime caching :
+  - HTML/navigations → `NetworkFirst` (exclure `/~oauth`).
+  - JS/CSS hashés → `CacheFirst`.
+  - Images Supabase Storage (`/storage/v1/object/public/listings/*`) → `StaleWhileRevalidate`, cap 200 entrées / 60 jours.
+  - Fonts, icônes → `CacheFirst`.
+- Persistance React Query : `@tanstack/query-sync-storage-persister` + `persistQueryClient` sur `localStorage` (clé versionnée) pour que profils, groupes, listings restent visibles hors ligne.
 
-## 8. Offre Immo — prise d'annonce
-- Quand on "Prend" une demande : ne pas stocker dans `wh_taken_listings` local mais l'envoyer côté zwandako via `wp-proxy` action `take_lead`, puis l'afficher dans onglet "Mes demandes" avec quota, contact Appeler/WhatsApp/Email, bouton "Contactée" — reproduire l'UI de l'image 5.
+### Phase B — Indicateur d'état réseau + file d'attente
+- Nouveau contexte `src/contexts/OfflineContext.tsx` : `online`, `pendingCount`, `syncing`.
+- Nouveau module `src/offline/queue.ts` sur IndexedDB (`idb` léger) :
+  - `enqueue({ kind, payload, createdAt, retries })`
+  - `list()`, `remove(id)`, `bumpRetry(id)`
+  - Kinds supportés (phase B) : `listing.create`, `listing.update`, `listing.delete`, `group.create`, `comment.create`, `profile.update`, `photo.upload`.
+- Barre discrète en haut (dans `Layout`) :
+  - 🟢 en ligne (masquée après 2 s) / 🟠 sync / 🔴 hors ligne / 🔵 « N actions en attente ».
+- Écoute `online`/`offline` + `navigator.onLine` pour déclencher la sync.
 
-## Ordre d'exécution
-1. Header responsive (rapide, transverse)
-2. Contacts : image groupe + import fix
-3. Profil : sections + cleanup
-4. Affaires : suppression portefeuille + aperçu + realtime
-5. Accueil : preview
-6. Offre Immo : take_lead + UI mes demandes
-7. Carte visite photo
+### Phase C — Branchement des mutations
+- Créer `src/offline/withOffline.ts` : helper qui, dans un `mutationFn`, tente l'appel réseau ; si `!navigator.onLine` **ou** erreur réseau → `enqueue(...)` et retourne une réponse optimiste. Mise à jour optimiste dans le cache React Query pour que l'UI reflète l'action.
+- Brancher sur les hooks existants sans changer leur signature :
+  - `Publish.tsx` (création listing + upload photos)
+  - `CreateGroup.tsx`
+  - Édition / suppression annonce
+  - Édition profil
+  - Envoi commentaire / message
+- Les photos sélectionnées hors ligne sont stockées en `Blob` dans IndexedDB (jamais en base64 en localStorage), référencées par la tâche `photo.upload`.
 
-## Notes techniques
-- `wp-proxy` : ajouter actions `take_lead`, `list_my_leads`, `mark_contacted` côté edge function (endpoints zwandako correspondants à confirmer).
-- Realtime : `supabase.channel('notifications').on('postgres_changes', ...)`.
-- Ne pas toucher `src/integrations/supabase/client.ts` ni `types.ts`.
+### Phase D — Synchronisation
+- `src/offline/sync.ts` : moteur qui, au retour de connexion (ou toutes les 30 s si `pendingCount > 0`), rejoue la file **en ordre FIFO** avec backoff exponentiel (1s, 5s, 30s, 5min, plafonné). Une tâche `listing.create` qui dépend d'un `photo.upload` attend la confirmation d'upload.
+- Résolution de conflits : `updated_at` serveur > local ⇒ garder serveur + toast « Version serveur plus récente conservée ». Aucune écriture silencieuse.
+- Toast succès à la fin de la vidange : « Vos données ont été synchronisées ».
+- Enregistrement Background Sync (`sync` tag) sur navigateurs compatibles ; fallback polling sinon.
 
-Confirmez ou ajustez avant que je lance — c'est ~10 fichiers modifiés.
+### Phase E — Sécurité, quota, tests
+- Ne rien persister de sensible : la persistance React Query filtre les clés (`profiles`, `listings`, `groups`, `messages` OK ; on exclut tout ce qui contient `token`, `session`, `auth`).
+- Nettoyage : cap IndexedDB à 50 Mo, LRU sur images, purge des tâches accomplies.
+- Tests manuels documentés dans `README.md` (perte réseau pendant publication, redémarrage, plusieurs jours hors ligne, etc.).
+
+---
+
+## Détails techniques
+
+- Nouvelles deps : `vite-plugin-pwa`, `workbox-window`, `idb`, `@tanstack/query-sync-storage-persister`, `@tanstack/react-query-persist-client`.
+- Fichiers créés : `src/pwa/register.ts`, `src/offline/{queue,sync,withOffline,db}.ts`, `src/contexts/OfflineContext.tsx`, `src/components/OfflineBar.tsx`.
+- Fichiers modifiés : `vite.config.ts`, `src/main.tsx`, `src/App.tsx` (provider + persister), `src/components/Layout.tsx` (barre), `src/pages/Index.tsx` (règle groupes), `src/pages/Publish.tsx`, `src/pages/CreateGroup.tsx`, `src/pages/GroupDetail.tsx` (commentaires/messages), `src/pages/Profil.tsx`, hooks `use-data.ts` concernés.
+- Aucun changement DB / RLS nécessaire pour cette itération.
+
+---
+
+## Ordre de livraison proposé
+
+1. **Partie 1 (groupes accueil)** — petite, autonome, ~1 édition.
+2. **Phase A** (PWA + cache lecture) — navigation hors ligne fonctionnelle.
+3. **Phase B** (indicateur + file d'attente vide) — visibilité pour l'utilisateur.
+4. **Phase C + D** (mutations offline + sync) — cœur de l'offline first.
+5. **Phase E** (sécurité, quota, tests).
+
+Confirme si je pars sur cet ordre, ou dis-moi si tu veux que je commence directement par la Partie 1 + Phase A dans le même tour.
